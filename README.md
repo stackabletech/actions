@@ -1,7 +1,7 @@
 # Actions
 
-This repository contains various reusable actions which encapsulate series of
-commands to run a particular step in a workflow.
+This repository contains various reusable actions which encapsulate series of commands to run a
+particular step in a workflow.
 
 ## Definitions
 
@@ -22,26 +22,23 @@ commands to run a particular step in a workflow.
 Manifest: [build-product-image/action.yml][build-product-image]
 
 > [!NOTE]
-> The build step is not concerned with registries, ports, paths to repositories,
-> but still requires a name. If the name does not contain a registry,
-> `hub.docker.com` (?) is implied. Therefore, `localhost` will be used as the
-> registry so as to avoid accidental interactions with an unintended registry.
+> The build step is not concerned with registries, ports, paths to repositories, but still requires
+> a name. If the name does not contain a registry, `hub.docker.com` (?) is implied. Therefore,
+> `localhost` will be used as the registry so as to avoid accidental interactions with an unintended
+> registry.
 >
-> Ideally, bake should be refactored to use `localhost` as the registry for the
-> previously mentioned reason (whether or not that is behind some option).
+> Ideally, bake should be refactored to use `localhost` as the registry for the previously mentioned
+> reason (whether or not that is behind some option).
 
-This action builds a *single* container image using `bake`. It does the
-following work:
+This action builds a *single* container image using `bake`. It does the following work:
 
 1. Free disk space to avoid running out of disk space during larger builds.
 2. Build the image using `bake` which internally uses `docker buildx`.
-3. Temporarily retag the image to use `localhost` instead of
-   `docker.stackable.tech/stackable`.
+3. Temporarily retag the image to use `localhost` instead of `docker.stackable.tech/stackable`.
 4. Produce output values to be used in later steps.
 
-This action is considered to be the **single** source of truth regarding image
-index tag and image manifest tag. All subsequent tasks must use these values to
-ensure consistency.
+This action is considered to be the **single** source of truth regarding image index tag and image
+manifest tag. All subsequent tasks must use these values to ensure consistency.
 
 Currently, bake provides the following ouput in the `bake-target-tags` file:
 
@@ -49,8 +46,7 @@ Currently, bake provides the following ouput in the `bake-target-tags` file:
 docker.stackable.tech/stackable/kafka:3.4.1-stackable0.0.0-dev-amd64
 ```
 
-Until bake supports the ability to specify the registry, this action will retag
-the image as:
+Until bake supports the ability to specify the registry, this action will retag the image as:
 
 ```plain
 localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
@@ -59,8 +55,7 @@ localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
 ### Inputs and Outputs
 
 > [!TIP]
-> For descriptions of the inputs and outputs, see the [build-product-image]
-> workflow.
+> For descriptions of the inputs and outputs, see the complete [build-product-image] action.
 
 #### Inputs
 
@@ -80,29 +75,27 @@ localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
 
 Manifest: [publish-image/action.yml][publish-image]
 
-This action signs and publishes a *single* container image to the given
-registry. It does the following work:
+This action signs and publishes a *single* container image to the given registry. It does the
+following work:
 
-1. Tag the `source-image-uri` with the specified `image-registry-uti`,
-   `image-repository`, and `image-repository`.
+1. Tag the `source-image-uri` with the specified `image-registry-uti`, `image-repository`, and
+   `image-repository`.
 2. Push the container image to the specified registry.
-3. Sign the container image (which pushes the signature to the specified
-   registry).
+3. Sign the container image (which pushes the signature to the specified registry).
 4. Generate an SBOM via a syft scan.
-5. Attest an image with the SBOM as a predicate (which pushes the attestation
-   to the specified registry).
+5. Attest an image with the SBOM as a predicate (which pushes the attestation to the specified
+   registry).
 
 ### Inputs and Outputs
 
 > [!TIP]
-> For descriptions of the inputs and outputs, see the [publish-image] workflow.
+> For descriptions of the inputs and outputs, see the complete [publish-image] action.
 
 <!-- markdownlint-disable-next-line MD028 -->
 > [!IMPORTANT]
-> For multi-arch images, the `image-manifest-tag` should have the `-$ARCH`
-> suffix, as the tag without it should be reserved for the image index manifest
-> which will refer to container images for each architecture we will push images
-> for.
+> For multi-arch images, the `image-manifest-tag` should have the `-$ARCH` suffix, as the tag
+> without it should be reserved for the image index manifest which will refer to container images
+> for each architecture we will push images for.
 
 #### Inputs
 
@@ -123,20 +116,16 @@ None
 
 Manifest: [publish-index-manifest/action.yml][publish-index-manifest]
 
-This action creates an image index manifest, publishes it, and signs it. It does
-the following work:
+This action creates an image index manifest, publishes it, and signs it. It does the following work:
 
-1. Create an image index manifest and link to each architecture in
-   `image-architectures`.
+1. Create an image index manifest and link to each architecture in `image-architectures`.
 2. Push the image index manifest.
-3. Sign the image index manifest (which pushes the signature to the specified
-   registry).
+3. Sign the image index manifest (which pushes the signature to the specified registry).
 
 ### Inputs and Outputs
 
 > [!TIP]
-> For descriptions of the inputs and outputs, see the [publish-index-manifest]
-> workflow.
+> For descriptions of the inputs and outputs, see the complete [publish-index-manifest] action.
 
 #### Inputs
 
@@ -157,8 +146,8 @@ None
 
 Manifest: [shard/action.yml][shard]
 
-This action produces a list of versions for a product. This is to be used as a
-matrix dimension to parallelize builds. It does the following work:
+This action produces a list of versions for a product. This is to be used as a matrix dimension to
+parallelize builds. It does the following work:
 
 1. Reads the `conf.py`, filtering versions for the product
 2. Write the JSON array of version to `$GITHUB_OUTPUT` for use in a matrix.
@@ -190,7 +179,7 @@ jobs:
 ### Inputs and Outputs
 
 > [!TIP]
-> For descriptions of the inputs and outputs, see the [shard] workflow.
+> For descriptions of the inputs and outputs, see the complete [shard] action.
 
 #### Inputs
 
