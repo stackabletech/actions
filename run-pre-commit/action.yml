@@ -10,6 +10,11 @@ inputs:
     default: "3.12"
   rust:
     description: Whether to install the Rust toolchain (and which version to use)
+  rust-components:
+    description: |
+      Override which Rust components are installed. Only takes effect when Rust
+      is installed.
+    default: rustfmt,clippy
   hadolint:
     description: Whether to install hadolint (and which version to use)
 runs:
@@ -25,7 +30,7 @@ runs:
       if: ${{ inputs.rust }}
       with:
         toolchain: ${{ inputs.rust }}
-        components: rustfmt,clippy
+        components: ${{ inputs.rust-components }}
 
     - name: Setup Hadolint
       if: ${{ inputs.hadolint }}
