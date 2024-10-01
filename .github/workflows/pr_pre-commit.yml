@@ -13,4 +13,4 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-      - uses: ./.github/actions/run-pre-commit
+      - uses: ./run-pre-commit
