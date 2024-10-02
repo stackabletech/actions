@@ -1,7 +1,7 @@
 ---
 name: Run pre-commit
 description: |
-  This actions sets up Python, the pre-commit tool, and additional tools 
+  This actions sets up Python, the pre-commit tool, and additional tools
   required for various hooks. It then runs pre-commit against the changed files.
   This actions expects checkouts with depth 0.
 inputs:
