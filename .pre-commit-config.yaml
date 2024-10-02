@@ -21,9 +21,6 @@ repos:
     rev: f295829140d25717bc79368d3f966fc1f67a824f # 0.41.0
     hooks:
       - id: markdownlint
-        types: [text]
-        files: \.md(\.j2)*$
-
   - repo: https://github.com/koalaman/shellcheck-precommit
     rev: 2491238703a5d3415bb2b7ff11388bf775372f29 # 0.10.0
     hooks:
