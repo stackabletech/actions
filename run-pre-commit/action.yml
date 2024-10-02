@@ -1,0 +1,55 @@
+---
+name: Run pre-commit
+description: |
+  This action sets up Python, the pre-commit tool, and additional tools
+  required for various hooks. It then runs pre-commit against the changed files.
+  This actions expects checkouts with depth 0.
+inputs:
+  python-version:
+    description: Python version to install
+    default: "3.12"
+  rust:
+    description: Whether to install the Rust toolchain (and which version to use)
+  rust-components:
+    description: |
+      Override which Rust components are installed. Only takes effect when Rust
+      is installed.
+    default: rustfmt,clippy
+  hadolint:
+    description: Whether to install hadolint (and which version to use)
+runs:
+  using: composite
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Setup Rust Toolchain
+      uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a
+      if: ${{ inputs.rust }}
+      with:
+        toolchain: ${{ inputs.rust }}
+        components: ${{ inputs.rust-components }}
+
+    - name: Setup Hadolint
+      if: ${{ inputs.hadolint }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        LOCATION_DIR="$HOME/.local/bin"
+        LOCATION_BIN="$LOCATION_DIR/hadolint"
+
+        SYSTEM=$(uname -s)
+        ARCH=$(uname -m)
+
+        mkdir -p "$LOCATION_DIR"
+        curl -sL -o "${LOCATION_BIN}" "https://github.com/hadolint/hadolint/releases/download/${{ inputs.hadolint }}/hadolint-$SYSTEM-$ARCH"
+        chmod 700 "${LOCATION_BIN}"
+
+        echo "$LOCATION_DIR" >> "$GITHUB_PATH"
+
+    - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+      with:
+        extra_args: "--from-ref '${{ github.event.pull_request.base.sha }}' --to-ref '${{ github.event.pull_request.head.sha }}'"

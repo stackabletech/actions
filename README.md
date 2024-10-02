@@ -19,8 +19,9 @@ particular step in a workflow.
 
 ## `build-product-image`
 
-Manifest: [build-product-image/action.yml][build-product-image]
+> Manifest: [build-product-image/action.yml][build-product-image]
 
+<!-- markdownlint-disable-next-line MD028 -->
 > [!NOTE]
 > The build step is not concerned with registries, ports, paths to repositories, but still requires
 > a name. If the name does not contain a registry, `hub.docker.com` (?) is implied. Therefore,
@@ -73,7 +74,7 @@ localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
 
 ## `publish-image`
 
-Manifest: [publish-image/action.yml][publish-image]
+> Manifest: [publish-image/action.yml][publish-image]
 
 This action signs and publishes a *single* container image to the given registry. It does the
 following work:
@@ -114,7 +115,7 @@ None
 
 ## `publish-index-manifest`
 
-Manifest: [publish-index-manifest/action.yml][publish-index-manifest]
+> Manifest: [publish-index-manifest/action.yml][publish-index-manifest]
 
 This action creates an image index manifest, publishes it, and signs it. It does the following work:
 
@@ -142,9 +143,58 @@ None
 
 [publish-index-manifest]: ./publish-index-manifest/action.yml
 
+## `run-pre-commit`
+
+> Manifest: [run-pre-commit/action.yml][run-pre-commit]
+
+This action runs pre-commit by setting up Python and optionally the Rust toolchain and Hadolint in
+the requested version. It requires a checkout with depth 0. It does the following work:
+
+1. Installs Python. The version can be configured via the `python-version` input.
+2. Optionally sets up the Rust toolchain and Hadolint.
+3. Runs pre-commit on changed files.
+
+Example usage (workflow):
+
+```yaml
+---
+name: pre-commit
+
+on:
+  pull_request:
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - uses: stackabletech/actions/run-pre-commit
+```
+
+### Inputs and Outputs
+
+> [!TIP]
+> For descriptions of the inputs and outputs, see the complete [run-pre-commit] action.
+
+#### Inputs
+
+- `python-version`
+- `rust`
+- `rust-components`
+- `hadolint`
+
+#### Outputs
+
+None
+
+[run-pre-commit]: ./run-pre-commit/action.yml
+
 ## `shard`
 
-Manifest: [shard/action.yml][shard]
+> Manifest: [shard/action.yml][shard]
 
 This action produces a list of versions for a product. This is to be used as a matrix dimension to
 parallelize builds. It does the following work:
@@ -160,9 +210,9 @@ jobs:
     name: Generate Version List
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: actions/checkout
       - id: shard
-        uses: ./.github/actions/shard
+        uses: stackabletech/actions/shard
         with:
           product-name: ${{ env.PRODUCT_NAME }}
     outputs:
