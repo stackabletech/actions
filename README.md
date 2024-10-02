@@ -21,6 +21,7 @@ particular step in a workflow.
 
 > Manifest: [build-product-image/action.yml][build-product-image]
 
+<!-- markdownlint-disable-next-line MD028 -->
 > [!NOTE]
 > The build step is not concerned with registries, ports, paths to repositories, but still requires
 > a name. If the name does not contain a registry, `hub.docker.com` (?) is implied. Therefore,
