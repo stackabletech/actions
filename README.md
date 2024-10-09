@@ -36,8 +36,8 @@ All subsequent tasks must use this value to ensure consistency.
 
 #### Inputs
 
-- `image-name`
-- `image-index-manifest-tag`
+- `image-name` (eg: `kafka`)
+- `image-index-manifest-tag` (eg: `3.4.1-stackable0.0.0-dev`)
 - `container-file` (defaults to `Dockerfile`)
 - `build-context` (defaults to `.`)
 <!--
@@ -48,7 +48,9 @@ TODO (@NickLarsenNZ): Allow optional buildx cache
 
 #### Outputs
 
-- `image-manifest-tag`
+- `image-repository-uri` (eg: `localhost/kafka`)
+- `image-manifest-tag` (eg: `3.4.1-stackable0.0.0-dev-amd64`)
+- `image-manifest-uri` (eg: `localhost/kafka:3.4.1-stackable0.0.0-dev-amd64`)
 
 [build-container-image]: ./build-container-image/action.yml
 
