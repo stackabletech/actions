@@ -17,6 +17,41 @@ particular step in a workflow.
 | Image Repo Digest                  | `docker.stackable.tech/stackable/kafka@sha256:917f800259ef4915f976...` |
 | Digest                             | `sha256:917f800259ef4915f976e93987b752fd64debf347568610d7f685d2022...` |
 
+## `build-container-image`
+
+> Manifest: [build-container-image/action.yml][build-container-image]
+
+This action builds a *single* container image using `docker buildx build`. It does the following work:
+
+1. Free disk space to avoid running out of disk space during larger builds.
+2. Build the image using `docker buildx build`, outputting the architecture specific tag.
+
+This action is considered to be the **single** source of truth regarding the image manifest tag.
+All subsequent tasks must use this value to ensure consistency.
+
+### Inputs and Outputs
+
+> [!TIP]
+> For descriptions of the inputs and outputs, see the complete [build-container-image] action.
+
+#### Inputs
+
+- `image-name`
+- `image-index-manifest-tag`
+- `container-file` (defaults to `Dockerfile`)
+- `build-context` (defaults to `.`)
+<!--
+TODO (@NickLarsenNZ): Allow optional buildx cache
+- `build-cache-username`
+- `build-cache-password`
+-->
+
+#### Outputs
+
+- `image-manifest-tag`
+
+[build-container-image]: ./build-container-image/action.yml
+
 ## `build-product-image`
 
 > Manifest: [build-product-image/action.yml][build-product-image]
