@@ -78,11 +78,9 @@ runs:
         IMAGE_MANIFEST_TAG="${IMAGE_INDEX_MANIFEST_TAG}-${IMAGE_ARCH}"
         echo "IMAGE_MANIFEST_TAG=${IMAGE_MANIFEST_TAG}" | tee -a $GITHUB_OUTPUT
 
+        # TODO (@NickLarsenNZ): Allow optional buildx cache
         docker buildx build \
         --file "${CONTAINER_FILE}" \
         --platform "linux/${IMAGE_ARCH}" \
         --tag "localhost/${IMAGE_NAME}:${IMAGE_MANIFEST_TAG}" \
-        # TODO (@NickLarsenNZ): Allow optional buildx cache
-        # --cache-to ... \
-        # --cache-from ... \
         "${BUILD_CONTEXT}"
