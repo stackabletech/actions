@@ -25,11 +25,20 @@ inputs:
   #   description: Build cache password
   #   required: true
 outputs:
+  image-repository-uri:
+    description: |
+      The locally tagged name of the image, for example: `localhost/kafka`
+    value: ${{ steps.build-image.outputs.IMAGE_REPOSITORY_URI }}
   image-manifest-tag:
     description: |
       Human-readable tag (usually the version) with architecture information,
       for example: `3.4.1-stackable0.0.0-dev-amd64`
     value: ${{ steps.build-image.outputs.IMAGE_MANIFEST_TAG }}
+  image-manifest-uri:
+    description: |
+      The full image manifest uri, for example:
+      localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
+    value: ${{ steps.build-image.outputs.IMAGE_MANIFEST_URI }}
 runs:
   using: composite
   steps:
@@ -78,11 +87,15 @@ runs:
         IMAGE_MANIFEST_TAG="${IMAGE_INDEX_MANIFEST_TAG}-${IMAGE_ARCH}"
         echo "IMAGE_MANIFEST_TAG=${IMAGE_MANIFEST_TAG}" | tee -a $GITHUB_OUTPUT
 
+        IMAGE_REPOSITORY_URI="localhost/${IMAGE_NAME}"
+        echo "IMAGE_REPOSITORY_URI=${IMAGE_REPOSITORY_URI}" | tee -a $GITHUB_OUTPUT
+
+        IMAGE_MANIFEST_URI="${IMAGE_REPOSITORY_URI}:${IMAGE_MANIFEST_TAG}"
+        echo "IMAGE_MANIFEST_URI=${IMAGE_MANIFEST_URI}" | tee -a $GITHUB_OUTPUT
+
+        # TODO (@NickLarsenNZ): Allow optional buildx cache
         docker buildx build \
         --file "${CONTAINER_FILE}" \
         --platform "linux/${IMAGE_ARCH}" \
-        --tag "localhost/${IMAGE_NAME}:${IMAGE_MANIFEST_TAG}" \
-        # TODO (@NickLarsenNZ): Allow optional buildx cache
-        # --cache-to ... \
-        # --cache-from ... \
+        --tag "${IMAGE_MANIFEST_URI}" \
         "${BUILD_CONTEXT}"
