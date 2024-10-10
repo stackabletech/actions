@@ -1,0 +1,101 @@
+---
+name: Build Product Image
+description: This action builds a product Docker image with a specific version
+inputs:
+  image-name:
+    description: |
+      The local name of the built image, for example: `kafka` or
+      `csi-provisioner`
+    required: true
+  image-index-manifest-tag:
+    description: |
+      Human-readable tag (usually the version) without architecture information,
+      for example: `3.4.1-stackable0.0.0-dev`
+  container-file:
+    description: Path to Containerfile (or Dockefile)
+    default: Dockerfile
+  build-context:
+    description: Path to the build-context
+    default: .
+  # TODO (@NickLarsenNZ): Allow optional buildx cache
+  # build-cache-username:
+  #   description: Build cache username
+  #   default: github
+  # build-cache-password:
+  #   description: Build cache password
+  #   required: true
+outputs:
+  image-repository-uri:
+    description: |
+      The locally tagged name of the image, for example: `localhost/kafka`
+    value: ${{ steps.build-image.outputs.IMAGE_REPOSITORY_URI }}
+  image-manifest-tag:
+    description: |
+      Human-readable tag (usually the version) with architecture information,
+      for example: `3.4.1-stackable0.0.0-dev-amd64`
+    value: ${{ steps.build-image.outputs.IMAGE_MANIFEST_TAG }}
+  image-manifest-uri:
+    description: |
+      The full image manifest uri, for example:
+      localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
+    value: ${{ steps.build-image.outputs.IMAGE_MANIFEST_URI }}
+runs:
+  using: composite
+  steps:
+    - name: Free Disk Space (Ubuntu)
+      uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+      with:
+        # This might remove tools that are actually needed, if set to "true" but
+        # frees about 6 GB.
+        tool-cache: false
+
+        # All of these default to true, but feel free to set to "false" if
+        # necessary for your workflow.
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: true
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
+
+    # TODO (@NickLarsenNZ): Allow optional buildx cache
+    #   # Needed if you pass the --cache argument to the bake command below
+    # - name: Login to the docker build cache registry
+    #   uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+    #   with:
+    #     registry: build-repo.stackable.tech:8083
+    #     username: ${{ inputs.build-cache-username }}
+    #     password: ${{ inputs.build-cache-password }}
+
+    - name: Build ${{ inputs.image-name }}:${{ inputs.image-index-manifest-tag }}
+      id: build-image
+      env:
+        IMAGE_NAME: ${{ inputs.image-name }}
+        IMAGE_INDEX_MANIFEST_TAG: ${{ inputs.image-index-manifest-tag }}
+        CONTAINER_FILE: ${{ inputs.container-file }}
+        BUILD_CONTEXT: ${{ inputs.build-context }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        IMAGE_ARCH="$(uname -m | sed -e 's#x86_64#amd64#' | sed -e 's#aarch64#arm64#')"
+        echo "IMAGE_ARCH=${IMAGE_ARCH}" | tee -a "$GITHUB_ENV"
+
+        IMAGE_MANIFEST_TAG="${IMAGE_INDEX_MANIFEST_TAG}-${IMAGE_ARCH}"
+        echo "IMAGE_MANIFEST_TAG=${IMAGE_MANIFEST_TAG}" | tee -a $GITHUB_OUTPUT
+
+        IMAGE_REPOSITORY_URI="localhost/${IMAGE_NAME}"
+        echo "IMAGE_REPOSITORY_URI=${IMAGE_REPOSITORY_URI}" | tee -a $GITHUB_OUTPUT
+
+        IMAGE_MANIFEST_URI="${IMAGE_REPOSITORY_URI}:${IMAGE_MANIFEST_TAG}"
+        echo "IMAGE_MANIFEST_URI=${IMAGE_MANIFEST_URI}" | tee -a $GITHUB_OUTPUT
+
+        # TODO (@NickLarsenNZ): Allow optional buildx cache
+        docker buildx build \
+        --file "${CONTAINER_FILE}" \
+        --platform "linux/${IMAGE_ARCH}" \
+        --tag "${IMAGE_MANIFEST_URI}" \
+        "${BUILD_CONTEXT}"

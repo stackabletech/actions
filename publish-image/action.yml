@@ -13,7 +13,7 @@ inputs:
     required: true
   image-repository:
     description: |
-      Last segment of the path, for example `stackable/kafka` or
+      Path to the image, for example `stackable/kafka` or
       `k8s/sig-storage/csi-provisioner`
     required: true
   image-manifest-tag:
