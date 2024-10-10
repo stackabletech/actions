@@ -48,7 +48,7 @@ runs:
         curl -sL -o "${LOCATION_BIN}" "https://github.com/hadolint/hadolint/releases/download/${{ inputs.hadolint }}/hadolint-$SYSTEM-$ARCH"
         chmod 700 "${LOCATION_BIN}"
 
-        echo "$LOCATION_DIR" >> "$GITHUB_PATH"
+        echo "$LOCATION_DIR" | tee -a "$GITHUB_PATH"
 
     - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
       with:

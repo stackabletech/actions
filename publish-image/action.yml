@@ -76,7 +76,7 @@ runs:
         docker tag "$SOURCE_IMAGE_URI" "$TARGET_IMAGE_URI"
 
         # Output for the next step
-        echo "IMAGE_MANIFEST_URI=$TARGET_IMAGE_URI" >> $GITHUB_ENV
+        echo "IMAGE_MANIFEST_URI=$TARGET_IMAGE_URI" | tee -a $GITHUB_ENV
 
     - name: Push the container image to ${{ inputs.image-registry-uri }}
       shell: bash

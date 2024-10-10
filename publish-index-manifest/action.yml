@@ -62,7 +62,7 @@ runs:
         # Construct the image index uri, which for example contains:
         # docker.stackable.tech/stackable/kafka:3.4.1-stackable0.0.0-dev
         IMAGE_INDEX_URI="$REGISTRY_URI/$IMAGE_REPOSITORY:$IMAGE_INDEX_MANIFEST_TAG"
-        echo "IMAGE_INDEX_URI=$IMAGE_INDEX_URI" >> $GITHUB_ENV
+        echo "IMAGE_INDEX_URI=$IMAGE_INDEX_URI" | tee -a $GITHUB_ENV
 
         AMEND_OPTIONS=$(
           jq \
