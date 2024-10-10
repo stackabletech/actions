@@ -15,12 +15,12 @@ This action creates an image index manifest, publishes it, and signs it. It does
 
 ### Inputs
 
-- `image-registry-uri`
-- `image-registry-username`
-- `image-registry-password`
-- `image-repository`
-- `image-index-manifest-tag`
-- `image-architectures`
+- `image-registry-uri`(eg: `oci.stackable.tech`)
+- `image-registry-username` (required)
+- `image-registry-password` (required)
+- `image-repository` (eg: `stackable/kafka`)
+- `image-index-manifest-tag` (eg: `3.4.1-stackable0.0.0-dev`)
+- `image-architectures` (defaults to `["amd64", "arm64"]`)
 
 ### Outputs
 

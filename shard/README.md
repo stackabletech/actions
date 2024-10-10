@@ -39,10 +39,10 @@ jobs:
 
 ### Inputs
 
-- `product-name`
+- `product-name` (eg: `kafka`)
 
 ### Outputs
 
-- `versions`
+- `versions` (eg: `["3.7.1", "3.8.0"]`)
 
 [shard]: ./action.yml

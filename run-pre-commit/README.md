@@ -36,10 +36,10 @@ jobs:
 
 ### Inputs
 
-- `python-version`
-- `rust`
-- `rust-components`
-- `hadolint`
+- `python-version` (defaults to `3.12`)
+- `rust` (eg: `1.80.1`. Disabled if not specified)
+- `rust-components` (defaults to `rustfmt,clippy`)
+- `hadolint` (eg: `v2.12.0`. Disabled if not specified)
 
 ### Outputs
 

@@ -41,14 +41,14 @@ localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
 
 ### Inputs
 
-- `product-name`
-- `product-version`
-- `image-tools-version`
-- `build-cache-username`
-- `build-cache-password`
+- `product-name` (eg: `kafka`)
+- `product-version` (eg: `3.4.1`)
+- `image-tools-version` (eg: `0.0.13`)
+- `build-cache-username` (required) <!-- TODO: make the cache optional -->
+- `build-cache-password` (required) <!-- TODO: make the cache optional -->
 
 ### Outputs
 
-- `image-manifest-tag`
+- `image-manifest-tag` (eg: `3.4.1-stackable0.0.0-dev-amd64`)
 
 [build-product-image]: ./action.yml

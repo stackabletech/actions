@@ -26,12 +26,12 @@ following work:
 
 ### Inputs
 
-- `image-registry-uri`
-- `image-registry-username`
-- `image-registry-password`
-- `image-repository`
-- `image-manifest-tag`
-- `source-image-uri`
+- `image-registry-uri` (eg: `oci.stackable.tech`)
+- `image-registry-username` (required)
+- `image-registry-password` (required)
+- `image-repository` (eg: `stackable/kafka`)
+- `image-manifest-tag` (eg: `3.4.1-stackable0.0.0-dev-amd64`)
+- `source-image-uri` (eg: `localhost/kafka:3.4.1-stackable0.0.0-dev-amd64`)
 
 ### Outputs
 
