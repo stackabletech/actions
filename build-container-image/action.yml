@@ -85,13 +85,13 @@ runs:
         echo "IMAGE_ARCH=${IMAGE_ARCH}" | tee -a "$GITHUB_ENV"
 
         IMAGE_MANIFEST_TAG="${IMAGE_INDEX_MANIFEST_TAG}-${IMAGE_ARCH}"
-        echo "IMAGE_MANIFEST_TAG=${IMAGE_MANIFEST_TAG}" | tee -a $GITHUB_OUTPUT
+        echo "IMAGE_MANIFEST_TAG=${IMAGE_MANIFEST_TAG}" | tee -a "$GITHUB_OUTPUT"
 
         IMAGE_REPOSITORY_URI="localhost/${IMAGE_NAME}"
-        echo "IMAGE_REPOSITORY_URI=${IMAGE_REPOSITORY_URI}" | tee -a $GITHUB_OUTPUT
+        echo "IMAGE_REPOSITORY_URI=${IMAGE_REPOSITORY_URI}" | tee -a "$GITHUB_OUTPUT"
 
         IMAGE_MANIFEST_URI="${IMAGE_REPOSITORY_URI}:${IMAGE_MANIFEST_TAG}"
-        echo "IMAGE_MANIFEST_URI=${IMAGE_MANIFEST_URI}" | tee -a $GITHUB_OUTPUT
+        echo "IMAGE_MANIFEST_URI=${IMAGE_MANIFEST_URI}" | tee -a "$GITHUB_OUTPUT"
 
         echo "::group::docker buildx build"
         # TODO (@NickLarsenNZ): Allow optional buildx cache
