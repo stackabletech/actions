@@ -93,9 +93,16 @@ runs:
         IMAGE_MANIFEST_URI="${IMAGE_REPOSITORY_URI}:${IMAGE_MANIFEST_TAG}"
         echo "IMAGE_MANIFEST_URI=${IMAGE_MANIFEST_URI}" | tee -a $GITHUB_OUTPUT
 
+        echo "::group::docker buildx build"
         # TODO (@NickLarsenNZ): Allow optional buildx cache
         docker buildx build \
         --file "${CONTAINER_FILE}" \
         --platform "linux/${IMAGE_ARCH}" \
         --tag "${IMAGE_MANIFEST_URI}" \
+        --load \
         "${BUILD_CONTEXT}"
+        echo "::endgroup::"
+
+        echo "::group::docker images"
+        docker images
+        echo "::endgroup::"
