@@ -41,6 +41,14 @@ runs:
         username: ${{ inputs.image-registry-username }}
         password: ${{ inputs.image-registry-password }}
 
+    - name: Extract Action Path
+      shell: bash
+      env:
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        echo "GITHUB_ACTION_PATH=$GITHUB_ACTION_PATH" | tee -a $GITHUB_ENV
+
     - name: Create Image Index Manifest
       shell: bash
       env:
@@ -89,7 +97,7 @@ runs:
         set -euo pipefail
 
         # Get the image index manifest digest
-        DIGEST=$(.scripts/get_manifest_digest.sh "$IMAGE_INDEX_URI")
+        DIGEST=$($GITHUB_ACTION_PATH/.scripts/get_manifest_digest.sh "$IMAGE_INDEX_URI")
 
         # Construct the image repo digest, which for example contains:
         # docker.stackable.tech/stackable/kafka@sha256:91...

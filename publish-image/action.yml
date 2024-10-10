@@ -58,6 +58,14 @@ runs:
         username: ${{ inputs.image-registry-username }}
         password: ${{ inputs.image-registry-password }}
 
+    - name: Extract Action Path
+      shell: bash
+      env:
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        echo "GITHUB_ACTION_PATH=$GITHUB_ACTION_PATH" | tee -a $GITHUB_ENV
+
     - name: Re-tag container image
       shell: bash
       env:
@@ -77,7 +85,7 @@ runs:
         docker image push "$IMAGE_MANIFEST_URI"
 
         # Output for the next step
-        echo "IMAGE_REPO_DIGEST=$(.scripts/get_repo_digest.sh $IMAGE_MANIFEST_URI)" >> $GITHUB_ENV
+        echo "IMAGE_REPO_DIGEST=$($GITHUB_ACTION_PATH/.scripts/get_repo_digest.sh $IMAGE_MANIFEST_URI)" | tee -a $GITHUB_ENV
 
     - name: Sign the container image (${{ env.IMAGE_REPO_DIGEST }})
       shell: bash
