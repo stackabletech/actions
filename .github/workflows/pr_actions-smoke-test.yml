@@ -1,0 +1,79 @@
+---
+name: actions-smoke-test
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/pr_actions-smoke-test.yml
+      - build-container-image/action.yml
+      - actions-smoke-test/*
+
+jobs:
+  generate_matrix:
+    name: Generate Version List
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - id: shard
+        uses: ./shard
+        with:
+          product-name: smoke
+    outputs:
+      versions: ${{ steps.shard.outputs.versions }}
+
+  build:
+    name: Build/Publish Smoke Test (${{ matrix.versions }}-${{ matrix.runner.arch }}) Image
+    needs: [generate_matrix]
+    permissions:
+      id-token: write
+    runs-on: ${{ matrix.runner.name }}
+    strategy:
+      matrix:
+        runner:
+          - {name: "ubuntu-latest", arch: "amd64"}
+          - {name: "ubicloud-standard-8-arm", arch: "arm64"}
+        versions: ${{ fromJson(needs.generate_matrix.outputs.versions) }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Build Product Container Image
+        id: build
+        uses: ./build-product-image
+        with:
+          product-name: smoke
+          product-version: ${{ matrix.versions }}
+          build-cache-password: ${{ secrets.BUILD_CACHE_NEXUS_PASSWORD }}
+
+      - name: Publish Container Image on oci.stackable.tech
+        uses: ./publish-image
+        with:
+          image-registry-uri: oci.stackable.tech
+          image-registry-username: robot$stackable+github-action-build
+          image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
+          image-repository: stackable/smoke
+          image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
+          source-image-uri: localhost/smoke:${{ steps.build.outputs.image-manifest-tag }}
+
+  publish_manifests:
+    name: Build/Publish ${{ matrix.versions }} Index Manifest
+    needs: [generate_matrix, build]
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        versions: ${{ fromJson(needs.generate_matrix.outputs.versions) }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Publish and Sign Image Index Manifest to oci.stackable.tech
+        uses: ./publish-index-manifest
+        with:
+          image-registry-uri: oci.stackable.tech
+          image-registry-username: robot$stackable+github-action-build
+          image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
+          image-repository: stackable/smoke
+          image-index-manifest-tag: ${{ matrix.versions }}
