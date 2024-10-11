@@ -17,6 +17,9 @@ inputs:
   build-cache-password:
     description: Build cache password
     required: true
+  bake-config-file:
+    description: Path to the bake config file, defaults to `./conf.py`
+    default: ./conf.py
 outputs:
   image-manifest-tag:
     description: |
@@ -53,10 +56,6 @@ runs:
         sudo apt update
         sudo apt install -y python3
 
-    - name: Building ${{ inputs.product-name }}
-      shell: bash
-      run: echo ${{ inputs.product-name }}
-
     - name: Install image-tools-stackabletech
       shell: bash
       run: pip install image-tools-stackabletech==${{ inputs.image-tools-version }}
@@ -69,21 +68,25 @@ runs:
         username: ${{ inputs.build-cache-username }}
         password: ${{ inputs.build-cache-password }}
 
-    - name: Build image using bake
+    - name: Building ${{ inputs.product-name }} Container Image using bake
       env:
-        IMAGE_REPOSITORY: ${{ inputs.product-name }}
         BAKE_PRODUCT_VERSION: ${{ inputs.product-version }}
+        BAKE_CONFIG_FILE: ${{ inputs.bake-config-file }}
+        IMAGE_REPOSITORY: ${{ inputs.product-name }}
       shell: bash
       run: |
         set -euo pipefail
         IMAGE_ARCH="$(uname -m | sed -e 's#x86_64#amd64#' | sed -e 's#aarch64#arm64#')"
 
+        echo "::group::bake"
         bake \
-        --product $IMAGE_REPOSITORY=$BAKE_PRODUCT_VERSION \
-        --image-version "0.0.0-dev-${IMAGE_ARCH}" \
-        --architecture "linux/${IMAGE_ARCH}" \
-        --export-tags-file bake-target-tags \
-        --cache
+          --product "$IMAGE_REPOSITORY=$BAKE_PRODUCT_VERSION" \
+          --image-version "0.0.0-dev-${IMAGE_ARCH}" \
+          --architecture "linux/${IMAGE_ARCH}" \
+          --export-tags-file bake-target-tags \
+          --configuration "$BAKE_CONFIG_FILE" \
+          --cache
+        echo "::endgroup::""
 
     - name: Re-tag Image (Temporary)
       shell: bash
