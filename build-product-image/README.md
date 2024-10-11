@@ -46,6 +46,7 @@ localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
 - `image-tools-version` (eg: `0.0.13`)
 - `build-cache-username` (required) <!-- TODO: make the cache optional -->
 - `build-cache-password` (required) <!-- TODO: make the cache optional -->
+- `bake-config-file` (defaults to `./conf.py`)
 
 ### Outputs
 
