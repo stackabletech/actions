@@ -23,6 +23,7 @@ jobs:
         uses: ./shard
         with:
           product-name: smoke
+          config-file: smoke/conf.py
     outputs:
       versions: ${{ steps.shard.outputs.versions }}
 
