@@ -7,7 +7,11 @@ on:
     paths:
       - .github/workflows/pr_actions-smoke-test.yml
       - build-container-image/action.yml
-      - actions-smoke-test/*
+      - build-product-image/action.yml
+      - publish-image/action.yml
+      - publish-index-manifest/action.yml
+      - shard/action.yml
+      - smoke/*
 
 jobs:
   generate_matrix:
