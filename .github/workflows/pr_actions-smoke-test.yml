@@ -82,4 +82,4 @@ jobs:
           image-registry-username: robot$stackable+github-action-build
           image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
           image-repository: stackable/smoke
-          image-index-manifest-tag: ${{ matrix.versions }}
+          image-index-manifest-tag: ${{ matrix.versions }}-stackable0.0.0-dev
