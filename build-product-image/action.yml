@@ -113,4 +113,4 @@ runs:
 
         # Add the contents of the env variables to the GitHub output, so that it
         # can be used as action outputs
-        echo "IMAGE_MANIFEST_TAG=$IMAGE_MANIFEST_TAG" >> $GITHUB_OUTPUT
+        echo "IMAGE_MANIFEST_TAG=$IMAGE_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
