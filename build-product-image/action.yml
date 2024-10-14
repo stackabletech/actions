@@ -86,7 +86,7 @@ runs:
           --export-tags-file bake-target-tags \
           --configuration "$BAKE_CONFIG_FILE" \
           --cache
-        echo "::endgroup::""
+        echo "::endgroup::"
 
     - name: Re-tag Image (Temporary)
       shell: bash
