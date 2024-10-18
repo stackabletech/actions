@@ -110,8 +110,13 @@ runs:
         DIGEST=${IMAGE_REPO_DIGEST#*@}
 
         # Construct the package url (purl)
-        # TODO (@Techassi): Can we use 'oci' instead of 'docker' as the type?
-        PURL="pkg:docker/$IMAGE_REPOSITORY@$DIGEST?repository_url=$REGISTRY_URI"
+        URLENCODED_DIGEST=$(echo "$DIGEST" | sed 's/:/%3A/g')
+        URLENCODED_IMAGE_REPOSITORY=$(echo "$IMAGE_REPOSITORY" | sed 's/\//%2F/g')
+        # Last item, split by /
+        IMAGE_NAME=$(echo "$IMAGE_REPOSITORY" | awk -F'/' '{print $NF}')
+        # Obtain architecture from container image
+        ARCH=$(docker inspect --format='{{index .Architecture}}' "${IMAGE_REPO_DIGEST}")
+        PURL="pkg:oci/$IMAGE_NAME@$URLENCODED_DIGEST?arch=${ARCH}&repository_url=${REGISTRY_URI}%2F${URLENCODED_IMAGE_REPOSITORY}"
 
         # Get metadata from the image
         # NOTE (@Techassi): Maybe we should run this command only once
@@ -123,7 +128,7 @@ runs:
           --output cyclonedx-json@1.5=sbom_raw.json \
           --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger" \
           --scope all-layers \
-          --source-name "$IMAGE_REPOSITORY" \
+          --source-name "$IMAGE_NAME" \
           --source-version "$IMAGE_MANIFEST_TAG" "${IMAGE_REPO_DIGEST}"
 
         # Merge SBOM components using https://github.com/stackabletech/mergebom
