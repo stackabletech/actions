@@ -128,7 +128,7 @@ runs:
           --output cyclonedx-json@1.5=sbom_raw.json \
           --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger" \
           --scope all-layers \
-          --source-name "$IMAGE_REPOSITORY" \
+          --source-name "$IMAGE_NAME" \
           --source-version "$IMAGE_MANIFEST_TAG" "${IMAGE_REPO_DIGEST}"
 
         # Merge SBOM components using https://github.com/stackabletech/mergebom
