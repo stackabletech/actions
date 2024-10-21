@@ -109,14 +109,20 @@ runs:
         # Extract the digest from the image repo digest (right side of '@')
         DIGEST=${IMAGE_REPO_DIGEST#*@}
 
-        # Construct the package url (purl)
-        URLENCODED_DIGEST=$(echo "$DIGEST" | sed 's/:/%3A/g')
-        URLENCODED_IMAGE_REPOSITORY=$(echo "$IMAGE_REPOSITORY" | sed 's/\//%2F/g')
+        # URL encode the digest and image repository, needed for the purl
+        URLENCODED_DIGEST=$(echo "$DIGEST" | jq -Rr @uri)
+        URLENCODED_IMAGE_REPOSITORY=$(echo "$IMAGE_REPOSITORY" | jq -Rr @uri)
         # Last item, split by /
-        IMAGE_NAME=$(echo "$IMAGE_REPOSITORY" | awk -F'/' '{print $NF}')
-        # Obtain architecture from container image
-        ARCH=$(docker inspect --format='{{index .Architecture}}' "${IMAGE_REPO_DIGEST}")
-        PURL="pkg:oci/$IMAGE_NAME@$URLENCODED_DIGEST?arch=${ARCH}&repository_url=${REGISTRY_URI}%2F${URLENCODED_IMAGE_REPOSITORY}"
+        # Example: sdp/kafka -> kafka
+        SOURCE_NAME=$(echo "$IMAGE_REPOSITORY" | awk -F'/' '{print $NF}')
+        # Extract architecture from image tag
+        ARCH=$(echo "$IMAGE_MANIFEST_TAG" | awk -F'-' '{print $NF}')
+        if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
+          echo "Invalid architecture obtained from image tag. IMAGE_MANIFEST_TAG: $IMAGE_MANIFEST_TAG, ARCH: $ARCH"
+          exit 1
+        fi
+        # Construct the package url (purl)
+        PURL="pkg:oci/$SOURCE_NAME@$URLENCODED_DIGEST?arch=${ARCH}&repository_url=${REGISTRY_URI}%2F${URLENCODED_IMAGE_REPOSITORY}"
 
         # Get metadata from the image
         # NOTE (@Techassi): Maybe we should run this command only once
@@ -128,7 +134,7 @@ runs:
           --output cyclonedx-json@1.5=sbom_raw.json \
           --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger" \
           --scope all-layers \
-          --source-name "$IMAGE_NAME" \
+          --source-name "$SOURCE_NAME" \
           --source-version "$IMAGE_MANIFEST_TAG" "${IMAGE_REPO_DIGEST}"
 
         # Merge SBOM components using https://github.com/stackabletech/mergebom
