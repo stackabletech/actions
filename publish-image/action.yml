@@ -122,7 +122,7 @@ runs:
           exit 1
         fi
         # Construct the package url (purl)
-        PURL="pkg:oci/{$SOURCE_NAME}@{$URLENCODED_DIGEST}?arch=${ARCH}&repository_url=${REGISTRY_URI}%2F${URLENCODED_IMAGE_REPOSITORY}"
+        PURL="pkg:oci/${SOURCE_NAME}@${URLENCODED_DIGEST}?arch=${ARCH}&repository_url=${REGISTRY_URI}%2F${URLENCODED_IMAGE_REPOSITORY}"
 
         # Get metadata from the image
         # NOTE (@Techassi): Maybe we should run this command only once
