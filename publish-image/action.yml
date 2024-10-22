@@ -126,8 +126,8 @@ runs:
 
         # Get metadata from the image
         # NOTE (@Techassi): Maybe we should run this command only once
-        IMAGE_METADATA_DESCRIPTION=$(docker inspect --format='{{.Config.Labels.description}}' "${IMAGE_REPO_DIGEST}")
-        IMAGE_METADATA_NAME=$(docker inspect --format='{{.Config.Labels.name}}' "${IMAGE_REPO_DIGEST}")
+        IMAGE_METADATA_DESCRIPTION=$(docker inspect --format='{{.Config.Labels.description}}' "$IMAGE_REPO_DIGEST")
+        IMAGE_METADATA_NAME=$(docker inspect --format='{{.Config.Labels.name}}' "$IMAGE_REPO_DIGEST")
 
         # Generate the SBOM
         syft scan \
@@ -135,7 +135,7 @@ runs:
           --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger" \
           --scope all-layers \
           --source-name "$SOURCE_NAME" \
-          --source-version "$IMAGE_MANIFEST_TAG" "${IMAGE_REPO_DIGEST}"
+          --source-version "$IMAGE_MANIFEST_TAG" "$IMAGE_REPO_DIGEST"
 
         # Merge SBOM components using https://github.com/stackabletech/mergebom
         curl --fail -L -o mergebom https://repo.stackable.tech/repository/packages/mergebom/stable-$(uname -m)
