@@ -109,22 +109,33 @@ runs:
         # Extract the digest from the image repo digest (right side of '@')
         DIGEST=${IMAGE_REPO_DIGEST#*@}
 
+        # URL encode the digest and image repository, needed for the purl
+        URLENCODED_DIGEST=$(jq -rn --arg input "$DIGEST" '$input | @uri')
+        URLENCODED_IMAGE_REPOSITORY=$(jq -rn --arg input "$IMAGE_REPOSITORY" '$input | @uri')
+        # Last item, split by /
+        # Example: sdp/kafka -> kafka
+        SOURCE_NAME=$(echo "$IMAGE_REPOSITORY" | awk -F'/' '{print $NF}')
+        # Extract architecture from image tag
+        ARCH=$(echo "$IMAGE_MANIFEST_TAG" | awk -F'-' '{print $NF}')
+        if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
+          echo "Invalid architecture obtained from image tag. IMAGE_MANIFEST_TAG: $IMAGE_MANIFEST_TAG, ARCH: $ARCH"
+          exit 1
+        fi
         # Construct the package url (purl)
-        # TODO (@Techassi): Can we use 'oci' instead of 'docker' as the type?
-        PURL="pkg:docker/$IMAGE_REPOSITORY@$DIGEST?repository_url=$REGISTRY_URI"
+        PURL="pkg:oci/${SOURCE_NAME}@${URLENCODED_DIGEST}?arch=${ARCH}&repository_url=${REGISTRY_URI}%2F${URLENCODED_IMAGE_REPOSITORY}"
 
         # Get metadata from the image
         # NOTE (@Techassi): Maybe we should run this command only once
-        IMAGE_METADATA_DESCRIPTION=$(docker inspect --format='{{.Config.Labels.description}}' "${IMAGE_REPO_DIGEST}")
-        IMAGE_METADATA_NAME=$(docker inspect --format='{{.Config.Labels.name}}' "${IMAGE_REPO_DIGEST}")
+        IMAGE_METADATA_DESCRIPTION=$(docker inspect --format='{{.Config.Labels.description}}' "$IMAGE_REPO_DIGEST")
+        IMAGE_METADATA_NAME=$(docker inspect --format='{{.Config.Labels.name}}' "$IMAGE_REPO_DIGEST")
 
         # Generate the SBOM
         syft scan \
           --output cyclonedx-json@1.5=sbom_raw.json \
           --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger" \
           --scope all-layers \
-          --source-name "$IMAGE_REPOSITORY" \
-          --source-version "$IMAGE_MANIFEST_TAG" "${IMAGE_REPO_DIGEST}"
+          --source-name "$SOURCE_NAME" \
+          --source-version "$IMAGE_MANIFEST_TAG" "$IMAGE_REPO_DIGEST"
 
         # Merge SBOM components using https://github.com/stackabletech/mergebom
         curl --fail -L -o mergebom https://repo.stackable.tech/repository/packages/mergebom/stable-$(uname -m)
