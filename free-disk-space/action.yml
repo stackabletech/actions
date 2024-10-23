@@ -16,6 +16,7 @@ runs:
   using: composite
   steps:
     - name: Free Disk Space (Parallel)
+      shell: bash
       run: |
         df -h /
 
