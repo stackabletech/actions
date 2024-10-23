@@ -80,23 +80,36 @@ runs:
           )>/dev/null
         }
 
+        # The bash `time` built-in can be given subshells, and the output format
+        # is configured via the TIMEFORMAT environment variable.
+        # The binary `time` output format can be configured via a `--format`
+        # flag.
+        # Since we are calling the cleanup functions in parallel, we need to
+        # wrap the built-in `time` so that each concurrent invokation doesn't
+        # affect the output format of another.
+        function time_it() {
+          local MESSAGE="$1"
+          local FUNCTION="$2"
+          local TIMEFORMAT="$MESSAGE (%Rs)"
+          time "$FUNCTION"
+        }
+
         echo "::group::Disk usage before"
         df -h /
         echo "::endgroup::"
 
         echo "::group::Parallel cleanup"
 
-        # NOTE: The `\` infront of the time command prevents the bash built-in command.
-        \time --format 'Removed Android libraries (%es)' cleanup_android &
-        \time --format 'Removed apt packages (%es)' cleanup_apt &
-        \time --format 'Removed dotnet packages (%es)' cleanup_dotnet &
-        \time --format 'Removed haskell (%es)' cleanup_haskell &
-        \time --format 'Pruned docker images (%es)' cleanup_docker &
-        \time --format 'Disabled swap (%es)' disable_swap &
+        time_it 'Removed Android libraries' cleanup_android &
+        time_it 'Removed apt packages' cleanup_apt &
+        time_it 'Removed dotnet packages' cleanup_dotnet &
+        time_it 'Removed haskell' cleanup_haskell &
+        time_it 'Pruned docker images' cleanup_docker &
+        time_it 'Disabled swap' disable_swap &
 
         # This might remove tools that are actually needed, if set to "true" but
         # frees about 6 GB.
-        # \time --format 'Removed agent tools (%es)' cleanup_agenttools &
+        # time_it 'Removed agent tools' cleanup_agenttools &
 
         echo "Waiting for cleanup tasks"
         wait
