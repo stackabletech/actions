@@ -18,19 +18,15 @@ runs:
     - name: Free Disk Space (Parallel)
       shell: bash
       run: |
-        df -h /
+        # WARNING: `set -e` is not set as we purposefully want this to run optimistically.
 
-        echo "::group::parallel cleanup"
-
-        time (
+        function cleanup_android() {
           (
             sudo rm -rf /usr/local/lib/android || true
           )>/dev/null
-          echo android done
-          echo
-        )&
+        }
 
-        time (
+        function cleanup_apt() {
           (
             sudo apt-get remove --fix-missing -y '^aspnetcore-.*' \
               '^dotnet-.*' \
@@ -49,56 +45,63 @@ runs:
             sudo apt-get autoremove -y
             sudo apt-get clean
           )>/dev/null
-          echo apt remove done
-          echo
-        )&
+        }
 
-        time (
+        function cleanup_dotnet() {
           (
             sudo rm -rf /usr/share/dotnet || true
           )>/dev/null
-          echo dotnet done
-          echo
-        )&
+        }
 
-        time (
+        function cleanup_haskell() {
           (
             sudo rm -rf /opt/ghc || true
             sudo rm -rf /usr/local/.ghcup || true
           )>/dev/null
-          echo haskell done
-          echo
-        )&
+        }
 
-        time (
+        function cleanup_docker() {
           (
             sudo docker image prune --all --force || true
           )>/dev/null
-          echo docker image prune done
-          echo
-        )&
+        }
 
-        # This might remove tools that are actually needed, if set to "true" but
-        # frees about 6 GB.
-        # time (
-        #   (
-        #     sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
-        #   )>/dev/null
-        #   echo agent tools done
-        #   echo
-        # )&
+        function cleanup_agenttools() {
+          (
+            sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
+          )>/dev/null
+        }
 
-        time (
+        function disable_swap() {
           (
             sudo swapoff -a || true
             sudo rm -f /mnt/swapfile || true
             free -h
           )>/dev/null
-          echo swapoff done
-          echo
-        )&
+        }
 
+        echo "::group::Disk usage before"
+        df -h /
+        echo "::endgroup::"
+
+        echo "::group::Parallel cleanup"
+
+        # NOTE: The `\` infront of the time command prevents the bash built-in command.
+        \time --format 'Removed Android libraries (%es)' cleanup_android &
+        \time --format 'Removed apt packages (%es)' cleanup_apt &
+        \time --format 'Removed dotnet packages (%es)' cleanup_dotnet &
+        \time --format 'Removed haskell (%es)' cleanup_haskell &
+        \time --format 'Pruned docker images (%es)' cleanup_docker &
+        \time --format 'Disabled swap (%es)' disable_swap &
+
+        # This might remove tools that are actually needed, if set to "true" but
+        # frees about 6 GB.
+        # \time --format 'Removed agent tools (%es)' cleanup_agenttools &
+
+        echo "Waiting for cleanup tasks"
         wait
         echo "::endgroup::"
 
+        echo "::group::Disk usage after"
         df -h /
+        echo "::endgroup::"
