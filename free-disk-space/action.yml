@@ -1,0 +1,103 @@
+---
+name: Free Disk Space
+description: This action frees up disk space on a runner.
+inputs:
+  product-name:
+    description: The name of the product to build via bake (directory name)
+    required: true
+  config-file:
+    description: Path the the config file used to generate the shard indices
+    default: ./conf.py
+outputs:
+  versions:
+    description: A list of product versions
+    value: ${{ steps.generate_shards.outputs.VERSIONS }}
+runs:
+  using: composite
+  steps:
+    - name: Free Disk Space (Parallel)
+      run: |
+        df -h /
+
+        echo "::group::parallel cleanup"
+
+        time (
+          (
+            sudo rm -rf /usr/local/lib/android || true
+          )>/dev/null
+          echo android done
+          echo
+        )&
+
+        time (
+          (
+            sudo apt-get remove --fix-missing -y '^aspnetcore-.*' \
+              '^dotnet-.*' \
+              '^llvm-.*' \
+              'php.*' \
+              '^mongodb-.*' \
+              '^mysql-.*' \
+              azure-cli \
+              google-chrome-stable \
+              firefox \
+              powershell \
+              mono-devel \
+              libgl1-mesa-dri \
+              google-cloud-sdk \
+              google-cloud-cli || true
+            sudo apt-get autoremove -y
+            sudo apt-get clean
+          )>/dev/null
+          echo apt remove done
+          echo
+        )&
+
+        time (
+          (
+            sudo rm -rf /usr/share/dotnet || true
+          )>/dev/null
+          echo dotnet done
+          echo
+        )&
+
+        time (
+          (
+            sudo rm -rf /opt/ghc || true
+            sudo rm -rf /usr/local/.ghcup || true
+          )>/dev/null
+          echo haskell done
+          echo
+        )&
+
+        time (
+          (
+            sudo docker image prune --all --force || true
+          )>/dev/null
+          echo docker image prune done
+          echo
+        )&
+
+        # This might remove tools that are actually needed, if set to "true" but
+        # frees about 6 GB.
+        # time (
+        #   (
+        #     sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
+        #   )>/dev/null
+        #   echo agent tools done
+        #   echo
+        # )&
+
+        time (
+          (
+            sudo swapoff -a || true
+            sudo rm -f /mnt/swapfile || true
+            free -h
+          )>/dev/null
+          echo swapoff done
+          echo
+        )&
+
+        wait
+        echo "::endgroup::"
+
+        df -h /
