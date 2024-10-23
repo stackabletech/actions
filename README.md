@@ -21,6 +21,7 @@ particular step in a workflow.
 
 - [build-container-image](./build-container-image/README.md)
 - [build-product-image](./build-product-image/README.md)
+- [free-disk-space](./free-disk-space/README.md)
 - [publish-image](./publish-image/README.md)
 - [publish-index-manifest](./publish-index-manifest/README.md)
 - [run-pre-commit](./run-pre-commit/README.md)

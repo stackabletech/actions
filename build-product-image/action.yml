@@ -29,21 +29,8 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Free Disk Space (Ubuntu)
-      uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
-      with:
-        # This might remove tools that are actually needed, if set to "true" but
-        # frees about 6 GB.
-        tool-cache: false
-
-        # All of these default to true, but feel free to set to "false" if
-        # necessary for your workflow.
-        android: true
-        dotnet: true
-        haskell: true
-        large-packages: true
-        docker-images: true
-        swap-storage: true
+    - name: Free Disk Space
+      uses: ./free-disk-space
 
     - name: Setup Docker Buildx
       uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1

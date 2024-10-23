@@ -1,0 +1,120 @@
+---
+name: Free Disk Space
+description: This action frees up disk space on a runner.
+inputs:
+  product-name:
+    description: The name of the product to build via bake (directory name)
+    required: true
+  config-file:
+    description: Path the the config file used to generate the shard indices
+    default: ./conf.py
+outputs:
+  versions:
+    description: A list of product versions
+    value: ${{ steps.generate_shards.outputs.VERSIONS }}
+runs:
+  using: composite
+  steps:
+    - name: Free Disk Space (Parallel)
+      shell: bash
+      run: |
+        # WARNING: `set -e` is not set as we purposefully want this to run optimistically.
+
+        function cleanup_android() {
+          (
+            sudo rm -rf /usr/local/lib/android || true
+          )>/dev/null
+        }
+
+        function cleanup_apt() {
+          (
+            sudo apt-get remove --fix-missing -y '^aspnetcore-.*' \
+              '^dotnet-.*' \
+              '^llvm-.*' \
+              'php.*' \
+              '^mongodb-.*' \
+              '^mysql-.*' \
+              azure-cli \
+              google-chrome-stable \
+              firefox \
+              powershell \
+              mono-devel \
+              libgl1-mesa-dri \
+              google-cloud-sdk \
+              google-cloud-cli || true
+            sudo apt-get autoremove -y
+            sudo apt-get clean
+          )>/dev/null
+        }
+
+        function cleanup_dotnet() {
+          (
+            sudo rm -rf /usr/share/dotnet || true
+          )>/dev/null
+        }
+
+        function cleanup_haskell() {
+          (
+            sudo rm -rf /opt/ghc || true
+            sudo rm -rf /usr/local/.ghcup || true
+          )>/dev/null
+        }
+
+        function cleanup_docker() {
+          (
+            sudo docker image prune --all --force || true
+          )>/dev/null
+        }
+
+        function cleanup_agenttools() {
+          (
+            sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
+          )>/dev/null
+        }
+
+        function disable_swap() {
+          (
+            sudo swapoff -a || true
+            sudo rm -f /mnt/swapfile || true
+            free -h
+          )>/dev/null
+        }
+
+        # The bash `time` built-in can be given subshells, and the output format
+        # is configured via the TIMEFORMAT environment variable.
+        # The binary `time` output format can be configured via a `--format`
+        # flag.
+        # Since we are calling the cleanup functions in parallel, we need to
+        # wrap the built-in `time` so that each concurrent invokation doesn't
+        # affect the output format of another.
+        function time_it() {
+          local MESSAGE="$1"
+          local FUNCTION="$2"
+          local TIMEFORMAT="$MESSAGE (%Rs)"
+          time "$FUNCTION"
+        }
+
+        echo "::group::Disk usage before"
+        df -h /
+        echo "::endgroup::"
+
+        echo "::group::Parallel cleanup"
+
+        time_it 'Removed Android libraries' cleanup_android &
+        time_it 'Removed apt packages' cleanup_apt &
+        time_it 'Removed dotnet packages' cleanup_dotnet &
+        time_it 'Removed haskell' cleanup_haskell &
+        time_it 'Pruned docker images' cleanup_docker &
+        time_it 'Disabled swap' disable_swap &
+
+        # This might remove tools that are actually needed, if set to "true" but
+        # frees about 6 GB.
+        # time_it 'Removed agent tools' cleanup_agenttools &
+
+        echo "Waiting for cleanup tasks"
+        wait
+        echo "::endgroup::"
+
+        echo "::group::Disk usage after"
+        df -h /
+        echo "::endgroup::"

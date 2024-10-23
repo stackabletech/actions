@@ -8,6 +8,7 @@ on:
       - .github/workflows/pr_actions-smoke-test.yml
       - build-container-image/action.yml
       - build-product-image/action.yml
+      - free-disk-space/action.yml
       - publish-image/action.yml
       - publish-index-manifest/action.yml
       - shard/action.yml
