@@ -1,17 +1,6 @@
 ---
 name: Free Disk Space
 description: This action frees up disk space on a runner.
-inputs:
-  product-name:
-    description: The name of the product to build via bake (directory name)
-    required: true
-  config-file:
-    description: Path the the config file used to generate the shard indices
-    default: ./conf.py
-outputs:
-  versions:
-    description: A list of product versions
-    value: ${{ steps.generate_shards.outputs.VERSIONS }}
 runs:
   using: composite
   steps:
