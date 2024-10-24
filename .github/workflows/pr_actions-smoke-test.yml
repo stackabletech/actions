@@ -41,11 +41,11 @@ jobs:
           - {name: "ubicloud-standard-8-arm", arch: "arm64"}
         versions: ${{ fromJson(needs.generate_matrix.outputs.versions) }}
     steps:
-      - name: Free Disk Space
-        uses: ./free-disk-space
-
       - name: Checkout Repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Free Disk Space
+        uses: ./free-disk-space
 
       - name: Build Product Container Image
         id: build
