@@ -1,0 +1,72 @@
+---
+name: Run Integration Test
+description: |
+  This action runs Stackable Operator integration tests on various platforms and
+  Kubernetes distributions.
+inputs:
+  test-platform:
+    description: |
+      The platform/distribution to run on (eg: `okd-4.15-amd64`)
+    required: true
+  test-run:
+    description: Type of test run
+    required: true
+  test-parameter:
+    description: Parameter to `--test-suite` or `--test` (ignored for `all`)
+    default: ""
+  replicated-api-token:
+    description: Replicated API token (only needed if running on replicated)
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Slice it up
+      env:
+        TEST_PLATFORM: ${{ inputs.test-platform }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        KUBERNETES_DISTRIBUTION=$(echo "$TEST_PLATFORM" | cut -d - -f 1)
+        KUBERNETES_VERSION=$(echo "$TEST_PLATFORM" | cut -d - -f 2)
+        KUBERNETES_ARCHITECTURE=$(echo "$TEST_PLATFORM" | cut -d - -f 3)
+
+        echo "KUBERNETES_DISTRIBUTION=$KUBERNETES_DISTRIBUTION" | tee -a "$GITHUB_ENV"
+        echo "KUBERNETES_VERSION=$KUBERNETES_VERSION" | tee -a "$GITHUB_ENV"
+        echo "KUBERNETES_ARCHITECTURE=$KUBERNETES_ARCHITECTURE" | tee -a "$GITHUB_ENV"
+
+    # Todo: Map arch to whatever applicable settings (eg: replicated:kind only supports x86, azure can support ARM, and you need to map the types)
+
+    - name: Prepare Replicated Cluster
+      if: env.KUBERNETES_DISTRIBUTION != 'ionos'
+      id: prepare-replicated-cluster
+      uses: replicatedhq/replicated-actions/create-cluster@v1 # todo, hash
+      with:
+        # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
+        api-token: ${{ inputs.replicated-api-token }}
+        cluster-name: ${{ github.repository }}-${{ github.run_id }}
+        instance-type: r1.medium # todo, source this from _somewhere_
+        kubernetes-distribution: ${{ env.KUBERNETES_DISTRIBUTION }}
+        kubernetes-version: ${{ env.KUBERNETES_VERSION }}
+        ttl: 4h # todo: allow this to be configurable
+        disk: 50 # todo: allow this to be configurable
+        nodes: 1 # todo: allow this to be configurable
+    - name: Set Replicated kubeconfig
+      if: env.KUBERNETES_DISTRIBUTION != 'ionos'
+      env:
+        KUBECONFIG: ${{ steps.prepare-replicated-cluster.outputs.cluster-kubeconfig }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir ~/.kube
+        echo "$KUBECONFIG" > ~/.kube/config
+
+# Run tests here
+
+    - name: Destroy Replicated Cluster
+      if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
+      uses: replicatedhq/replicated-actions/remove-cluster@v1 # todo, hash
+      with:
+        # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
+        api-token: ${{ inputs.replicated-api-token }}
+        cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
