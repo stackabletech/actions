@@ -20,6 +20,10 @@ inputs:
   bake-config-file:
     description: Path to the bake config file, defaults to `./conf.py`
     default: ./conf.py
+  sdp-version:
+    description: |
+      Stackable Data Platform version (eg: `24.7.0`)
+    default: 0.0.0-dev
 outputs:
   image-manifest-tag:
     description: |
@@ -57,6 +61,7 @@ runs:
         BAKE_PRODUCT_VERSION: ${{ inputs.product-version }}
         BAKE_CONFIG_FILE: ${{ inputs.bake-config-file }}
         IMAGE_REPOSITORY: ${{ inputs.product-name }}
+        SDP_VERSION: ${{ inputs.sdp-version }}
       shell: bash
       run: |
         set -euo pipefail
@@ -65,7 +70,7 @@ runs:
         echo "::group::bake"
         bake \
           --product "$IMAGE_REPOSITORY=$BAKE_PRODUCT_VERSION" \
-          --image-version "0.0.0-dev-${IMAGE_ARCH}" \
+          --image-version "${SDP_VERSION}-${IMAGE_ARCH}" \
           --architecture "linux/${IMAGE_ARCH}" \
           --export-tags-file bake-target-tags \
           --configuration "$BAKE_CONFIG_FILE" \
