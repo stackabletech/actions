@@ -63,12 +63,12 @@ runs:
 
     - name: Extract Operator Name
       env:
-        REPOSITORY_OWNER: ${{ github.repository_owner }}
+        REPOSITORY: ${{ github.repository }}
       shell: bash
       run: |
         set -euo pipefail
 
-        OPERATOR_NAME=$(echo "$REPOSITORY_OWNER" | cut -d / -f 2 | sed 's/-operator//g')
+        OPERATOR_NAME=$(echo "$REPOSITORY" | cut -d / -f 2 | sed 's/-operator//g')
         echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_ENV"
 
     - name: Setup Tool Directory
