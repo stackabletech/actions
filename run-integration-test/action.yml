@@ -61,6 +61,16 @@ runs:
         mkdir ~/.kube
         echo "$KUBECONFIG" > ~/.kube/config
 
+    - name: Extract Operator Name
+      env:
+        REPOSITORY_OWNER: ${{ github.repository_owner }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        OPERATOR_NAME=$(echo "$REPOSITORY_OWNER" | cut -d / -f 2 | sed 's/-operator//g')
+        echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_ENV"
+
     - name: Setup Tool Directory
       shell: bash
       run: |
@@ -116,7 +126,14 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        echo "Run tests"
+
+        # TODO (@Techassi): Use the correct version here, for now use 0.0.0-dev
+        # TODO (@Techassi): There are retries in the current Jenkins test, so we should also add it
+        # here.
+        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=0.0.0-dev"
+
+        NOTE (@Techassi): Is putting the inputs here as is fine?
+        python ./scripts/run-tests --skip-release --log-level debug ${{ inputs.test-run }} ${{ inputs.test-parameter }}
 
     - name: Destroy Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
