@@ -27,7 +27,7 @@ runs:
       run: |
         set -euo pipefail
 
-        KUBERNETES_DISTRIBUTION=$(echo "$TEST>_PLATFORM" | cut -d - -f 1)
+        KUBERNETES_DISTRIBUTION=$(echo "$TEST_PLATFORM" | cut -d - -f 1)
         KUBERNETES_VERSION=$(echo "$TEST_PLATFORM" | cut -d - -f 2)
         KUBERNETES_ARCHITECTURE=$(echo "$TEST_PLATFORM" | cut -d - -f 3)
 
