@@ -103,6 +103,15 @@ runs:
         curl -L -o "$TOOL_DIRECTORY/stackablectl" https://github.com/stackabletech/stackable-cockpit/releases/latest/download/stackablectl-x86_64-unknown-linux-gnu
         chmod +x "$TOOL_DIRECTORY/stackablectl"
 
+    - name: Install apt packages
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        apt update
+        apt install -y \
+          gettext-base
+
     - name: Run Integration Test (${{ inputs.test-run }}=${{ inputs.test-parameter }})
       shell: bash
       run: |
