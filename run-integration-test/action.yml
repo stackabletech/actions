@@ -61,6 +61,17 @@ runs:
         mkdir ~/.kube
         echo "$KUBECONFIG" > ~/.kube/config
 
+    - name: Setup Tool Directory
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        TOOL_DIRECTORY="$HOME/.local/bin"
+        mkdir -p "$TOOL_DIRECTORY"
+
+        echo "$TOOL_DIRECTORY" | tee -a "$GITHUB_PATH"
+        echo "TOOL_DIRECTORY=$TOOL_DIRECTORY" | tee -a "$GITHUB_ENV"
+
     # We don't need to install kubectl, kind or helm because it is already part of the installed
     # tools of the runner image.
     # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-kubernetes-tools.sh
@@ -69,8 +80,8 @@ runs:
       run: |
         set -euo pipefail
 
-        curl -L -o "$GITHUB_PATH/kubectl-kuttl" https://github.com/kudobuilder/kuttl/releases/download/v0.19.0/kubectl-kuttl_0.19.0_linux_x86_64
-        chmod +x "$GITHUB_PATH/kubectl-kuttl"
+        curl -L -o "$TOOL_DIRECTORY/kubectl-kuttl" https://github.com/kudobuilder/kuttl/releases/download/v0.19.0/kubectl-kuttl_0.19.0_linux_x86_64
+        chmod +x "$TOOL_DIRECTORY/kubectl-kuttl"
 
     # Python3 is already installed, if we ever need to specify the version, we can use the
     # setup-python action.
@@ -89,8 +100,8 @@ runs:
       run: |
         set -euo pipefail
 
-        curl -L -o "$GITHUB_PATH/stackablectl" https://github.com/stackabletech/stackable-cockpit/releases/latest/download/stackablectl-x86_64-unknown-linux-gnu
-        chmod +x "$GITHUB_PATH/stackablectl"
+        curl -L -o "$TOOL_DIRECTORY/stackablectl" https://github.com/stackabletech/stackable-cockpit/releases/latest/download/stackablectl-x86_64-unknown-linux-gnu
+        chmod +x "$TOOL_DIRECTORY/stackablectl"
 
     - name: Run Integration Test (${{ inputs.test-run }}=${{ inputs.test-parameter }})
       shell: bash
