@@ -27,7 +27,7 @@ runs:
       run: |
         set -euo pipefail
 
-        KUBERNETES_DISTRIBUTION=$(echo "$TEST_PLATFORM" | cut -d - -f 1)
+        KUBERNETES_DISTRIBUTION=$(echo "$TEST>_PLATFORM" | cut -d - -f 1)
         KUBERNETES_VERSION=$(echo "$TEST_PLATFORM" | cut -d - -f 2)
         KUBERNETES_ARCHITECTURE=$(echo "$TEST_PLATFORM" | cut -d - -f 3)
 
@@ -61,7 +61,42 @@ runs:
         mkdir ~/.kube
         echo "$KUBECONFIG" > ~/.kube/config
 
-# Run tests here
+    # We don't need to install kubectl, kind or helm because it is already part of the installed
+    # tools of the runner image.
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-kubernetes-tools.sh
+    - name: Install kubectl-kuttl
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        curl -L -O "$GITHUB_PATH/kubectl-kuttl" https://github.com/kudobuilder/kuttl/releases/download/v0.19.0/kubectl-kuttl_0.19.0_linux_x86_64
+        chmod +x "$GITHUB_PATH/kubectl-kuttl"
+
+    # Python3 is already installed, if we ever need to specify the version, we can use the
+    # setup-python action.
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-python.sh
+    - name: Install beku
+      shell: bash
+      run: |
+        set -euo pipefail
+        pip install beku-stackabletech
+
+    # mikefarah/yq is already installed on the runner
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-yq.sh
+
+    - name: Install stackablectl
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        curl -L -O "$GITHUB_PATH/stackablectl" https://github.com/stackabletech/stackable-cockpit/releases/latest/download/stackablectl-x86_64-unknown-linux-gnu
+        chmod +x "$GITHUB_PATH/stackablectl"
+
+    - name: Run Integration Test (${{ inputs.test-run }}=${{ inputs.test-parameter }})
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "Run tests"
 
     - name: Destroy Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
