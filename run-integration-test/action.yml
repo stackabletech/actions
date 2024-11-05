@@ -132,8 +132,7 @@ runs:
         # here.
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=0.0.0-dev"
 
-        # NOTE (@Techassi): Is putting the inputs here as is fine?
-        python ./scripts/run-tests --skip-release --log-level debug ${{ inputs.test-run }} ${{ inputs.test-parameter }}
+        python ./scripts/run-tests --skip-release --log-level debug "--${{ inputs.test-run }}" "${{ inputs.test-parameter }}""
 
     - name: Destroy Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
