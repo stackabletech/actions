@@ -65,7 +65,7 @@ runs:
       run: |
         set -euo pipefail
 
-        IMAGE_ARCH="$($GITHUB_ACTION_PATH/../.scripts/get_architecture.sh)"
+        IMAGE_ARCH=$("$GITHUB_ACTION_PATH/../.scripts/get_architecture.sh")
         echo "IMAGE_ARCH=${IMAGE_ARCH}" | tee -a "$GITHUB_ENV"
 
         IMAGE_MANIFEST_TAG="${IMAGE_INDEX_MANIFEST_TAG}-${IMAGE_ARCH}"
