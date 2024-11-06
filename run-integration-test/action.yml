@@ -135,11 +135,13 @@ runs:
           gettext-base
 
     - name: Run Integration Test (${{ inputs.test-run }}=${{ inputs.test-parameter }})
+      env:
+        REF_NAME: ${{ github.ref_name }}
       shell: bash
       run: |
         set -euo pipefail
 
-        OPERATOR_VERSION="$($GITHUB_ACTION_PATH/../.scripts/get_operator_version.sh)"
+        OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/get_operator_version.sh" "$REF_NAME")
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
         # TODO (@Techassi): We need to only pass inputs.test-run if it is not 'all'
