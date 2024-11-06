@@ -138,6 +138,7 @@ runs:
     - name: Run Integration Test (${{ inputs.test-run }}=${{ inputs.test-parameter }})
       env:
         REF_NAME: ${{ github.ref_name }}
+        GH_TOKEN: ${{ github.token }}
       shell: bash
       run: |
         set -euo pipefail
