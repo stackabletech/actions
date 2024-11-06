@@ -139,10 +139,8 @@ runs:
       run: |
         set -euo pipefail
 
-        # TODO (@Techassi): Use the correct version here, for now use 0.0.0-dev
-        # TODO (@Techassi): There are retries in the current Jenkins test, so we should also add it
-        # here.
-        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=0.0.0-dev"
+        OPERATOR_VERSION="$($GITHUB_ACTION_PATH/../.scripts/get_operator_version.sh)"
+        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
         # TODO (@Techassi): We need to only pass inputs.test-run if it is not 'all'
         python ./scripts/run-tests --skip-release --log-level debug "--${{ inputs.test-run }}" "${{ inputs.test-parameter }}"
