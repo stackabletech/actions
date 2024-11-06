@@ -40,15 +40,15 @@ runs:
       run: |
         set -euo pipefail
 
-        KUBERNETES_DISTRIBUTION=$(echo "$TEST_PLATFORM" | cut -d - -f 1)
-        KUBERNETES_VERSION=$(echo "$TEST_PLATFORM" | cut -d - -f 2)
-        KUBERNETES_ARCHITECTURE=$(echo "$TEST_PLATFORM" | cut -d - -f 3)
+        export KUBERNETES_DISTRIBUTION=$(echo "$TEST_PLATFORM" | cut -d - -f 1)
+        export KUBERNETES_VERSION=$(echo "$TEST_PLATFORM" | cut -d - -f 2)
+        export KUBERNETES_ARCHITECTURE=$(echo "$TEST_PLATFORM" | cut -d - -f 3)
 
         echo "KUBERNETES_DISTRIBUTION=$KUBERNETES_DISTRIBUTION" | tee -a "$GITHUB_ENV"
         echo "KUBERNETES_VERSION=$KUBERNETES_VERSION" | tee -a "$GITHUB_ENV"
         echo "KUBERNETES_ARCHITECTURE=$KUBERNETES_ARCHITECTURE" | tee -a "$GITHUB_ENV"
 
-        INSTANCE_SIZE=$(yq '.instance-size' -e ./tests/infrastructure.yaml)
+        export INSTANCE_SIZE=$(yq '.instance-size' -e ./tests/infrastructure.yaml)
         INSTANCE_TYPE=$(yq '.[env(KUBERNETES_DISTRIBUTION)].[env(KUBERNETES_ARCHITECTURE)].[env(INSTANCE_SIZE)]' -e "$GITHUB_ACTION_PATH/instances.yml")
 
         echo "INSTANCE_TYPE=$INSTANCE_TYPE" | tee -a "$GITHUB_ENV"
