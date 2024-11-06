@@ -33,7 +33,7 @@ runs:
       run: |
         echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
-    - name: Extract Cluster Distribution Information
+    - name: Extract Test and Instance Configuration
       env:
         TEST_PLATFORM: ${{ inputs.test-platform }}
       shell: bash
@@ -48,6 +48,11 @@ runs:
         echo "KUBERNETES_VERSION=$KUBERNETES_VERSION" | tee -a "$GITHUB_ENV"
         echo "KUBERNETES_ARCHITECTURE=$KUBERNETES_ARCHITECTURE" | tee -a "$GITHUB_ENV"
 
+        INSTANCE_SIZE=$(yq '.instance-size' -e ./tests/infrastructure.yaml)
+        INSTANCE_TYPE=$(yq '.[env(KUBERNETES_DISTRIBUTION)].[env(KUBERNETES_ARCHITECTURE)].[env(INSTANCE_SIZE)]' -e "$GITHUB_ACTION_PATH/instances.yml")
+
+        echo "INSTANCE_TYPE=$INSTANCE_TYPE" | tee -a "$GITHUB_ENV"
+
     # Todo: Map arch to whatever applicable settings (eg: replicated:kind only supports x86, azure can support ARM, and you need to map the types)
 
     - name: Prepare Replicated Cluster
@@ -58,7 +63,7 @@ runs:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
         cluster-name: integration-test-${{ github.repository }}-${{ github.run_id }}
-        instance-type: r1.medium # todo, source this from _somewhere_
+        instance-type: ${{ env.INSTANCE_TYPE }}
         kubernetes-distribution: ${{ env.KUBERNETES_DISTRIBUTION }}
         kubernetes-version: ${{ env.KUBERNETES_VERSION }}
         ttl: 4h # todo: allow this to be configurable
