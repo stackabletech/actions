@@ -17,10 +17,22 @@ inputs:
   replicated-api-token:
     description: Replicated API token (only needed if running on replicated)
     default: ""
+outputs:
+  start-time:
+    description: The date and time this integration test was started.
+    value: ${{ env.START_TIME }}
+  end-time:
+    description: The date and time this integration test finished.
+    value: ${{ env.END_TIME }}
 runs:
   using: composite
   steps:
-    - name: Slice it up
+    - name: Record Start Time
+      shell: bash
+      run: |
+        echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_ENV"
+
+    - name: Extract Cluster Distribution Information
       env:
         TEST_PLATFORM: ${{ inputs.test-platform }}
       shell: bash
@@ -44,7 +56,7 @@ runs:
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
-        cluster-name: ${{ github.repository }}-${{ github.run_id }}
+        cluster-name: integration-test-${{ github.repository }}-${{ github.run_id }}
         instance-type: r1.medium # todo, source this from _somewhere_
         kubernetes-distribution: ${{ env.KUBERNETES_DISTRIBUTION }}
         kubernetes-version: ${{ env.KUBERNETES_VERSION }}
@@ -132,12 +144,21 @@ runs:
         # here.
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=0.0.0-dev"
 
+        # TODO (@Techassi): We need to only pass inputs.test-run if it is not 'all'
         python ./scripts/run-tests --skip-release --log-level debug "--${{ inputs.test-run }}" "${{ inputs.test-parameter }}"
 
     - name: Destroy Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
+      # If the creation of the cluster failed, we don't want to error and abort
+      continue-on-error: true
       uses: replicatedhq/replicated-actions/remove-cluster@v1 # todo, hash
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
         cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
+
+    - name: Record End Time
+      if: always()
+      shell: bash
+      run: |
+        echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_ENV"
