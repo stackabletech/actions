@@ -20,17 +20,18 @@ inputs:
 outputs:
   start-time:
     description: The date and time this integration test was started.
-    value: ${{ env.START_TIME }}
+    value: ${{ steps.start-time.outputs.START_TIME }}
   end-time:
     description: The date and time this integration test finished.
-    value: ${{ env.END_TIME }}
+    value: ${{ steps.end-time.outputs.END_TIME }}
 runs:
   using: composite
   steps:
     - name: Record Start Time
+      id: start-time
       shell: bash
       run: |
-        echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_ENV"
+        echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Extract Cluster Distribution Information
       env:
@@ -158,7 +159,8 @@ runs:
         cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
 
     - name: Record End Time
+      id: end-time
       if: always()
       shell: bash
       run: |
-        echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_ENV"
+        echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
