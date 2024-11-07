@@ -161,12 +161,12 @@ runs:
         if [ "$TEST_RUN" == "all" ]; then
           python ./scripts/run-tests --skip-release --log-level debug
         else
-          if [ -z "$TEST_PARAMETERS" ]; then
+          if [ -z "$TEST_PARAMETER" ]; then
             echo "TEST_PARAMETERS must be defined and not empty"
             exit 1
           fi
 
-          python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETERS"
+          python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETER"
         fi
 
     - name: Destroy Replicated Cluster
