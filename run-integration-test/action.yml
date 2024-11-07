@@ -142,6 +142,8 @@ runs:
 
     - name: Run Integration Test (${{ inputs.test-run }}=${{ inputs.test-parameter }})
       env:
+        TEST_PARAMETER: ${{ inputs.test-parameter }}
+        TEST_RUN: ${{ inputs.test-run }}
         REF_NAME: ${{ github.ref_name }}
         GH_TOKEN: ${{ github.token }}
       shell: bash
@@ -151,8 +153,21 @@ runs:
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/get_operator_version.sh" "$REF_NAME")
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
-        # TODO (@Techassi): We need to only pass inputs.test-run if it is not 'all'
-        python ./scripts/run-tests --skip-release --log-level debug "--${{ inputs.test-run }}" "${{ inputs.test-parameter }}"
+        if [ -z "$TEST_RUN" ]; then
+          echo "TEST_RUN must be defined and not empty"
+          exit 1
+        fi
+
+        if [ "$TEST_RUN" == "all" ]; then
+          python ./scripts/run-tests --skip-release --log-level debug
+        else
+          if [ -z "$TEST_PARAMETERS" ]; then
+            echo "TEST_PARAMETERS must be defined and not empty"
+            exit 1
+          fi
+
+          python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETERS"
+        fi
 
     - name: Destroy Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
