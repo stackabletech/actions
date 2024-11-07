@@ -102,6 +102,8 @@ runs:
         tags: |
           - key: node-architecture
             value: ${{ env.KUBERNETES_ARCHITECTURE }}
+          - key: kubernetes-distribution
+            value: ${{ env.KUBERNETES_DISTRIBUTION }}
 
     - name: Set Replicated kubeconfig
       if: env.KUBERNETES_DISTRIBUTION != 'ionos'
