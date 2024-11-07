@@ -107,6 +107,8 @@ runs:
             value: ${{ env.KUBERNETES_ARCHITECTURE }}
           - key: kubernetes-distribution
             value: ${{ env.KUBERNETES_DISTRIBUTION }}
+          - key: triggered-by
+            value: ${{ github.triggering_actor }}
 
     - name: Set Replicated kubeconfig
       if: env.KUBERNETES_DISTRIBUTION != 'ionos'
