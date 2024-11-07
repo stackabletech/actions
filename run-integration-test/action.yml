@@ -63,27 +63,30 @@ runs:
 
         echo "INSTANCE_TYPE=$INSTANCE_TYPE" | tee -a "$GITHUB_ENV"
 
-        ##########################################
-        # Validate and Construct Test Parameters #
-        ##########################################
+        ############################
+        # Validate Test Parameters #
+        ############################
 
         if [ -z "$TEST_RUN" ]; then
           echo "TEST_RUN must be defined and not empty"
           exit 1
         fi
 
-        if [ "$TEST_RUN" == "all" ]; then
-          TEST_RUN_PARAMETER=""
-        else
+        if [ "$TEST_RUN" != "all" ]; then
           if [ -z "$TEST_PARAMETER" ]; then
             echo "TEST_PARAMETER must be defined and not empty"
             exit 1
           fi
 
-          TEST_RUN_PARAMETER=("--$TEST_RUN" "$TEST_PARAMETER"   )
+          if [ "$TEST_RUN" == "test-suite" ]; then
+            yq '.suites[] | select(.name == env(TEST_PARAMETER))' -e ./tests/test-definition.yaml
+          elif [ "$TEST_RUN" == "test" ]; then
+            yq '.tests[] | select(.name == env(TEST_PARAMETER))' -e ./tests/test-definition.yaml
+          fi
         fi
 
-        echo "TEST_RUN_PARAMETER=$TEST_RUN_PARAMETER" | tee -a "$GITHUB_ENV"
+        echo "TEST_PARAMETER=$TEST_PARAMETER" | tee -a "$GITHUB_ENV"
+        echo "TEST_RUN=$TEST_RUN" | tee -a "$GITHUB_ENV"
 
     - name: Prepare Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos'
@@ -187,7 +190,11 @@ runs:
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/get_operator_version.sh" "$REF_NAME")
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
-        python ./scripts/run-tests --skip-release --log-level debug ${TEST_RUN_PARAMETER[@]}
+        if [ "$TEST_RUN" == "all" ]; then
+          python ./scripts/run-tests --skip-release --log-level debug
+        else
+          python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETER"
+        fi
 
     - name: Destroy Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
