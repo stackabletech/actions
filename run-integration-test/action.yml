@@ -1,0 +1,216 @@
+---
+name: Run Integration Test
+description: |
+  This action runs Stackable Operator integration tests on various platforms and
+  Kubernetes distributions.
+inputs:
+  test-platform:
+    description: |
+      The platform/distribution to run on (eg: `okd-4.15-amd64`)
+    required: true
+  test-run:
+    description: Type of test run
+    required: true
+  test-parameter:
+    description: Parameter to `--test-suite` or `--test` (ignored for `all`)
+    default: ""
+  replicated-api-token:
+    description: Replicated API token (only needed if running on replicated)
+    default: ""
+outputs:
+  start-time:
+    description: The date and time this integration test was started.
+    value: ${{ steps.start-time.outputs.START_TIME }}
+  end-time:
+    description: The date and time this integration test finished.
+    value: ${{ steps.end-time.outputs.END_TIME }}
+runs:
+  using: composite
+  steps:
+    - name: Record Start Time
+      id: start-time
+      shell: bash
+      run: |
+        echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
+
+    - name: Extract Test and Instance Configuration
+      env:
+        TEST_PARAMETER: ${{ inputs.test-parameter }}
+        TEST_PLATFORM: ${{ inputs.test-platform }}
+        TEST_RUN: ${{ inputs.test-run }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        #####################################
+        # Extract Kubernetes-related Values #
+        #####################################
+
+        export KUBERNETES_DISTRIBUTION=$(echo "$TEST_PLATFORM" | cut -d - -f 1)
+        export KUBERNETES_VERSION=$(echo "$TEST_PLATFORM" | cut -d - -f 2)
+        export KUBERNETES_ARCHITECTURE=$(echo "$TEST_PLATFORM" | cut -d - -f 3)
+
+        echo "KUBERNETES_DISTRIBUTION=$KUBERNETES_DISTRIBUTION" | tee -a "$GITHUB_ENV"
+        echo "KUBERNETES_VERSION=$KUBERNETES_VERSION" | tee -a "$GITHUB_ENV"
+        echo "KUBERNETES_ARCHITECTURE=$KUBERNETES_ARCHITECTURE" | tee -a "$GITHUB_ENV"
+
+        ##################################
+        # Extract Instance Configuration #
+        ##################################
+
+        export INSTANCE_SIZE=$(yq '.instance-size' -e ./tests/infrastructure.yaml)
+        INSTANCE_TYPE=$(yq '.[env(KUBERNETES_DISTRIBUTION)].[env(KUBERNETES_ARCHITECTURE)].[env(INSTANCE_SIZE)]' -e "$GITHUB_ACTION_PATH/instances.yml")
+
+        echo "INSTANCE_TYPE=$INSTANCE_TYPE" | tee -a "$GITHUB_ENV"
+
+        ############################
+        # Validate Test Parameters #
+        ############################
+
+        if [ -z "$TEST_RUN" ]; then
+          echo "TEST_RUN must be defined and not empty"
+          exit 1
+        fi
+
+        if [ "$TEST_RUN" != "all" ]; then
+          if [ -z "$TEST_PARAMETER" ]; then
+            echo "TEST_PARAMETER must be defined and not empty"
+            exit 1
+          fi
+
+          if [ "$TEST_RUN" == "test-suite" ]; then
+            yq '.suites[] | select(.name == env(TEST_PARAMETER))' -e ./tests/test-definition.yaml
+          elif [ "$TEST_RUN" == "test" ]; then
+            yq '.tests[] | select(.name == env(TEST_PARAMETER))' -e ./tests/test-definition.yaml
+          fi
+        fi
+
+        echo "TEST_PARAMETER=$TEST_PARAMETER" | tee -a "$GITHUB_ENV"
+        echo "TEST_RUN=$TEST_RUN" | tee -a "$GITHUB_ENV"
+
+    - name: Prepare Replicated Cluster
+      if: env.KUBERNETES_DISTRIBUTION != 'ionos'
+      id: prepare-replicated-cluster
+      uses: replicatedhq/replicated-actions/create-cluster@v1 # todo, hash
+      with:
+        # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
+        api-token: ${{ inputs.replicated-api-token }}
+        cluster-name: integration-test-${{ github.repository }}-${{ github.run_id }}
+        instance-type: ${{ env.INSTANCE_TYPE }}
+        kubernetes-distribution: ${{ env.KUBERNETES_DISTRIBUTION }}
+        kubernetes-version: ${{ env.KUBERNETES_VERSION }}
+        ttl: 4h # todo: allow this to be configurable
+        disk: 50 # todo: allow this to be configurable
+        nodes: 1 # todo: allow this to be configurable
+        tags: |
+          - key: node-architecture
+            value: ${{ env.KUBERNETES_ARCHITECTURE }}
+          - key: kubernetes-distribution
+            value: ${{ env.KUBERNETES_DISTRIBUTION }}
+          - key: triggered-by
+            value: ${{ github.triggering_actor }}
+
+    - name: Set Replicated kubeconfig
+      if: env.KUBERNETES_DISTRIBUTION != 'ionos'
+      env:
+        KUBECONFIG: ${{ steps.prepare-replicated-cluster.outputs.cluster-kubeconfig }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir ~/.kube
+        echo "$KUBECONFIG" > ~/.kube/config
+
+    - name: Extract Operator Name
+      env:
+        REPOSITORY: ${{ github.repository }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        OPERATOR_NAME=$(echo "$REPOSITORY" | cut -d / -f 2 | sed 's/-operator//g')
+        echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_ENV"
+
+    - name: Setup Tool Directory
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        TOOL_DIRECTORY="$HOME/.local/bin"
+        mkdir -p "$TOOL_DIRECTORY"
+
+        echo "$TOOL_DIRECTORY" | tee -a "$GITHUB_PATH"
+        echo "TOOL_DIRECTORY=$TOOL_DIRECTORY" | tee -a "$GITHUB_ENV"
+
+    # We don't need to install kubectl, kind or helm because it is already part of the installed
+    # tools of the runner image.
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-kubernetes-tools.sh
+    - name: Install kubectl-kuttl
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        curl -L -o "$TOOL_DIRECTORY/kubectl-kuttl" https://github.com/kudobuilder/kuttl/releases/download/v0.19.0/kubectl-kuttl_0.19.0_linux_x86_64
+        chmod +x "$TOOL_DIRECTORY/kubectl-kuttl"
+
+    # Python3 is already installed, if we ever need to specify the version, we can use the
+    # setup-python action.
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-python.sh
+    - name: Install beku
+      shell: bash
+      run: |
+        set -euo pipefail
+        pip install beku-stackabletech
+
+    # mikefarah/yq is already installed on the runner
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-yq.sh
+
+    - name: Install stackablectl
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        curl -L -o "$TOOL_DIRECTORY/stackablectl" https://github.com/stackabletech/stackable-cockpit/releases/latest/download/stackablectl-x86_64-unknown-linux-gnu
+        chmod +x "$TOOL_DIRECTORY/stackablectl"
+
+    - name: Install apt packages
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        sudo apt update
+        sudo apt install -y \
+          gettext-base
+
+    - name: Run Integration Test (${{ inputs.test-run }}=${{ inputs.test-parameter }})
+      env:
+        REF_NAME: ${{ github.ref_name }}
+        GH_TOKEN: ${{ github.token }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/get_operator_version.sh" "$REF_NAME")
+        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
+
+        if [ "$TEST_RUN" == "all" ]; then
+          python ./scripts/run-tests --skip-release --log-level debug
+        else
+          python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETER"
+        fi
+
+    - name: Destroy Replicated Cluster
+      if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
+      # If the creation of the cluster failed, we don't want to error and abort
+      continue-on-error: true
+      uses: replicatedhq/replicated-actions/remove-cluster@v1 # todo, hash
+      with:
+        # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
+        api-token: ${{ inputs.replicated-api-token }}
+        cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
+
+    - name: Record End Time
+      id: end-time
+      if: always()
+      shell: bash
+      run: |
+        echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"

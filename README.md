@@ -24,5 +24,6 @@ particular step in a workflow.
 - [free-disk-space](./free-disk-space/README.md)
 - [publish-image](./publish-image/README.md)
 - [publish-index-manifest](./publish-index-manifest/README.md)
+- [run-integration-test](./run-integration-test/README.md)
 - [run-pre-commit](./run-pre-commit/README.md)
 - [shard](./shard/README.md)
