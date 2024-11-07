@@ -61,7 +61,15 @@ runs:
         export INSTANCE_SIZE=$(yq '.instance-size' -e ./tests/infrastructure.yaml)
         INSTANCE_TYPE=$(yq '.[env(KUBERNETES_DISTRIBUTION)].[env(KUBERNETES_ARCHITECTURE)].[env(INSTANCE_SIZE)]' -e "$GITHUB_ACTION_PATH/instances.yml")
 
+        # Optional config options
+        CLUSTER_TTL=$(yq '.cluster-ttl' -e ./tests/infrastructure.yaml || echo "4h")
+        INSTANCE_NODES=$(yq '.nodes' -e ./tests/infrastructure.yaml || echo "1")
+        INSTANCE_DISK=$(yq '.disk' -e ./tests/infrastructure.yaml|| echo "50")
+
         echo "INSTANCE_TYPE=$INSTANCE_TYPE" | tee -a "$GITHUB_ENV"
+        echo "CLUSTER_TTL=$CLUSTER_TTL" | tee -a "$GITHUB_ENV"
+        echo "INSTANCE_NODES=$INSTANCE_NODES" | tee -a "$GITHUB_ENV"
+        echo "INSTANCE_DISK=$INSTANCE_DISK" | tee -a "$GITHUB_ENV"
 
         ############################
         # Validate Test Parameters #
@@ -99,9 +107,9 @@ runs:
         instance-type: ${{ env.INSTANCE_TYPE }}
         kubernetes-distribution: ${{ env.KUBERNETES_DISTRIBUTION }}
         kubernetes-version: ${{ env.KUBERNETES_VERSION }}
-        ttl: 4h # todo: allow this to be configurable
-        disk: 50 # todo: allow this to be configurable
-        nodes: 1 # todo: allow this to be configurable
+        ttl: ${{ env.CLUSTER_TTL }}
+        disk: ${{ env.INSTANCE_DISK }}
+        nodes: ${{ env.INSTANCE_NODES }}
         tags: |
           - key: node-architecture
             value: ${{ env.KUBERNETES_ARCHITECTURE }}
