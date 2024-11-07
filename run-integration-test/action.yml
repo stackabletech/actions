@@ -198,7 +198,7 @@ runs:
           python ./scripts/run-tests --skip-release --log-level debug --report xml "--$TEST_RUN" "$TEST_PARAMETER"
         fi
 
-        cat tests/_work/kuttl-report.xml
+        cat tests/_work/kuttl-report.xml > "$GITHUB_STEP_SUMMARY"
 
     - name: Destroy Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
@@ -217,8 +217,8 @@ runs:
       run: |
         echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
-    - name: Upload Test Summary
-      uses: EnricoMi/publish-unit-test-result-action@v2 # todo: hash
-      if: success() || failure()
-      with:
-        files: tests/_work/kuttl-report.xml
+    # - name: Upload Test Summary
+    #   uses: EnricoMi/publish-unit-test-result-action@v2 # todo: hash
+    #   if: success() || failure()
+    #   with:
+    #     files: tests/_work/kuttl-report.xml
