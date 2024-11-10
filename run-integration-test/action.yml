@@ -62,9 +62,28 @@ runs:
         INSTANCE_TYPE=$(yq '.[env(KUBERNETES_DISTRIBUTION)].[env(KUBERNETES_ARCHITECTURE)].[env(INSTANCE_SIZE)]' -e "$GITHUB_ACTION_PATH/instances.yml")
 
         # Optional config options
-        CLUSTER_TTL=$(yq '.cluster-ttl' -e ./tests/infrastructure.yaml || echo "4h")
-        INSTANCE_NODES=$(yq '.nodes' -e ./tests/infrastructure.yaml || echo "1")
-        INSTANCE_DISK=$(yq '.disk' -e ./tests/infrastructure.yaml|| echo "50")
+        # Don't exit on non 0 exit code to be able to fall back to the default values
+        set +e
+        CLUSTER_TTL=$(yq '.cluster-ttl' -e ./tests/infrastructure.yaml 2> /dev/null)
+        if [ "$?" != "0" ]; then
+          CLUSTER_TTL="4h"
+          echo "Using default cluster TTL: $CLUSTER_TTL"
+        fi
+
+        INSTANCE_NODES=$(yq '.nodes' -e ./tests/infrastructure.yaml 2> /dev/null)
+        if [ "$?" != "0" ]; then
+          INSTANCE_NODES="1"
+          echo "Using default number of nodes: $INSTANCE_NODES"
+        fi
+
+        INSTANCE_DISK=$(yq '.disk' -e ./tests/infrastructure.yaml 2> /dev/null)
+        if [ "$?" != "0" ]; then
+          INSTANCE_DISK="50"
+          echo "Using default disk size: ${INSTANCE_DISK}G"
+        fi
+
+        # Re-enable exit on non 0 exit code
+        set -e
 
         echo "INSTANCE_TYPE=$INSTANCE_TYPE" | tee -a "$GITHUB_ENV"
         echo "CLUSTER_TTL=$CLUSTER_TTL" | tee -a "$GITHUB_ENV"
