@@ -19,6 +19,10 @@ inputs:
     description: Whether to install hadolint (and which version to use)
   nix:
     description: Whether to install nix (and which version to use)
+  nix-github-token:
+    description: |
+      The GitHub token is used by Nix to pull from GitHub with higher rate-limits. Required when
+      the 'nix' input is used.
 runs:
   using: composite
   steps:
@@ -52,11 +56,18 @@ runs:
 
         echo "$LOCATION_DIR" | tee -a "$GITHUB_PATH"
 
+    - name: Abort nix-github-token input is unset
+      if: ${{ inputs.nix }} && !${{ inputs.nix-github-token }}
+      shell: bash
+      run: |
+        echo "nix-github-token input must be set when nix input is set"
+        exit 1
+
     - name: Setup nix
       if: ${{ inputs.nix }}
       uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 #v30
       with:
-        github_access_token: ${{ secrets.GITHUB_TOKEN }}
+        github_access_token: ${{ inputs.nix-github-token }}
         install_url: https://releases.nixos.org/nix/nix-${{ inputs.nix }}/install
 
     - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
