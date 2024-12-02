@@ -99,7 +99,7 @@ runs:
     - name: Prepare Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos'
       id: prepare-replicated-cluster
-      uses: replicatedhq/replicated-actions/create-cluster@v1 # todo, hash
+      uses: replicatedhq/replicated-actions/create-cluster@77121785951d05387334b773644c356885191f14 # v1.16.2
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
@@ -210,7 +210,7 @@ runs:
       if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
       # If the creation of the cluster failed, we don't want to error and abort
       continue-on-error: true
-      uses: replicatedhq/replicated-actions/remove-cluster@v1 # todo, hash
+      uses: replicatedhq/replicated-actions/remove-cluster@77121785951d05387334b773644c356885191f14 # v1.16.2
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
