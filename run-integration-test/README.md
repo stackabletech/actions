@@ -12,11 +12,11 @@ This action runs an operator integration test. It does the following work:
 ## Test Platform Triple
 
 The [`test-platform`](#inputs) input expects a test platform triple to select the appropriate node
-architecture and kubernetes distribution & version. The triple format is
+architecture and Kubernetes distribution & version. The triple format is
 `<DISTRIBUTION>-<VERSION>-<ARCHITECTURE>`, eg. `kind-1.31.2-amd64` or `gke-1.31-arm64`.
 
 Each distribution supports different instance types
-(based on the cloud vendor machine names). This mapping is done via the `instances.yml` file. Based
+based on the cloud vendor machine names. This mapping is done via the `instances.yml` file. Based
 on this file, the following distributions are supported: `eks`, `gke`, `aks`, `kind`, `k3s`, `rke2`.
 There is no mapping for `oke` yet.
 
