@@ -2,11 +2,12 @@
 
 > Manifest: [run-pre-commit/action.yml][run-pre-commit]
 
-This action runs pre-commit by setting up Python and optionally the Rust toolchain and Hadolint in
-the requested version. It requires a checkout with depth 0. It does the following work:
+This action runs pre-commit by setting up Python and optionally installing the Rust toolchain,
+Hadolint, and Nix in the requested version. It requires a checkout with depth 0. It does the
+following work:
 
 1. Installs Python. The version can be configured via the `python-version` input.
-2. Optionally sets up the Rust toolchain and Hadolint.
+2. Optionally sets up the Rust toolchain, Hadolint, and Nix.
 3. Runs pre-commit on changed files.
 
 Example usage (workflow):
@@ -40,6 +41,8 @@ jobs:
 - `rust` (eg: `1.80.1`. Disabled if not specified)
 - `rust-components` (defaults to `rustfmt,clippy`)
 - `hadolint` (eg: `v2.12.0`. Disabled if not specified)
+- `nix` (eg: `2.25.2`. Disabled if not specified)
+- `nix-github-token` (eg: `secrets.GITHUB_TOKEN`. Required when `nix` is set)
 
 ### Outputs
 
