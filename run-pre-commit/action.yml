@@ -64,7 +64,7 @@ runs:
         exit 1
 
     - name: Setup nix
-      if: ${{ inputs.nix }}
+      if: inputs.nix
       uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 #v30
       with:
         github_access_token: ${{ inputs.nix-github-token }}
