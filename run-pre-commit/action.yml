@@ -56,7 +56,7 @@ runs:
 
         echo "$LOCATION_DIR" | tee -a "$GITHUB_PATH"
 
-    - name: Abort nix-github-token input is unset
+    - name: Abort if nix-github-token input is not set
       if: inputs.nix && !inputs.nix-github-token
       shell: bash
       run: |
