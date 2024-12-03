@@ -1,3 +1,8 @@
+########################
+# Cloud based clusters #
+########################
+
+# https://docs.replicated.com/vendor/testing-supported-clusters#eks
 eks:
   arm64:
     small: m7g.large
@@ -8,6 +13,7 @@ eks:
     medium: m6i.2xlarge
     large: m6i.4xlarge
 
+# https://docs.replicated.com/vendor/testing-supported-clusters#gke
 gke:
   arm64:
     small: t2a-standard-2
@@ -18,6 +24,7 @@ gke:
     medium: e2-standard-8
     large: e2-standard-16
 
+# https://docs.replicated.com/vendor/testing-supported-clusters#aks
 aks:
   arm64:
     small: Standard_D2ps_v5
@@ -28,7 +35,26 @@ aks:
     medium: Standard_DS3_v2
     large: Standard_DS5_v2
 
+##################################
+# VM based clusters (only AMD64) #
+##################################
+
+# https://docs.replicated.com/vendor/testing-supported-clusters#kind
 kind:
+  amd64:
+    small: r1.small
+    medium: r1.medium
+    large: r1.large
+
+# https://docs.replicated.com/vendor/testing-supported-clusters#k3s
+k3s:
+  amd64:
+    small: r1.small
+    medium: r1.medium
+    large: r1.large
+
+# https://docs.replicated.com/vendor/testing-supported-clusters#rke2-beta
+rke2:
   amd64:
     small: r1.small
     medium: r1.medium
