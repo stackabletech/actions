@@ -27,12 +27,6 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Record Start Time
-      id: start-time
-      shell: bash
-      run: |
-        echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
-
     - name: Extract Test and Instance Configuration
       env:
         TEST_PARAMETER: ${{ inputs.test-parameter }}
@@ -205,6 +199,12 @@ runs:
         sudo apt install -y \
           gettext-base
 
+    - name: Record Test Start Time
+      id: start-time
+      shell: bash
+      run: |
+        echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
+
     - name: Run Integration Test (${{ inputs.test-run }}=${{ inputs.test-parameter }})
       env:
         REF_NAME: ${{ github.ref_name }}
@@ -222,6 +222,13 @@ runs:
           python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETER"
         fi
 
+    - name: Record Test End Time
+      id: end-time
+      if: always()
+      shell: bash
+      run: |
+        echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
+
     - name: Destroy Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
       # If the creation of the cluster failed, we don't want to error and abort
@@ -231,10 +238,3 @@ runs:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
         cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
-
-    - name: Record End Time
-      id: end-time
-      if: always()
-      shell: bash
-      run: |
-        echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
