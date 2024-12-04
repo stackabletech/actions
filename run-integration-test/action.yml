@@ -67,7 +67,7 @@ runs:
           --arg kubernetes_distribution "$KUBERNETES_DISTRIBUTION" \
           --arg kubernetes_architecture "$KUBERNETES_ARCHITECTURE" \
           --arg instance_size "$INSTANCE_SIZE" \
-          '.[$kubernetes_distribution].[$kubernetes_architecture].[$instance_size]' \
+          '.[$kubernetes_distribution][$kubernetes_architecture][$instance_size]' \
           "$GITHUB_ACTION_PATH/instances.yml"
         )
 
