@@ -27,28 +27,32 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Record Start Time
-      id: start-time
-      shell: bash
-      run: |
-        echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
-
     - name: Extract Test and Instance Configuration
       env:
         TEST_PARAMETER: ${{ inputs.test-parameter }}
         TEST_PLATFORM: ${{ inputs.test-platform }}
         TEST_RUN: ${{ inputs.test-run }}
+        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
+        # Create and enter Python virtual env
+        python -m venv .venv
+        . .venv/bin/activate
+
+        # Install proper yq
+        pip install yq==3.4.3
+        yq --version
 
         #####################################
         # Extract Kubernetes-related Values #
         #####################################
 
-        export KUBERNETES_DISTRIBUTION=$(echo "$TEST_PLATFORM" | cut -d - -f 1)
-        export KUBERNETES_VERSION=$(echo "$TEST_PLATFORM" | cut -d - -f 2)
-        export KUBERNETES_ARCHITECTURE=$(echo "$TEST_PLATFORM" | cut -d - -f 3)
+        KUBERNETES_DISTRIBUTION=$(echo "$TEST_PLATFORM" | cut -d - -f 1)
+        KUBERNETES_VERSION=$(echo "$TEST_PLATFORM" | cut -d - -f 2)
+        KUBERNETES_ARCHITECTURE=$(echo "$TEST_PLATFORM" | cut -d - -f 3)
 
         echo "KUBERNETES_DISTRIBUTION=$KUBERNETES_DISTRIBUTION" | tee -a "$GITHUB_ENV"
         echo "KUBERNETES_VERSION=$KUBERNETES_VERSION" | tee -a "$GITHUB_ENV"
@@ -58,13 +62,19 @@ runs:
         # Extract Instance Configuration #
         ##################################
 
-        export INSTANCE_SIZE=$(yq '.instance-size' -e ./tests/infrastructure.yaml)
-        INSTANCE_TYPE=$(yq '.[env(KUBERNETES_DISTRIBUTION)].[env(KUBERNETES_ARCHITECTURE)].[env(INSTANCE_SIZE)]' -e "$GITHUB_ACTION_PATH/instances.yml")
+        INSTANCE_SIZE=$(yq -er '."instance-size"' ./tests/infrastructure.yaml)
+        INSTANCE_TYPE=$(yq -er \
+          --arg kubernetes_distribution "$KUBERNETES_DISTRIBUTION" \
+          --arg kubernetes_architecture "$KUBERNETES_ARCHITECTURE" \
+          --arg instance_size "$INSTANCE_SIZE" \
+          '.[$kubernetes_distribution][$kubernetes_architecture][$instance_size]' \
+          "$GITHUB_ACTION_PATH/instances.yml"
+        )
 
         # Optional config options
-        CLUSTER_TTL=$(yq '.cluster-ttl' -e ./tests/infrastructure.yaml || echo "4h")
-        INSTANCE_NODES=$(yq '.nodes' -e ./tests/infrastructure.yaml || echo "1")
-        INSTANCE_DISK=$(yq '.disk' -e ./tests/infrastructure.yaml|| echo "50")
+        CLUSTER_TTL=$(yq -er '."cluster-ttl" // "4h"' ./tests/infrastructure.yaml)
+        INSTANCE_NODES=$(yq -er '.nodes // 1' ./tests/infrastructure.yaml)
+        INSTANCE_DISK=$(yq -er '.disk // 50' ./tests/infrastructure.yaml)
 
         echo "INSTANCE_TYPE=$INSTANCE_TYPE" | tee -a "$GITHUB_ENV"
         echo "CLUSTER_TTL=$CLUSTER_TTL" | tee -a "$GITHUB_ENV"
@@ -87,9 +97,9 @@ runs:
           fi
 
           if [ "$TEST_RUN" == "test-suite" ]; then
-            yq '.suites[] | select(.name == env(TEST_PARAMETER))' -e ./tests/test-definition.yaml
+            yq -er --arg test_parameter "$TEST_PARAMETER" '.suites[] | select(.name == $test_parameter)' ./tests/test-definition.yaml
           elif [ "$TEST_RUN" == "test" ]; then
-            yq '.tests[] | select(.name == env(TEST_PARAMETER))' -e ./tests/test-definition.yaml
+            yq -er --arg test_parameter "$TEST_PARAMETER" '.tests[] | select(.name == $test_parameter)' ./tests/test-definition.yaml
           fi
         fi
 
@@ -189,6 +199,12 @@ runs:
         sudo apt install -y \
           gettext-base
 
+    - name: Record Test Start Time
+      id: start-time
+      shell: bash
+      run: |
+        echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
+
     - name: Run Integration Test (${{ inputs.test-run }}=${{ inputs.test-parameter }})
       env:
         REF_NAME: ${{ github.ref_name }}
@@ -206,6 +222,13 @@ runs:
           python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETER"
         fi
 
+    - name: Record Test End Time
+      id: end-time
+      if: always()
+      shell: bash
+      run: |
+        echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
+
     - name: Destroy Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
       # If the creation of the cluster failed, we don't want to error and abort
@@ -215,10 +238,3 @@ runs:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
         cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
-
-    - name: Record End Time
-      id: end-time
-      if: always()
-      shell: bash
-      run: |
-        echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
