@@ -76,6 +76,13 @@ runs:
         # - 3.9.2-stackable0.0.0-dev-pr321-arm64
         IMAGE_VERSION="${SDP_VERSION}${EXTRA_TAG_DATA:+-$EXTRA_TAG_DATA}-${IMAGE_ARCH}"
 
+        # Validate that final tag is valid according to
+        # https://github.com/distribution/reference/blob/8c942b0459dfdcc5b6685581dd0a5a470f615bff/regexp.go#L68
+        if ! echo "$IMAGE_VERSION" | grep --perl-regexp --quiet '^[\w][\w.-]{1,127}$'; then
+          >&2 echo "Encountered invalid image manifest tag: $IMAGE_VERSION"
+          exit 1
+        fi
+
         echo "::group::bake"
         bake \
           --product "$IMAGE_REPOSITORY=$BAKE_PRODUCT_VERSION" \
