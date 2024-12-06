@@ -55,6 +55,7 @@ jobs:
           product-version: ${{ matrix.versions }}
           build-cache-password: ${{ secrets.BUILD_CACHE_NEXUS_PASSWORD }}
           bake-config-file: smoke/conf.py
+          extra-tag-data: pr-321
 
       - name: Publish Container Image on oci.stackable.tech
         uses: ./publish-image
