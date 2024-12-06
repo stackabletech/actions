@@ -48,6 +48,7 @@ localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
 - `build-cache-password` (required) <!-- TODO: make the cache optional -->
 - `bake-config-file` (defaults to `./conf.py`)
 - `sdp-version` (defaults to: `0.0.0-dev`)
+- `extra-tag-data` (optional, eg. `pr321`)
 
 ### Outputs
 

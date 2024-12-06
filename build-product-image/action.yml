@@ -24,6 +24,9 @@ inputs:
     description: |
       Stackable Data Platform version (eg: `24.7.0`)
     default: 0.0.0-dev
+  extra-tag-data:
+    description: |
+      Extra data to include in the final image manifest tag (eg: `pr321`)
 outputs:
   image-manifest-tag:
     description: |
@@ -61,16 +64,22 @@ runs:
         BAKE_PRODUCT_VERSION: ${{ inputs.product-version }}
         BAKE_CONFIG_FILE: ${{ inputs.bake-config-file }}
         IMAGE_REPOSITORY: ${{ inputs.product-name }}
+        EXTRA_TAG_DATA: ${{ inputs.extra-tag-data }}
         SDP_VERSION: ${{ inputs.sdp-version }}
       shell: bash
       run: |
         set -euo pipefail
         IMAGE_ARCH=$("$GITHUB_ACTION_PATH/../.scripts/get_architecture.sh")
 
+        # Will be either:
+        # - 3.9.2-stackable0.0.0-dev-arm64 or
+        # - 3.9.2-stackable0.0.0-dev-pr321-arm64
+        IMAGE_VERSION="${SDP_VERSION}${EXTRA_TAG_DATA:+-$EXTRA_TAG_DATA}-${IMAGE_ARCH}"
+
         echo "::group::bake"
         bake \
           --product "$IMAGE_REPOSITORY=$BAKE_PRODUCT_VERSION" \
-          --image-version "${SDP_VERSION}-${IMAGE_ARCH}" \
+          --image-version "$IMAGE_VERSION" \
           --architecture "linux/${IMAGE_ARCH}" \
           --export-tags-file bake-target-tags \
           --configuration "$BAKE_CONFIG_FILE" \
