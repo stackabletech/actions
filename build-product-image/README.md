@@ -53,5 +53,6 @@ localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
 ### Outputs
 
 - `image-manifest-tag` (eg: `3.4.1-stackable0.0.0-dev-amd64`)
+- `suggested-image-index-manifest-tag` (eg: `3.4.1-stackable0.0.0-dev`)
 
 [build-product-image]: ./action.yml
