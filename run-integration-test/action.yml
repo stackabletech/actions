@@ -103,8 +103,11 @@ runs:
           fi
         fi
 
+        TEST_PARALLELISM=$(yq -er '.parallelism // 2' ./tests/infrastructure.yaml)
+
         echo "TEST_PARAMETER=$TEST_PARAMETER" | tee -a "$GITHUB_ENV"
         echo "TEST_RUN=$TEST_RUN" | tee -a "$GITHUB_ENV"
+        echo "TEST_PARALLELISM=$TEST_PARALLELISM" | tee -a "$GITHUB_ENV"
 
     - name: Prepare Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos'
@@ -217,9 +220,9 @@ runs:
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
         if [ "$TEST_RUN" == "all" ]; then
-          python ./scripts/run-tests --skip-release --log-level debug
+          python ./scripts/run-tests --skip-release --log-level debug "$TEST_PARALLELISM"
         else
-          python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETER"
+          python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETER" "$TEST_PARALLELISM"
         fi
 
     - name: Record Test End Time
