@@ -33,6 +33,7 @@ Supported Kubernetes version can be inspected on the official Replicated documen
 - `test-platform`(required, eg: `kind-1.31.2-amd64`)
 - `test-run` (required, `test-suite` or `test`)
 - `test-parameter` (defaults to `smoke`)
+- `test-parallelism` (defaults to `2`)
 - `replicated-api-token` (required)
 
 ### Outputs
