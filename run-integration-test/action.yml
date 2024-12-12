@@ -14,9 +14,6 @@ inputs:
   test-parameter:
     description: Parameter to `--test-suite` or `--test` (ignored for `all`)
     default: ""
-  test-parallelism:
-    description: Level of test parallelism
-    default: "2"
   replicated-api-token:
     description: Replicated API token (only needed if running on replicated)
     default: ""
@@ -35,7 +32,6 @@ runs:
         TEST_PARAMETER: ${{ inputs.test-parameter }}
         TEST_PLATFORM: ${{ inputs.test-platform }}
         TEST_RUN: ${{ inputs.test-run }}
-        TEST_PARALLELISM: ${{ inputs.test-parallelism }}
         GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
