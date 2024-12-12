@@ -75,11 +75,13 @@ runs:
         CLUSTER_TTL=$(yq -er '."cluster-ttl" // "4h"' ./tests/infrastructure.yaml)
         INSTANCE_NODES=$(yq -er '.nodes // 1' ./tests/infrastructure.yaml)
         INSTANCE_DISK=$(yq -er '.disk // 50' ./tests/infrastructure.yaml)
+        TEST_PARALLELISM=$(yq -er '.parallelism // 2' ./tests/infrastructure.yaml)
 
         echo "INSTANCE_TYPE=$INSTANCE_TYPE" | tee -a "$GITHUB_ENV"
         echo "CLUSTER_TTL=$CLUSTER_TTL" | tee -a "$GITHUB_ENV"
         echo "INSTANCE_NODES=$INSTANCE_NODES" | tee -a "$GITHUB_ENV"
         echo "INSTANCE_DISK=$INSTANCE_DISK" | tee -a "$GITHUB_ENV"
+        echo "TEST_PARALLELISM=$TEST_PARALLELISM" | tee -a "$GITHUB_ENV"
 
         ############################
         # Validate Test Parameters #
@@ -103,11 +105,8 @@ runs:
           fi
         fi
 
-        TEST_PARALLELISM=$(yq -er '.parallelism // 2' ./tests/infrastructure.yaml)
-
         echo "TEST_PARAMETER=$TEST_PARAMETER" | tee -a "$GITHUB_ENV"
         echo "TEST_RUN=$TEST_RUN" | tee -a "$GITHUB_ENV"
-        echo "TEST_PARALLELISM=$TEST_PARALLELISM" | tee -a "$GITHUB_ENV"
 
     - name: Prepare Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos'
