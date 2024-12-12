@@ -75,11 +75,13 @@ runs:
         CLUSTER_TTL=$(yq -er '."cluster-ttl" // "4h"' ./tests/infrastructure.yaml)
         INSTANCE_NODES=$(yq -er '.nodes // 1' ./tests/infrastructure.yaml)
         INSTANCE_DISK=$(yq -er '.disk // 50' ./tests/infrastructure.yaml)
+        TEST_PARALLELISM=$(yq -er '.parallelism // 2' ./tests/infrastructure.yaml)
 
         echo "INSTANCE_TYPE=$INSTANCE_TYPE" | tee -a "$GITHUB_ENV"
         echo "CLUSTER_TTL=$CLUSTER_TTL" | tee -a "$GITHUB_ENV"
         echo "INSTANCE_NODES=$INSTANCE_NODES" | tee -a "$GITHUB_ENV"
         echo "INSTANCE_DISK=$INSTANCE_DISK" | tee -a "$GITHUB_ENV"
+        echo "TEST_PARALLELISM=$TEST_PARALLELISM" | tee -a "$GITHUB_ENV"
 
         ############################
         # Validate Test Parameters #
@@ -217,9 +219,9 @@ runs:
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
         if [ "$TEST_RUN" == "all" ]; then
-          python ./scripts/run-tests --skip-release --log-level debug
+          python ./scripts/run-tests --skip-release --log-level debug --parallel "$TEST_PARALLELISM"
         else
-          python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETER"
+          python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETER" --parallel "$TEST_PARALLELISM"
         fi
 
     - name: Record Test End Time

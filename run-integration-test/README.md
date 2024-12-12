@@ -35,6 +35,9 @@ Supported Kubernetes version can be inspected on the official Replicated documen
 - `test-parameter` (defaults to `smoke`)
 - `replicated-api-token` (required)
 
+> [!NOTE]
+> `test-parameter` maps to a specific test *name*, not to a single test with all dimensions resolved.
+
 ### Outputs
 
 - `start-time`
