@@ -1,0 +1,35 @@
+name: Build interu
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      target:
+        required: true
+        type: string
+
+env:
+  RUST_VERSION: 1.83.0
+
+jobs:
+  build:
+    name: Release interu-${{ inputs.target }}
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@0e66bd3e6b38ec0ad5312288c83e47c143e6b09e # v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: ${{ inputs.target }}
+
+      - name: Build Binary
+        run: cargo build --target ${{ inputs.target }} --release --package interu
+
+      - name: Rename Binary
+        run: mv target/${{ inputs.target }}/release/interu interu-${{ inputs.target }}

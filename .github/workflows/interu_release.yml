@@ -1,0 +1,28 @@
+name: Release interu
+
+on:
+  push:
+    tags:
+      - "interu-[0-9]+.[0-9]+.[0-9]+**"
+
+jobs:
+  release:
+    name: Release interu-${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+    steps:
+      - name: Build interu
+        uses: ./.github/workflows/interu_build.yml
+        with:
+          target: ${{ matrix.target }}
+          os: ${{ matrix.os }}
+
+      - name: Upload Release Binary
+        uses: softprops/action-gh-release@69320dbe05506a9a39fc8ae11030b214ec2d1f87 # v2.0.5
+        with:
+          files: interu-${{ matrix.target }}
