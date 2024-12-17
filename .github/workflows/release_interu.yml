@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/interu_build.yml
+    uses: ./.github/workflows/build_interu.yml
     with:
       upload: true
       target: ${{ matrix.target }}

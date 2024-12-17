@@ -3,8 +3,8 @@ name: Build interu
 on:
   pull_request:
     paths:
-      - .github/workflows/interu_build.yml
-      - .github/workflows/interu_build.yml
+      - .github/workflows/release_interu.yml
+      - .github/workflows/build_interu.yml
       - .github/workflows/pr_interu.yml
       - rust-toolchain.toml
       - tools/interu/**
@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/interu_build.yml
+    uses: ./.github/workflows/build_interu.yml
     with:
       target: ${{ matrix.target }}
       os: ${{ matrix.os }}
