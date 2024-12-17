@@ -1,0 +1,65 @@
+runners:
+  # Runners can have more than one name. This is useful when the same runner is
+  # used for different tests
+  default-amd64:
+    platform: rke2-1.31.2
+    ttl: 4h
+    node-groups:
+      - name: default
+        arch: amd64
+        size: large
+        disk: 50
+        nodes: 3
+
+  default-arm64:
+    platform: aks-1.31
+    ttl: 4h
+    node-groups:
+      - name: default
+        arch: arm64
+        size: large
+        disk: 50
+        nodes: 3
+
+  default-mixed:
+    platform: aks-1.31
+    ttl: 4h
+    node-groups:
+      - name: amd64-nodes
+        arch: amd64
+        size: large
+        disk: 50
+        nodes: 3
+      - name: arm64-nodes
+        arch: arm64
+        size: large
+        disk: 50
+        nodes: 3
+
+profiles:
+  schedule:
+    strategy: weighted
+    weights:
+      # 80%, 10% and 10% of the time
+      # Ideally we want: - 80: default-amd64 but that's hard to (de)serialize
+      # using serde
+      - weight: 80
+        runner: default-amd64
+      - weight: 10
+        runner: default-arm64
+      - weight: 10
+        runner: default-mixed
+    options:
+      # Not explicitly setting 'test-run' and 'test-parameter' will run all
+      # tests
+      parallelism: 1
+
+  workflow_dispatch:
+    strategy: use-runner
+    runner: default-amd64
+    options:
+      # Defaults to `--test-suite smoke` but can be overridden using
+      # workflow_dispatch inputs
+      test-run: test-suite
+      test-parameter: smoke
+      parallelism: 2

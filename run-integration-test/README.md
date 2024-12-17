@@ -23,6 +23,12 @@ There is no mapping for `oke` yet.
 Supported Kubernetes version can be inspected on the official Replicated documentation
 [page][supported-clusters]. Supported architectures are `amd64` and `arm64`.
 
+## Integration Test Configuration File
+
+Each downstream repository needs a configuration file. This allows customization of various
+parameters based on the needs of the operator / the particular tests. The config file needs to be
+placed here: `tests/integration-tests.yml`.
+
 ## Inputs and Outputs
 
 > [!TIP]
