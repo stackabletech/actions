@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, fmt::Display, path::Path};
 use rand::{distributions::WeightedIndex, prelude::Distribution as _, thread_rng};
 use serde::{Deserialize, Serialize};
 use snafu::{OptionExt, ResultExt, Snafu};
+use tracing::instrument;
 
 use crate::{
     config::{
@@ -50,19 +51,25 @@ pub struct Config {
 }
 
 impl Config {
+    #[instrument(name = "load_config_from_file", skip(path), fields(path = %path.as_ref().display()))]
     pub fn from_file<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
         let contents = std::fs::read_to_string(path).context(ReadFileSnafu)?;
-        let config: Config = serde_yaml::from_str(&contents).context(DeserializeSnafu)?;
-        config.validate().context(ValidateSnafu)?;
 
+        tracing::debug!("deserialize file contents");
+        let config: Config = serde_yaml::from_str(&contents).context(DeserializeSnafu)?;
+
+        config.validate().context(ValidateSnafu)?;
         Ok(config)
     }
 
+    #[instrument(name = "validate_config", skip(self))]
     fn validate(&self) -> Result<(), ValidationError> {
         for (profile_name, profile) in &self.profiles {
+            tracing::debug!(profile_name, "validate profile");
+
             profile
                 .validate(profile_name, &self.runners)
                 .context(InvalidProfileConfigSnafu)?;

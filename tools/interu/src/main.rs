@@ -22,11 +22,14 @@ enum Error {
 
 #[report]
 fn main() -> Result<(), Error> {
+    tracing::debug!("setup cli from env");
     let cli: Cli = argh::from_env();
 
+    tracing::info!("load config and instance mappings file");
     let config = Config::from_file(&cli.config).context(ReadConfigSnafu)?;
     let instances = Instances::from_file(&cli.instances).context(ReadInstancesSnafu)?;
 
+    tracing::info!("determine parameters");
     let parameters = config
         .determine_parameters(&cli.profile, instances)
         .unwrap();
@@ -34,6 +37,8 @@ fn main() -> Result<(), Error> {
     let parameters = parameters.to_string();
 
     if let Some(output_path) = cli.output {
+        tracing::info!(output_path = %output_path.display(), "write parameters to output file");
+
         let mut file = OpenOptions::new()
             .append(true)
             .open(output_path)

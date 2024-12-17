@@ -2,6 +2,7 @@ use std::{collections::HashMap, ops::Deref, path::Path};
 
 use serde::Deserialize;
 use snafu::{ResultExt as _, Snafu};
+use tracing::instrument;
 
 use crate::config::runner::{Architecture, Distribution};
 
@@ -37,11 +38,14 @@ impl Deref for Architectures {
 }
 
 impl Instances {
+    #[instrument(name = "load_instance_mappings_from_file", skip(path), fields(path = %path.as_ref().display()))]
     pub fn from_file<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
         let contents = std::fs::read_to_string(path).context(ReadFileSnafu)?;
+
+        tracing::debug!("deserialize file contents");
         let config: Instances = serde_yaml::from_str(&contents).context(DeserializeSnafu)?;
 
         Ok(config)
