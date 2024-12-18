@@ -8,7 +8,9 @@ use tracing::instrument;
 use crate::{
     config::{
         profile::{Profile, StrategyValidationError, TestRun},
-        runner::{ConvertNodeGroupError, Distribution, ReplicatedNodeGroup, Runner},
+        runner::{
+            ConvertNodeGroupError, Distribution, ReplicatedNodeGroup, Runner, RunnerValidationError,
+        },
     },
     instances::Instances,
 };
@@ -36,6 +38,9 @@ pub enum Error {
 
 #[derive(Debug, Snafu)]
 pub enum ValidationError {
+    #[snafu(display("invalid runner config"))]
+    InvalidRunnerConfig { source: RunnerValidationError },
+
     #[snafu(display("invalid profile config"))]
     InvalidProfileConfig { source: StrategyValidationError },
 }
@@ -67,6 +72,14 @@ impl Config {
 
     #[instrument(name = "validate_config", skip(self))]
     fn validate(&self) -> Result<(), ValidationError> {
+        for (runner_name, runner) in &self.runners {
+            tracing::debug!(runner_name, "validate runner");
+
+            runner
+                .validate(runner_name)
+                .context(InvalidRunnerConfigSnafu)?;
+        }
+
         for (profile_name, profile) in &self.profiles {
             tracing::debug!(profile_name, "validate profile");
 

@@ -2,9 +2,15 @@ use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
-use snafu::{OptionExt, ResultExt as _, Snafu};
+use snafu::{ensure, OptionExt, ResultExt as _, Snafu};
 
 use crate::instances::Instances;
+
+#[derive(Debug, Snafu)]
+pub enum RunnerValidationError {
+    #[snafu(display("{at} must contain at least one node group"))]
+    ZeroNodeGroups { at: String },
+}
 
 #[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
@@ -22,9 +28,21 @@ pub struct Runner {
     /// The time-to-live of the cluster.
     pub ttl: String,
 
-    /// Optionally define node groups.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Define one or more node groups.
     pub node_groups: Vec<NodeGroup>,
+}
+
+impl Runner {
+    pub fn validate(&self, runner_name: &str) -> Result<(), RunnerValidationError> {
+        ensure!(
+            !self.node_groups.is_empty(),
+            ZeroNodeGroupsSnafu {
+                at: format!("runners.{runner_name}")
+            }
+        );
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Snafu)]
