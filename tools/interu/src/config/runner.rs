@@ -48,19 +48,15 @@ impl FromStr for PlatformPair {
     type Err = ParsePlatformTripleError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<&str> = s.split('-').collect();
+        let (distribution, version) = s.split_once('-').context(InvalidFormatSnafu)?;
 
-        match parts[..] {
-            [distribution, version] => {
-                let distribution =
+            let distribution =
                     Distribution::from_str(distribution).context(ParseDistributionSnafu)?;
 
-                Ok(PlatformPair {
-                    version: version.to_owned(),
-                    distribution,
-                })
-            }
-            _ => InvalidFormatSnafu.fail(),
+            Ok(PlatformPair {
+                version: version.to_owned(),
+                distribution,
+            })
         }
     }
 }

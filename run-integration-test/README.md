@@ -26,8 +26,8 @@ Supported Kubernetes version can be inspected on the official Replicated documen
 ## Integration Test Configuration File
 
 Each downstream repository needs a configuration file. This allows customization of various
-parameters based on the needs of the operator / the particular tests. The config file needs to be
-placed here: `tests/integration-tests.yml`.
+parameters based on the needs of the operator, or the particular tests. The config file needs to be
+placed here: `tests/interu.yaml` to be picked up automatically.
 
 ## Inputs and Outputs
 

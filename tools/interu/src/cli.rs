@@ -10,7 +10,7 @@ pub struct Cli {
         option,
         short = 'c',
         long = "config",
-        default = "PathBuf::from(\"tests/interu.yaml\")"
+        default = r#"PathBuf::from("tests/interu.yaml")"#
     )]
     pub config: PathBuf,
 
@@ -18,12 +18,12 @@ pub struct Cli {
     #[argh(option, short = 'i', long = "instances")]
     pub instances: PathBuf,
 
-    /// output key=value pairs separated by newlines to file
+    /// write configuration key=value pairs separated by newlines to file
     #[argh(
         option,
         short = 'o',
         long = "output",
-        description = "output key=value pairs separated by newlines to file.
+        description = "write configuration key=value pairs separated by newlines to file
     Useful for CI tools which give a file to write env vars and outputs to which are used in subsequent steps"
     )]
     pub output: Option<PathBuf>,

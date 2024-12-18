@@ -59,7 +59,7 @@ impl Config {
         let contents = std::fs::read_to_string(path).context(ReadFileSnafu)?;
 
         tracing::debug!("deserialize file contents");
-        let config: Config = serde_yaml::from_str(&contents).context(DeserializeSnafu)?;
+        let config: Self = serde_yaml::from_str(&contents).context(DeserializeSnafu)?;
 
         config.validate().context(ValidateSnafu)?;
         Ok(config)
@@ -144,6 +144,8 @@ pub struct Parameters {
 
 impl Display for Parameters {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Destructure all fields so that any additional parameters are handled here.
+        // DO NOT USE `..`.
         let Self {
             kubernetes_distribution,
             kubernetes_version,
@@ -155,17 +157,16 @@ impl Display for Parameters {
 
         write!(f, "KUBERNETES_DISTRIBUTION={kubernetes_distribution}\n")?;
         write!(f, "KUBERNETES_VERSION={kubernetes_version}\n")?;
-
+        write!(f, "TEST_PARALLELISM={test_parallelism}\n")?;
+        write!(f, "TEST_PARAMETER={test_parameter}\n")?;
+        write!(f, "TEST_RUN={test_run}\n")?;
+        
         // See: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#multiline-strings
         write!(
             f,
             "NODE_GROUPS<<EOF\n{node_groups}\nEOF\n",
             node_groups = serde_yaml::to_string(&node_groups).expect("must be serializable")
-        )?;
-
-        write!(f, "TEST_PARALLELISM={test_parallelism}\n")?;
-        write!(f, "TEST_PARAMETER={test_parameter}\n")?;
-        write!(f, "TEST_RUN={test_run}\n")
+        )
     }
 }
 

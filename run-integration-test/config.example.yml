@@ -1,6 +1,7 @@
+# Runners can be defined here, to select from the available Kubernetes versions
+# and distributions along with node groups of desired instance size,
+# architecture, disk size.
 runners:
-  # Runners can have more than one name. This is useful when the same runner is
-  # used for different tests
   default-amd64:
     platform: rke2-1.31.2
     ttl: 4h
@@ -36,6 +37,10 @@ runners:
         disk: 50
         nodes: 3
 
+# Profiles allow for a variety of pre-configured runners and strategies. A 
+# profile can be chosen when calling interu.
+# For example, the `schedule` profile could be used in CI on the `schedule`
+# event.
 profiles:
   schedule:
     strategy: weighted
