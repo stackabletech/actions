@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, fmt::Display, path::Path};
+use std::{
+    collections::BTreeMap,
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 use rand::{distributions::WeightedIndex, prelude::Distribution as _, thread_rng};
 use serde::{Deserialize, Serialize};
@@ -20,14 +24,23 @@ pub mod runner;
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("failed to read file"))]
-    ReadFile { source: std::io::Error },
+    #[snafu(display("failed to read config file at {path}", path = path.display()))]
+    ReadFile {
+        source: std::io::Error,
+        path: PathBuf,
+    },
 
-    #[snafu(display("failed to deserialize file"))]
-    Deserialize { source: serde_yaml::Error },
+    #[snafu(display("failed to deserialize config file at {path} as yaml", path = path.display()))]
+    Deserialize {
+        source: serde_yaml::Error,
+        path: PathBuf,
+    },
 
-    #[snafu(display("failed to validate file"))]
-    Validate { source: ValidationError },
+    #[snafu(display("failed to validate config file at {path}", path = path.display()))]
+    Validate {
+        source: ValidationError,
+        path: PathBuf,
+    },
 
     #[snafu(display("failed to find profile named {profile_name:?}"))]
     UnknownProfileName { profile_name: String },
@@ -38,10 +51,10 @@ pub enum Error {
 
 #[derive(Debug, Snafu)]
 pub enum ValidationError {
-    #[snafu(display("invalid runner config"))]
+    #[snafu(display("encountered invalid runner config"))]
     InvalidRunnerConfig { source: RunnerValidationError },
 
-    #[snafu(display("invalid profile config"))]
+    #[snafu(display("encountered invalid profile config"))]
     InvalidProfileConfig { source: StrategyValidationError },
 }
 
@@ -61,12 +74,18 @@ impl Config {
     where
         P: AsRef<Path>,
     {
-        let contents = std::fs::read_to_string(path).context(ReadFileSnafu)?;
+        let contents = std::fs::read_to_string(&path).context(ReadFileSnafu {
+            path: path.as_ref(),
+        })?;
 
         tracing::debug!("deserialize file contents");
-        let config: Self = serde_yaml::from_str(&contents).context(DeserializeSnafu)?;
+        let config: Self = serde_yaml::from_str(&contents).context(DeserializeSnafu {
+            path: path.as_ref(),
+        })?;
 
-        config.validate().context(ValidateSnafu)?;
+        config.validate().context(ValidateSnafu {
+            path: path.as_ref(),
+        })?;
         Ok(config)
     }
 

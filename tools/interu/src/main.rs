@@ -10,8 +10,8 @@ mod instances;
 
 #[derive(Debug, Snafu)]
 enum Error {
-    #[snafu(display("failed to read config"))]
-    ReadConfig { source: config::Error },
+    #[snafu(display("failed to load config"))]
+    LoadConfig { source: config::Error },
 
     #[snafu(display("failed to read instances file"))]
     ReadInstances { source: instances::Error },
@@ -26,7 +26,7 @@ fn main() -> Result<(), Error> {
     let cli: Cli = argh::from_env();
 
     tracing::info!("load config and instance mappings file");
-    let config = Config::from_file(&cli.config).context(ReadConfigSnafu)?;
+    let config = Config::from_file(&cli.config).context(LoadConfigSnafu)?;
     let instances = Instances::from_file(&cli.instances).context(ReadInstancesSnafu)?;
 
     tracing::info!("determine parameters");
