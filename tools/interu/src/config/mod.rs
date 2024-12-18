@@ -155,18 +155,16 @@ impl Display for Parameters {
             test_run,
         } = self;
 
-        write!(f, "KUBERNETES_DISTRIBUTION={kubernetes_distribution}\n")?;
-        write!(f, "KUBERNETES_VERSION={kubernetes_version}\n")?;
-        write!(f, "TEST_PARALLELISM={test_parallelism}\n")?;
-        write!(f, "TEST_PARAMETER={test_parameter}\n")?;
-        write!(f, "TEST_RUN={test_run}\n")?;
-        
+        #[rustfmt::skip] // Skip formatting because otherwise the next line would be split into three lines.
+        write!(f, "INTERU_KUBERNETES_DISTRIBUTION={kubernetes_distribution}\n")?;
+        write!(f, "INTERU_KUBERNETES_VERSION={kubernetes_version}\n")?;
+        write!(f, "INTERU_TEST_PARALLELISM={test_parallelism}\n")?;
+        write!(f, "INTERU_TEST_PARAMETER={test_parameter}\n")?;
+        write!(f, "INTERU_TEST_RUN={test_run}\n")?;
+
         // See: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#multiline-strings
-        write!(
-            f,
-            "NODE_GROUPS<<EOF\n{node_groups}\nEOF\n",
-            node_groups = serde_yaml::to_string(&node_groups).expect("must be serializable")
-        )
+        let node_groups = serde_yaml::to_string(&node_groups).expect("must be serializable");
+        write!(f, "INTERU_NODE_GROUPS<<EOF\n{node_groups}\nEOF\n")
     }
 }
 
