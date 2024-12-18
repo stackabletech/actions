@@ -189,7 +189,7 @@ mod test {
     use rstest::rstest;
 
     #[rstest]
-    fn serde(#[files("../../run-integration-test/config.example.yml")] path: PathBuf) {
+    fn serde(#[files("fixtures/interu.yaml")] path: PathBuf) {
         let content = std::fs::read_to_string(path).unwrap();
         let config: Config = serde_yaml::from_str(&content).unwrap();
         let yaml = serde_yaml::to_string(&config).unwrap();
