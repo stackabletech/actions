@@ -1,0 +1,56 @@
+runners:
+  default-amd64:
+    platform: rke2-1.31.2
+    ttl: 4h
+    node-groups:
+      - name: default
+        arch: amd64
+        size: large
+        disk: 50
+        nodes: 3
+
+  default-arm64:
+    platform: aks-1.31
+    ttl: 4h
+    node-groups:
+      - name: default
+        arch: arm64
+        size: large
+        disk: 50
+        nodes: 3
+
+  default-mixed:
+    platform: aks-1.31
+    ttl: 4h
+    node-groups:
+      - name: amd64-nodes
+        arch: amd64
+        size: large
+        disk: 50
+        nodes: 3
+      - name: arm64-nodes
+        arch: arm64
+        size: large
+        disk: 50
+        nodes: 3
+
+profiles:
+  schedule:
+    strategy: weighted
+    weights:
+      - weight: 80
+        runner: default-amd64
+      - weight: 10
+        runner: default-arm64
+      - weight: 10
+        runner: default-mixed
+    options:
+      parallelism: 1
+
+  workflow_dispatch:
+    strategy: use-runner
+    runner: default-amd64
+    options:
+      test-run: test-suite
+      test-parameter: smoke
+      parallelism: 2

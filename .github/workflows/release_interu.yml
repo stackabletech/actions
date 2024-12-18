@@ -1,0 +1,33 @@
+name: Release interu
+
+on:
+  push:
+    tags:
+      - "interu-[0-9]+.[0-9]+.[0-9]+**"
+
+jobs:
+  build:
+    uses: ./.github/workflows/build_interu.yml
+    with:
+      upload: true
+      target: ${{ matrix.target }}
+      os: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          path: artifacts
+
+      - name: Upload Release Binary
+        uses: softprops/action-gh-release@7b4da11513bf3f43f9999e90eabced41ab8bb048 # v2.2.0
+        with:
+          files: artifacts/*
