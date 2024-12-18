@@ -49,15 +49,12 @@ impl FromStr for PlatformPair {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (distribution, version) = s.split_once('-').context(InvalidFormatSnafu)?;
+        let distribution = Distribution::from_str(distribution).context(ParseDistributionSnafu)?;
 
-            let distribution =
-                    Distribution::from_str(distribution).context(ParseDistributionSnafu)?;
-
-            Ok(PlatformPair {
-                version: version.to_owned(),
-                distribution,
-            })
-        }
+        Ok(PlatformPair {
+            version: version.to_owned(),
+            distribution,
+        })
     }
 }
 
