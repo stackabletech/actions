@@ -161,7 +161,7 @@ impl UseRunnerOptions {
 pub struct TestOptions {
     pub parallelism: usize,
 
-    #[serde(default, with = "serde_yaml::with::singleton_map")]
+    #[serde(default)]
     pub test_run: TestRun,
 
     #[serde(default)]
