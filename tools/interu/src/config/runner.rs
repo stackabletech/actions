@@ -143,17 +143,17 @@ pub enum ConvertNodeGroupError {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct ReplicatedNodeGroup {
-    instance_type: String,
+pub struct ReplicatedNodeGroup<'a> {
+    instance_type: &'a str,
     name: String,
     nodes: usize,
     disk: usize,
 }
 
-impl ReplicatedNodeGroup {
+impl<'a> ReplicatedNodeGroup<'a> {
     pub fn try_from(
         node_group: NodeGroup,
-        instances: &Instances,
+        instances: &'a Instances,
         distribution: &Distribution,
     ) -> Result<Self, ConvertNodeGroupError> {
         let architectures =
@@ -170,9 +170,9 @@ impl ReplicatedNodeGroup {
             })?;
 
         let instance_type = match node_group.size {
-            Size::Small => sizes.small.clone(),
-            Size::Medium => sizes.medium.clone(),
-            Size::Large => sizes.large.clone(),
+            Size::Small => sizes.small.as_str(),
+            Size::Medium => sizes.medium.as_str(),
+            Size::Large => sizes.large.as_str(),
         };
 
         Ok(Self {

@@ -91,11 +91,11 @@ impl Config {
         Ok(())
     }
 
-    pub fn determine_parameters(
-        &self,
+    pub fn determine_parameters<'a>(
+        &'a self,
         profile_name: &String,
-        instances: Instances,
-    ) -> Result<Parameters, Error> {
+        instances: &'a Instances,
+    ) -> Result<Parameters<'a>, Error> {
         // First, lookup the profile by name. Error if the profile does't exist.
         let profile = self
             .profiles
@@ -128,34 +128,34 @@ impl Config {
             .node_groups
             .clone()
             .into_iter()
-            .map(|ng| ReplicatedNodeGroup::try_from(ng, &instances, &runner.platform.distribution))
+            .map(|ng| ReplicatedNodeGroup::try_from(ng, instances, &runner.platform.distribution))
             .collect::<Result<Vec<_>, ConvertNodeGroupError>>()
             .context(ConvertNodeGroupSnafu)?;
 
         Ok(Parameters {
-            kubernetes_distribution: runner.platform.distribution.clone(),
-            kubernetes_version: runner.platform.version.clone(),
-            test_parameter: test_parameter.to_owned(),
-            test_run: test_run.clone(),
+            kubernetes_distribution: &runner.platform.distribution,
+            kubernetes_version: runner.platform.version.as_str(),
             test_parallelism,
+            test_parameter,
             node_groups,
+            test_run,
         })
     }
 }
 
 #[derive(Debug)]
-pub struct Parameters {
-    kubernetes_distribution: Distribution,
-    kubernetes_version: String,
+pub struct Parameters<'a> {
+    kubernetes_distribution: &'a Distribution,
+    kubernetes_version: &'a str,
 
-    node_groups: Vec<ReplicatedNodeGroup>,
+    node_groups: Vec<ReplicatedNodeGroup<'a>>,
 
     test_parallelism: usize,
-    test_parameter: String,
-    test_run: TestRun,
+    test_parameter: &'a str,
+    test_run: &'a TestRun,
 }
 
-impl Display for Parameters {
+impl<'a> Display for Parameters<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Destructure all fields so that any additional parameters are handled here.
         // DO NOT USE `..`.

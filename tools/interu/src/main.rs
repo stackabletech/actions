@@ -31,7 +31,7 @@ fn main() -> Result<(), Error> {
 
     tracing::info!("determine parameters");
     let parameters = config
-        .determine_parameters(&cli.profile, instances)
+        .determine_parameters(&cli.profile, &instances)
         .unwrap();
 
     let parameters = parameters.to_string();
