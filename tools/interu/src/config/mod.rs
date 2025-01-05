@@ -153,7 +153,8 @@ impl Config {
 
         Ok(Parameters {
             kubernetes_distribution: &runner.platform.distribution,
-            kubernetes_version: runner.platform.version.as_str(),
+            kubernetes_version: &runner.platform.version,
+            cluster_ttl: &runner.ttl,
             test_parallelism,
             test_parameter,
             node_groups,
@@ -167,6 +168,7 @@ pub struct Parameters<'a> {
     kubernetes_distribution: &'a Distribution,
     kubernetes_version: &'a str,
 
+    cluster_ttl: &'a str,
     node_groups: Vec<ReplicatedNodeGroup<'a>>,
 
     test_parallelism: usize,
@@ -181,6 +183,7 @@ impl<'a> Display for Parameters<'a> {
         let Self {
             kubernetes_distribution,
             kubernetes_version,
+            cluster_ttl,
             node_groups,
             test_parallelism,
             test_parameter,
@@ -192,6 +195,7 @@ impl<'a> Display for Parameters<'a> {
         write!(f, "INTERU_KUBERNETES_VERSION={kubernetes_version}\n")?;
         write!(f, "INTERU_TEST_PARALLELISM={test_parallelism}\n")?;
         write!(f, "INTERU_TEST_PARAMETER={test_parameter}\n")?;
+        write!(f, "INTERU_CLUSTER_TTL={cluster_ttl}\n")?;
         write!(f, "INTERU_TEST_RUN={test_run}\n")?;
 
         // See: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#multiline-strings
