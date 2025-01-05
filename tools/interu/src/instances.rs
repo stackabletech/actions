@@ -59,3 +59,16 @@ pub struct Sizes {
     pub medium: String,
     pub large: String,
 }
+
+#[cfg(test)]
+mod test {
+    use std::path::PathBuf;
+
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    fn deserialize(#[files("fixtures/instances.yaml")] path: PathBuf) {
+        let _ = Instances::from_file(path).unwrap();
+    }
+}
