@@ -22,6 +22,7 @@ use crate::{
 pub mod profile;
 pub mod runner;
 
+/// Errors which can be encountered when reading and validating the config file.
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("failed to read config file at {path}", path = path.display()))]
@@ -49,6 +50,7 @@ pub enum Error {
     ConvertNodeGroup { source: ConvertNodeGroupError },
 }
 
+/// Errors which can be encountered during config file validation.
 #[derive(Debug, Snafu)]
 pub enum ValidationError {
     #[snafu(display("encountered invalid runner config"))]
@@ -69,6 +71,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// Read, deserialize and validate a config from a file located at `path`.
     #[instrument(name = "load_config_from_file", skip(path), fields(path = %path.as_ref().display()))]
     pub fn from_file<P>(path: P) -> Result<Self, Error>
     where
@@ -110,6 +113,7 @@ impl Config {
         Ok(())
     }
 
+    /// Determines the final expanded parameters based on the provided profile.
     pub fn determine_parameters<'a>(
         &'a self,
         profile_name: &String,
@@ -163,16 +167,28 @@ impl Config {
     }
 }
 
+/// Parameters which will be expanded into environment variables via the [`Display`] implementation.
 #[derive(Debug)]
 pub struct Parameters<'a> {
+    /// Selected Kubernetes distribution available on Replicated.
     kubernetes_distribution: &'a Distribution,
+
+    /// Kubernetes version used for the cluster.
     kubernetes_version: &'a str,
 
+    /// Maximum TTL of the cluster.
     cluster_ttl: &'a str,
+
+    /// Node groups which will be created in the cluster.
     node_groups: Vec<ReplicatedNodeGroup<'a>>,
 
+    /// Number of tests which get run in parallel.
     test_parallelism: usize,
+
+    /// Optional test parameter passed to `test_run`.
     test_parameter: &'a str,
+
+    /// Set of tests to run.
     test_run: &'a TestRun,
 }
 

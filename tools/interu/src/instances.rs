@@ -15,6 +15,7 @@ pub enum Error {
     Deserialize { source: serde_yaml::Error },
 }
 
+/// Contains distribution to architecture mappings.
 #[derive(Debug, Deserialize)]
 pub struct Instances(HashMap<Distribution, Architectures>);
 
@@ -26,6 +27,7 @@ impl Deref for Instances {
     }
 }
 
+/// Contains architecture to size mappings.
 #[derive(Debug, Deserialize)]
 pub struct Architectures(HashMap<Architecture, Sizes>);
 
@@ -38,6 +40,7 @@ impl Deref for Architectures {
 }
 
 impl Instances {
+    /// Reads and deserializes the mappings from a file located at `path`.
     #[instrument(name = "load_instance_mappings_from_file", skip(path), fields(path = %path.as_ref().display()))]
     pub fn from_file<P>(path: P) -> Result<Self, Error>
     where
@@ -53,6 +56,11 @@ impl Instances {
 }
 
 // NOTE (@Techassi): Can we somehow re-use the size enum here?
+/// Contains size to instance name mappings.
+///
+/// This mapping translates our sizes into instance names. Every cloud vendor uses a different
+/// scheme to name their instances. It removes the need to specify the exact name and instead
+/// enables the use of a simple size: small, medium, and large.
 #[derive(Debug, Deserialize)]
 pub struct Sizes {
     pub small: String,

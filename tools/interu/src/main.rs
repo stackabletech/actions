@@ -13,8 +13,11 @@ enum Error {
     #[snafu(display("failed to load config"))]
     LoadConfig { source: config::Error },
 
-    #[snafu(display("failed to read instances file"))]
-    ReadInstances { source: instances::Error },
+    #[snafu(display("failed to determine expanded parameters"))]
+    DetermineParameters { source: config::Error },
+
+    #[snafu(display("failed to load instances file"))]
+    LoadInstances { source: instances::Error },
 
     #[snafu(display("failed to write to output file"))]
     WriteOutputFile { source: std::io::Error },
@@ -27,15 +30,16 @@ fn main() -> Result<(), Error> {
 
     tracing::info!("load config and instance mappings file");
     let config = Config::from_file(&cli.config).context(LoadConfigSnafu)?;
-    let instances = Instances::from_file(&cli.instances).context(ReadInstancesSnafu)?;
+    let instances = Instances::from_file(&cli.instances).context(LoadInstancesSnafu)?;
 
     tracing::info!("determine parameters");
     let parameters = config
         .determine_parameters(&cli.profile, &instances)
-        .unwrap();
+        .context(DetermineParametersSnafu)?;
 
     let parameters = parameters.to_string();
 
+    // Optionally write the expanded parameters into an output file
     if let Some(output_path) = cli.output {
         tracing::info!(output_path = %output_path.display(), "write parameters to output file");
 
@@ -48,6 +52,7 @@ fn main() -> Result<(), Error> {
             .context(WriteOutputFileSnafu)?;
     }
 
+    // Output the expanded parameters to stdout if no --quiet flag was passed
     if !cli.quiet {
         print!("{parameters}");
     }
