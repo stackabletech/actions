@@ -13,18 +13,13 @@ pub enum RunnerValidationError {
 }
 
 #[serde_as]
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Runner {
     #[serde_as(as = "DisplayFromStr")]
     pub platform: PlatformPair,
 
-    // TODO (@Techassi): Allow some kind of inheritance here
-    // /// The size of cluster nodes. Can be `small`, `medium`, or `large`.
-    // pub size: Size,
-
-    // /// The size of the disk in GB per cluster node.
-    // pub disk: usize,
+    // TODO (@Techassi): Allow some kind of inheritance here (size, disk, ttl, etc...)
     /// The time-to-live of the cluster.
     pub ttl: String,
 
@@ -87,9 +82,7 @@ impl Display for PlatformPair {
     }
 }
 
-#[derive(
-    Clone, Debug, Eq, Hash, PartialEq, Deserialize, Serialize, strum::Display, strum::EnumString,
-)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Deserialize, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum Distribution {
@@ -101,9 +94,7 @@ pub enum Distribution {
     Rke2,
 }
 
-#[derive(
-    Clone, Debug, Eq, Hash, PartialEq, Deserialize, Serialize, strum::Display, strum::EnumString,
-)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Deserialize, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "kebab-case")]
 #[serde(rename_all = "kebab-case")]
 pub enum Architecture {
@@ -111,7 +102,7 @@ pub enum Architecture {
     Arm64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Size {
     Small,
@@ -119,7 +110,7 @@ pub enum Size {
     Large,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct NodeGroup {
     name: String,

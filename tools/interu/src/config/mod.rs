@@ -5,7 +5,7 @@ use std::{
 };
 
 use rand::{distributions::WeightedIndex, prelude::Distribution as _, thread_rng};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use snafu::{OptionExt, ResultExt, Snafu};
 use tracing::instrument;
 
@@ -58,7 +58,7 @@ pub enum ValidationError {
     InvalidProfileConfig { source: StrategyValidationError },
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -212,10 +212,7 @@ mod test {
     use rstest::rstest;
 
     #[rstest]
-    fn serde(#[files("fixtures/interu.yaml")] path: PathBuf) {
-        let content = std::fs::read_to_string(path).unwrap();
-        let config: Config = serde_yaml::from_str(&content).unwrap();
-        let yaml = serde_yaml::to_string(&config).unwrap();
-        println!("{yaml}");
+    fn deserialize(#[files("fixtures/interu.yaml")] path: PathBuf) {
+        let _ = Config::from_file(path).unwrap();
     }
 }
