@@ -96,8 +96,7 @@ runs:
           --image-version "$IMAGE_INDEX_MANIFEST_TAG" \
           --architecture "linux/${IMAGE_ARCH}" \
           --export-tags-file bake-target-tags \
-          --configuration "$BAKE_CONFIG_FILE" \
-          --cache
+          --configuration "$BAKE_CONFIG_FILE"
         kill %1
         echo "::endgroup::"
 
