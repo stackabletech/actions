@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use argh::FromArgs;
 
 #[derive(Debug, FromArgs)]
-/// Expand configuration into key-value pairs used by the run-integration-test action
+/// Expand configuration into key=value pairs used by the run-integration-test action
 pub struct Cli {
     /// path to integration test config file
     #[argh(
