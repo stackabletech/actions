@@ -90,6 +90,7 @@ runs:
         fi
 
         echo "::group::bake"
+        while true; do free; sleep 5; done&
         bake \
           --product "$IMAGE_REPOSITORY=$BAKE_PRODUCT_VERSION" \
           --image-version "$IMAGE_INDEX_MANIFEST_TAG" \
@@ -97,6 +98,7 @@ runs:
           --export-tags-file bake-target-tags \
           --configuration "$BAKE_CONFIG_FILE" \
           --cache
+        kill %1
         echo "::endgroup::"
 
     - name: Re-tag Image (Temporary)
