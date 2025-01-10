@@ -17,13 +17,6 @@ inputs:
   build-context:
     description: Path to the build-context
     default: .
-  # TODO (@NickLarsenNZ): Allow optional buildx cache
-  # build-cache-username:
-  #   description: Build cache username
-  #   default: github
-  # build-cache-password:
-  #   description: Build cache password
-  #   required: true
 outputs:
   image-repository-uri:
     description: |
@@ -44,15 +37,6 @@ runs:
   steps:
     - name: Setup Docker Buildx
       uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
-
-    # TODO (@NickLarsenNZ): Allow optional buildx cache
-    #   # Needed if you pass the --cache argument to the bake command below
-    # - name: Login to the docker build cache registry
-    #   uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-    #   with:
-    #     registry: build-repo.stackable.tech:8083
-    #     username: ${{ inputs.build-cache-username }}
-    #     password: ${{ inputs.build-cache-password }}
 
     - name: Build ${{ inputs.image-name }}:${{ inputs.image-index-manifest-tag }}
       id: build-image
