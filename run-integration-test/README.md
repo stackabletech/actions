@@ -27,8 +27,12 @@ Supported Kubernetes version can be inspected on the official Replicated documen
 
 Each downstream repository needs a configuration file. This allows customization of various
 parameters based on the needs of the operator, or the particular tests. The config file needs to be
-placed here: `tests/interu.yaml` to be picked up automatically. There are two major components in
-the config file: the definition of runners and test profiles.
+placed here: `tests/interu.yaml` to be picked up automatically.
+
+There are two major components in the config file:
+
+- Definition of `runners`.
+- Test `profiles`.
 
 ### Runners
 
@@ -51,15 +55,19 @@ runners:
 ### Profiles
 
 Profiles allow for a variety of pre-configured runners and strategies. A profile can be chosen when
-calling interu. For example, the `schedule` profile could be used in CI on the `schedule` event. The
-following strategies are currently available: `weighted` and `use-runner`.
+calling interu. For example, the `schedule` profile could be used in CI on the `schedule` event.
 
-- The `weighted` strategy allows defining two or more weights. Each weight defines how often the
+The following strategies are currently available:
+
+- `weighted`.
+- `use-runner`.
+
+- The `weighted` strategy allows defining two or more `weights`. Each `weight` defines how often the
   runner specified is used when this profile is used. It should be noted that the weights *don't*
   need to add up to 100, but it is recommended to more easily gauge the probability.
-- The `use-runner` strategy just uses the specified runner.
+- The `use-runner` strategy just uses the specified `runner`.
 
-Each profile can additionally specify test options, like parallelism, test-run and test-parameter.
+Each profile can additionally specify test `options`, like `parallelism`, `test-run` and `test-parameter`.
 
 ```yaml
 profiles:
