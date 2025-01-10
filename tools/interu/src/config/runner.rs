@@ -120,7 +120,9 @@ pub struct NodeGroup {
 
     nodes: usize,
     size: Size,
-    disk: usize,
+
+    #[serde(rename = "disk-gb")]
+    disk_size: usize,
 }
 
 #[derive(Debug, Snafu)]
@@ -170,7 +172,7 @@ impl<'a> ReplicatedNodeGroup<'a> {
             instance_type,
             name: node_group.name,
             nodes: node_group.nodes,
-            disk: node_group.disk,
+            disk: node_group.disk_size,
         })
     }
 }
