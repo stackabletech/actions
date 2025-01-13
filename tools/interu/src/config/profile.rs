@@ -171,9 +171,14 @@ impl UseRunnerOptions {
 
 #[derive(Debug, Snafu)]
 pub enum TestOptionsValidationError {
+    #[snafu(display("failed to load test definition file"))]
     ReadFile { source: test::Error },
-    UnknownTest,
-    UnknownTestSuite,
+
+    #[snafu(display("encountered unknown test {test_name:?}"))]
+    UnknownTest { test_name: String },
+
+    #[snafu(display("encountered unknown test-suite {test_suite:?}"))]
+    UnknownTestSuite { test_suite: String },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -200,7 +205,10 @@ impl TestOptions {
                     .iter()
                     .any(|s| s.name == self.test_parameter)
                 {
-                    return UnknownTestSuiteSnafu.fail();
+                    return UnknownTestSuiteSnafu {
+                        test_suite: self.test_parameter.clone(),
+                    }
+                    .fail();
                 }
 
                 Ok(())
@@ -214,7 +222,10 @@ impl TestOptions {
                     .iter()
                     .any(|s| s.name == self.test_parameter)
                 {
-                    return UnknownTestSnafu.fail();
+                    return UnknownTestSnafu {
+                        test_name: self.test_parameter.clone(),
+                    }
+                    .fail();
                 }
 
                 Ok(())
