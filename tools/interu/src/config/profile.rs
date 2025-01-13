@@ -1,9 +1,12 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use snafu::{ensure, Snafu};
+use snafu::{ensure, ResultExt, Snafu};
 
-use crate::config::runner::Runner;
+use crate::config::{
+    runner::Runner,
+    tests::{self, TestDefinition},
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -20,6 +23,10 @@ impl Profile {
     ) -> Result<(), StrategyValidationError> {
         self.strategy.validate(profile_name, runners)
     }
+
+    pub fn validate_test_options(&self, profile_name: &str) -> Result<(), StrategyValidationError> {
+        self.strategy.validate_test_options(profile_name)
+    }
 }
 
 #[derive(Debug, Snafu)]
@@ -34,6 +41,12 @@ pub enum StrategyValidationError {
 
     #[snafu(display("strategy {at} references a runner already referenced by another weight"))]
     NonUniqueWeightRunner { at: String },
+
+    #[snafu(display("strategy {at} defines invalid test options"))]
+    InvalidTestOptions {
+        source: TestOptionsValidationError,
+        at: String,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -59,18 +72,18 @@ impl Strategy {
         }
     }
 
-    pub fn get_test_options(&self) -> (usize, &TestRun, &str) {
-        match self {
-            Strategy::Weighted(options) => (
-                options.options.parallelism,
-                &options.options.test_run,
-                options.options.test_parameter.as_str(),
-            ),
-            Strategy::UseRunner(options) => (
-                options.options.parallelism,
-                &options.options.test_run,
-                options.options.test_parameter.as_str(),
-            ),
+    pub fn validate_test_options(&self, profile_name: &str) -> Result<(), StrategyValidationError> {
+        self.get_test_options()
+            .validate()
+            .context(InvalidTestOptionsSnafu {
+                at: format!("profiles.{profile_name}.options"),
+            })
+    }
+
+    pub fn get_test_options(&self) -> &TestOptions {
+        match &self {
+            Strategy::Weighted(weighted) => &weighted.options,
+            Strategy::UseRunner(use_runner) => &use_runner.options,
         }
     }
 }
@@ -156,6 +169,13 @@ impl UseRunnerOptions {
     }
 }
 
+#[derive(Debug, Snafu)]
+pub enum TestOptionsValidationError {
+    ReadFile { source: tests::Error },
+    UnknownTest,
+    UnknownTestSuite,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TestOptions {
@@ -166,6 +186,42 @@ pub struct TestOptions {
 
     #[serde(default)]
     pub test_parameter: String,
+}
+
+impl TestOptions {
+    pub fn validate(&self) -> Result<(), TestOptionsValidationError> {
+        match self.test_run {
+            TestRun::TestSuite => {
+                let test_definition = TestDefinition::from_file(".tests/test-definition.yaml")
+                    .context(ReadFileSnafu)?;
+
+                if !test_definition
+                    .suites
+                    .iter()
+                    .any(|s| s.name == self.test_parameter)
+                {
+                    return UnknownTestSuiteSnafu.fail();
+                }
+
+                Ok(())
+            }
+            TestRun::Test => {
+                let test_definition = TestDefinition::from_file(".tests/test-definition.yaml")
+                    .context(ReadFileSnafu)?;
+
+                if !test_definition
+                    .tests
+                    .iter()
+                    .any(|s| s.name == self.test_parameter)
+                {
+                    return UnknownTestSnafu.fail();
+                }
+
+                Ok(())
+            }
+            TestRun::All => Ok(()),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, strum::Display)]
