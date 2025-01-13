@@ -59,15 +59,13 @@ calling interu. For example, the `schedule` profile could be used in CI on the `
 
 The following strategies are currently available:
 
-- `weighted`.
-- `use-runner`.
-
 - The `weighted` strategy allows defining two or more `weights`. Each `weight` defines how often the
   runner specified is used when this profile is used. It should be noted that the weights *don't*
   need to add up to 100, but it is recommended to more easily gauge the probability.
 - The `use-runner` strategy just uses the specified `runner`.
 
-Each profile can additionally specify test `options`, like `parallelism`, `test-run` and `test-parameter`.
+Each profile can additionally specify test `options`, like `parallelism`, `test-run` and
+`test-parameter`.
 
 ```yaml
 profiles:
@@ -99,10 +97,8 @@ profiles:
 
 ### Inputs
 
-- `test-platform`(required, eg: `kind-1.31.2-amd64`)
-- `test-run` (required, `test-suite` or `test`)
-- `test-parameter` (defaults to `smoke`)
 - `replicated-api-token` (required)
+- `interu-version` (optional)
 
 > [!NOTE]
 > `test-parameter` maps to a specific test *name*, not to a single test with all dimensions resolved.

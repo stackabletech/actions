@@ -4,19 +4,14 @@ description: |
   This action runs Stackable Operator integration tests on various platforms and
   Kubernetes distributions.
 inputs:
-  test-platform:
-    description: |
-      The platform/distribution to run on (eg: `okd-4.15-amd64`)
-    required: true
-  test-run:
-    description: Type of test run
-    required: true
-  test-parameter:
-    description: Parameter to `--test-suite` or `--test` (ignored for `all`)
-    default: ""
+  test-profile:
+    description: Test profile to run
   replicated-api-token:
     description: Replicated API token (only needed if running on replicated)
     default: ""
+  interu-version:
+    description: Version of the interu tool
+    default: 0.1.0
 outputs:
   start-time:
     description: The date and time this integration test was started.
@@ -27,86 +22,33 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Setup Tool Directory
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        TOOL_DIRECTORY="$HOME/.local/bin"
+        mkdir -p "$TOOL_DIRECTORY"
+
+        echo "$TOOL_DIRECTORY" | tee -a "$GITHUB_PATH"
+        echo "TOOL_DIRECTORY=$TOOL_DIRECTORY" | tee -a "$GITHUB_ENV"
+
     - name: Extract Test and Instance Configuration
       env:
-        TEST_PARAMETER: ${{ inputs.test-parameter }}
-        TEST_PLATFORM: ${{ inputs.test-platform }}
-        TEST_RUN: ${{ inputs.test-run }}
+        INTERU_VERSION: ${{ inputs.interu-version }}
+        TEST_PROFILE: ${{ inputs.test-profile }}
         GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
         [ -n "$GITHUB_DEBUG" ] && set -x
 
-        # Create and enter Python virtual env
-        python -m venv .venv
-        . .venv/bin/activate
+        # Download interu
+        curl -L -o "$TOOL_DIRECTORY/interu" "https://github.com/stackabletech/actions/releases/download/interu-$INTERU_VERSION/interu-x86_64-unknown-linux-gnu"
+        chmod +x "$TOOL_DIRECTORY/interu"
 
-        # Install proper yq
-        pip install yq==3.4.3
-        yq --version
-
-        #####################################
-        # Extract Kubernetes-related Values #
-        #####################################
-
-        KUBERNETES_DISTRIBUTION=$(echo "$TEST_PLATFORM" | cut -d - -f 1)
-        KUBERNETES_VERSION=$(echo "$TEST_PLATFORM" | cut -d - -f 2)
-        KUBERNETES_ARCHITECTURE=$(echo "$TEST_PLATFORM" | cut -d - -f 3)
-
-        echo "KUBERNETES_DISTRIBUTION=$KUBERNETES_DISTRIBUTION" | tee -a "$GITHUB_ENV"
-        echo "KUBERNETES_VERSION=$KUBERNETES_VERSION" | tee -a "$GITHUB_ENV"
-        echo "KUBERNETES_ARCHITECTURE=$KUBERNETES_ARCHITECTURE" | tee -a "$GITHUB_ENV"
-
-        ##################################
-        # Extract Instance Configuration #
-        ##################################
-
-        INSTANCE_SIZE=$(yq -er '."instance-size"' ./tests/infrastructure.yaml)
-        INSTANCE_TYPE=$(yq -er \
-          --arg kubernetes_distribution "$KUBERNETES_DISTRIBUTION" \
-          --arg kubernetes_architecture "$KUBERNETES_ARCHITECTURE" \
-          --arg instance_size "$INSTANCE_SIZE" \
-          '.[$kubernetes_distribution][$kubernetes_architecture][$instance_size]' \
-          "$GITHUB_ACTION_PATH/instances.yml"
-        )
-
-        # Optional config options
-        CLUSTER_TTL=$(yq -er '."cluster-ttl" // "4h"' ./tests/infrastructure.yaml)
-        INSTANCE_NODES=$(yq -er '.nodes // 1' ./tests/infrastructure.yaml)
-        INSTANCE_DISK=$(yq -er '.disk // 50' ./tests/infrastructure.yaml)
-        TEST_PARALLELISM=$(yq -er '.parallelism // 2' ./tests/infrastructure.yaml)
-
-        echo "INSTANCE_TYPE=$INSTANCE_TYPE" | tee -a "$GITHUB_ENV"
-        echo "CLUSTER_TTL=$CLUSTER_TTL" | tee -a "$GITHUB_ENV"
-        echo "INSTANCE_NODES=$INSTANCE_NODES" | tee -a "$GITHUB_ENV"
-        echo "INSTANCE_DISK=$INSTANCE_DISK" | tee -a "$GITHUB_ENV"
-        echo "TEST_PARALLELISM=$TEST_PARALLELISM" | tee -a "$GITHUB_ENV"
-
-        ############################
-        # Validate Test Parameters #
-        ############################
-
-        if [ -z "$TEST_RUN" ]; then
-          echo "TEST_RUN must be defined and not empty"
-          exit 1
-        fi
-
-        if [ "$TEST_RUN" != "all" ]; then
-          if [ -z "$TEST_PARAMETER" ]; then
-            echo "TEST_PARAMETER must be defined and not empty"
-            exit 1
-          fi
-
-          if [ "$TEST_RUN" == "test-suite" ]; then
-            yq -er --arg test_parameter "$TEST_PARAMETER" '.suites[] | select(.name == $test_parameter)' ./tests/test-definition.yaml
-          elif [ "$TEST_RUN" == "test" ]; then
-            yq -er --arg test_parameter "$TEST_PARAMETER" '.tests[] | select(.name == $test_parameter)' ./tests/test-definition.yaml
-          fi
-        fi
-
-        echo "TEST_PARAMETER=$TEST_PARAMETER" | tee -a "$GITHUB_ENV"
-        echo "TEST_RUN=$TEST_RUN" | tee -a "$GITHUB_ENV"
+        # Run interu to expand parameters into GITHUB_ENV
+        interu --instances "$GITHUB_ACTION_PATH/instances.yml" --output "$GITHUB_ENV" --check-test-options "$TEST_PROFILE"
 
     - name: Prepare Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos'
@@ -116,22 +58,18 @@ runs:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
         cluster-name: integration-test-${{ github.repository }}-${{ github.run_id }}
-        instance-type: ${{ env.INSTANCE_TYPE }}
-        kubernetes-distribution: ${{ env.KUBERNETES_DISTRIBUTION }}
-        kubernetes-version: ${{ env.KUBERNETES_VERSION }}
-        ttl: ${{ env.CLUSTER_TTL }}
-        disk: ${{ env.INSTANCE_DISK }}
-        nodes: ${{ env.INSTANCE_NODES }}
+        kubernetes-distribution: ${{ env.INTERU_KUBERNETES_DISTRIBUTION }}
+        kubernetes-version: ${{ env.INTERU_KUBERNETES_VERSION }}
+        ttl: ${{ env.INTERU_CLUSTER_TTL }}
+        node-groups: ${{ env.INTERU_NODE_GROUPS }}
         tags: |
-          - key: node-architecture
-            value: ${{ env.KUBERNETES_ARCHITECTURE }}
           - key: kubernetes-distribution
-            value: ${{ env.KUBERNETES_DISTRIBUTION }}
+            value: ${{ env.INTERU_KUBERNETES_DISTRIBUTION }}
           - key: triggered-by
             value: ${{ github.triggering_actor }}
 
     - name: Set Replicated kubeconfig
-      if: env.KUBERNETES_DISTRIBUTION != 'ionos'
+      if: env.INTERU_KUBERNETES_DISTRIBUTION != 'ionos'
       env:
         KUBECONFIG: ${{ steps.prepare-replicated-cluster.outputs.cluster-kubeconfig }}
       shell: bash
@@ -149,17 +87,6 @@ runs:
 
         OPERATOR_NAME=$(echo "$REPOSITORY" | cut -d / -f 2 | sed 's/-operator//g')
         echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_ENV"
-
-    - name: Setup Tool Directory
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        TOOL_DIRECTORY="$HOME/.local/bin"
-        mkdir -p "$TOOL_DIRECTORY"
-
-        echo "$TOOL_DIRECTORY" | tee -a "$GITHUB_PATH"
-        echo "TOOL_DIRECTORY=$TOOL_DIRECTORY" | tee -a "$GITHUB_ENV"
 
     # We don't need to install kubectl, kind or helm because it is already part of the installed
     # tools of the runner image.
@@ -207,7 +134,7 @@ runs:
       run: |
         echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
-    - name: Run Integration Test (${{ inputs.test-run }}=${{ inputs.test-parameter }})
+    - name: Run Integration Test (${{ env.INTERU_TEST_RUN }}=${{ env.INTERU_TEST_PARAMETER }}/${{ env.INTERU_TEST_PARALLELISM }})
       env:
         REF_NAME: ${{ github.ref_name }}
         GH_TOKEN: ${{ github.token }}
@@ -218,10 +145,10 @@ runs:
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/get_operator_version.sh" "$REF_NAME")
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
-        if [ "$TEST_RUN" == "all" ]; then
-          python ./scripts/run-tests --skip-release --log-level debug --parallel "$TEST_PARALLELISM"
+        if [ "$INTERU_TEST_RUN" == "all" ]; then
+          python ./scripts/run-tests --skip-release --log-level debug --parallel "$INTERU_TEST_PARALLELISM"
         else
-          python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETER" --parallel "$TEST_PARALLELISM"
+          python ./scripts/run-tests --skip-release --log-level debug "--$INTERU_TEST_RUN" "$INTERU_TEST_PARAMETER" --parallel "$INTERU_TEST_PARALLELISM"
         fi
 
     - name: Record Test End Time
