@@ -5,7 +5,7 @@ use snafu::{ensure, ResultExt, Snafu};
 
 use crate::config::{
     runner::Runner,
-    tests::{self, TestDefinition},
+    test::{self, TestDefinition},
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -171,7 +171,7 @@ impl UseRunnerOptions {
 
 #[derive(Debug, Snafu)]
 pub enum TestOptionsValidationError {
-    ReadFile { source: tests::Error },
+    ReadFile { source: test::Error },
     UnknownTest,
     UnknownTestSuite,
 }

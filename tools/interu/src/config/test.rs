@@ -57,3 +57,17 @@ pub struct Test {
 pub struct Suite {
     pub name: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    fn from_file(#[files("fixtures/test-definition.yaml")] path: PathBuf) {
+        let td = TestDefinition::from_file(path).unwrap();
+
+        assert_eq!(td.suites.len(), 3);
+        assert_eq!(td.tests.len(), 10);
+    }
+}

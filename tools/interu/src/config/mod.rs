@@ -21,7 +21,7 @@ use crate::{
 
 pub mod profile;
 pub mod runner;
-pub mod tests;
+pub mod test;
 
 /// Errors which can be encountered when reading and validating the config file.
 #[derive(Debug, Snafu)]
@@ -238,7 +238,7 @@ impl<'a> Display for Parameters<'a> {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::path::PathBuf;
 
     use super::*;
