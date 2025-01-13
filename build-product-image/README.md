@@ -44,8 +44,6 @@ localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
 - `product-name` (eg: `kafka`)
 - `product-version` (eg: `3.4.1`)
 - `image-tools-version` (eg: `0.0.13`)
-- `build-cache-username` (required) <!-- TODO: make the cache optional -->
-- `build-cache-password` (required) <!-- TODO: make the cache optional -->
 - `bake-config-file` (defaults to `./conf.py`)
 - `sdp-version` (defaults to: `0.0.0-dev`)
 - `extra-tag-data` (optional, eg. `pr321`)

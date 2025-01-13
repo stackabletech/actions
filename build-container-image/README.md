@@ -21,11 +21,6 @@ All subsequent tasks must use this value to ensure consistency.
 - `image-index-manifest-tag` (eg: `3.4.1-stackable0.0.0-dev`)
 - `container-file` (defaults to `Dockerfile`)
 - `build-context` (defaults to `.`)
-<!--
-TODO (@NickLarsenNZ): Allow optional buildx cache
-- `build-cache-username`
-- `build-cache-password`
--->
 
 ### Outputs
 
