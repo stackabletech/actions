@@ -32,9 +32,18 @@ pub struct Cli {
     #[argh(switch, short = 'q', long = "quiet")]
     pub quiet: bool,
 
-    /// validate the test options of the selected profile
-    #[argh(switch, long = "check-test-options")]
-    pub check_test_options: bool,
+    /// validate the beku test definition of the selected profile
+    #[argh(switch, long = "check-test-definitions")]
+    pub check_test_definitions: bool,
+
+    /// path to beku test-definition file [default = tests/test-definition.yaml]
+    #[argh(
+        option,
+        short = 't',
+        long = "test-definitions",
+        default = r#"PathBuf::from("tests/test-definition.yaml")"#
+    )]
+    pub test_definitions: PathBuf,
 
     /// which test profile to use
     #[argh(positional)]

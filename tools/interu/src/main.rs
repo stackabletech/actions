@@ -35,9 +35,9 @@ fn main() -> Result<(), Error> {
     let config = Config::from_file(&cli.config).context(LoadConfigSnafu)?;
     let instances = Instances::from_file(&cli.instances).context(LoadInstancesSnafu)?;
 
-    if cli.check_test_options {
+    if cli.check_test_definitions {
         config
-            .validate_test_options(&cli.profile)
+            .validate_test_options(&cli.profile, &cli.test_definitions)
             .context(ValidateTestOptionsSnafu)?;
     }
 

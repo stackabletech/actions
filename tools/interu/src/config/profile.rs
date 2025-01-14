@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::Path};
 
 use serde::{Deserialize, Serialize};
 use snafu::{ensure, ResultExt, Snafu};
@@ -24,8 +24,15 @@ impl Profile {
         self.strategy.validate(profile_name, runners)
     }
 
-    pub fn validate_test_options(&self, profile_name: &str) -> Result<(), StrategyValidationError> {
-        self.strategy.validate_test_options(profile_name)
+    pub fn validate_test_options<P>(
+        &self,
+        profile_name: &str,
+        path: P,
+    ) -> Result<(), StrategyValidationError>
+    where
+        P: AsRef<Path>,
+    {
+        self.strategy.validate_test_options(profile_name, path)
     }
 }
 
@@ -72,9 +79,16 @@ impl Strategy {
         }
     }
 
-    pub fn validate_test_options(&self, profile_name: &str) -> Result<(), StrategyValidationError> {
+    pub fn validate_test_options<P>(
+        &self,
+        profile_name: &str,
+        path: P,
+    ) -> Result<(), StrategyValidationError>
+    where
+        P: AsRef<Path>,
+    {
         self.get_test_options()
-            .validate()
+            .validate(path)
             .context(InvalidTestOptionsSnafu {
                 at: format!("profiles.{profile_name}.options"),
             })
@@ -194,11 +208,13 @@ pub struct TestOptions {
 }
 
 impl TestOptions {
-    pub fn validate(&self) -> Result<(), TestOptionsValidationError> {
+    pub fn validate<P>(&self, path: P) -> Result<(), TestOptionsValidationError>
+    where
+        P: AsRef<Path>,
+    {
         match self.test_run {
             TestRun::TestSuite => {
-                let test_definition = TestDefinition::from_file(".tests/test-definition.yaml")
-                    .context(ReadFileSnafu)?;
+                let test_definition = TestDefinition::from_file(path).context(ReadFileSnafu)?;
 
                 if !test_definition
                     .suites
@@ -214,8 +230,7 @@ impl TestOptions {
                 Ok(())
             }
             TestRun::Test => {
-                let test_definition = TestDefinition::from_file(".tests/test-definition.yaml")
-                    .context(ReadFileSnafu)?;
+                let test_definition = TestDefinition::from_file(path).context(ReadFileSnafu)?;
 
                 if !test_definition
                     .tests
