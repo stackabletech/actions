@@ -19,6 +19,7 @@ pub enum RunnerValidationError {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Runner {
+    #[cfg_attr(feature = "schemars", schemars(with = "String"))]
     #[serde_as(as = "DisplayFromStr")]
     pub platform: PlatformPair,
 
