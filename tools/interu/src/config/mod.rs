@@ -67,6 +67,7 @@ pub enum ValidationError {
 }
 
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", schemars(rename = "Interu Config"))]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
