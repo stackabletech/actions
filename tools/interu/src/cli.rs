@@ -23,8 +23,7 @@ pub struct Cli {
         option,
         short = 'o',
         long = "output",
-        description = "write configuration key=value pairs separated by newlines to file
-    Useful for CI tools which give a file to write env vars and outputs to which are used in subsequent steps"
+        description = "write configuration key=value pairs separated by newlines to file. Useful for CI tools which give a file to write env vars and outputs to which are used in subsequent steps"
     )]
     pub output: Option<PathBuf>,
 
@@ -32,6 +31,19 @@ pub struct Cli {
     // #[arg(short, long, visible_short_alias('s'), visible_alias("silent"))]
     #[argh(switch, short = 'q', long = "quiet")]
     pub quiet: bool,
+
+    /// validate the beku test definition of the selected profile
+    #[argh(switch, long = "check-test-definitions")]
+    pub check_test_definitions: bool,
+
+    /// path to beku test-definition file [default = tests/test-definition.yaml]
+    #[argh(
+        option,
+        short = 't',
+        long = "test-definitions",
+        default = r#"PathBuf::from("tests/test-definition.yaml")"#
+    )]
+    pub test_definitions: PathBuf,
 
     /// which test profile to use
     #[argh(positional)]
