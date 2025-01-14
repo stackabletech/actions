@@ -48,7 +48,7 @@ runs:
         chmod +x "$TOOL_DIRECTORY/interu"
 
         # Run interu to expand parameters into GITHUB_ENV
-        interu --instances "$GITHUB_ACTION_PATH/instances.yml" --output "$GITHUB_ENV" --check-test-options "$TEST_PROFILE"
+        interu --instances "$GITHUB_ACTION_PATH/instances.yml" --check-test-definitions "$TEST_PROFILE" --output "$GITHUB_ENV"
 
     - name: Prepare Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos'
