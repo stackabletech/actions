@@ -3,11 +3,22 @@ name = "interu"
 version = "0.1.0"
 edition.workspace = true
 
+[features]
+default = []
+schemars = ["dep:schemars", "dep:serde_json"]
+
+[[bin]]
+name = "interu-schema"
+path = "src/generate_schema.rs"
+required-features = ["schemars"]
+
 [dependencies]
 argh.workspace = true
 rand.workspace = true
 rstest.workspace = true
+schemars = { workspace = true, optional = true }
 serde.workspace = true
+serde_json = { workspace = true, optional = true }
 serde_with.workspace = true
 serde_yaml.workspace = true
 snafu.workspace = true

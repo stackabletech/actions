@@ -1,5 +1,7 @@
 use std::{collections::BTreeMap, path::Path};
 
+#[cfg(feature = "schemars")]
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use snafu::{ensure, ResultExt, Snafu};
 
@@ -8,6 +10,7 @@ use crate::config::{
     test::{self, TestDefinition},
 };
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Profile {
@@ -56,6 +59,7 @@ pub enum StrategyValidationError {
     },
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "strategy", rename_all = "kebab-case")]
 pub enum Strategy {
@@ -102,6 +106,7 @@ impl Strategy {
     }
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct WeightedOptions {
@@ -151,6 +156,7 @@ impl WeightedOptions {
     }
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Weight {
@@ -158,6 +164,7 @@ pub struct Weight {
     pub runner: String,
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct UseRunnerOptions {
@@ -195,6 +202,7 @@ pub enum TestOptionsValidationError {
     UnknownTestSuite { test_suite: String },
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TestOptions {
@@ -250,6 +258,7 @@ impl TestOptions {
     }
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Clone, Debug, Default, Deserialize, Serialize, strum::Display)]
 #[strum(serialize_all = "kebab-case")]
 #[serde(rename_all = "kebab-case")]

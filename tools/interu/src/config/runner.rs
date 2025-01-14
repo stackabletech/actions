@@ -1,5 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
+#[cfg(feature = "schemars")]
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use snafu::{ensure, OptionExt, ResultExt as _, Snafu};
@@ -12,6 +14,7 @@ pub enum RunnerValidationError {
     ZeroNodeGroups { at: String },
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -49,6 +52,7 @@ pub enum ParsePlatformTripleError {
     ParseDistribution { source: strum::ParseError },
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Debug)]
 pub struct PlatformPair {
     pub distribution: Distribution,
@@ -82,6 +86,7 @@ impl Display for PlatformPair {
     }
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Deserialize, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
@@ -94,6 +99,7 @@ pub enum Distribution {
     Rke2,
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Deserialize, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "kebab-case")]
 #[serde(rename_all = "kebab-case")]
@@ -102,6 +108,7 @@ pub enum Architecture {
     Arm64,
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Size {
@@ -110,6 +117,7 @@ pub enum Size {
     Large,
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct NodeGroup {
@@ -134,6 +142,7 @@ pub enum ConvertNodeGroupError {
     UnknownArchitecture { architecture: Architecture },
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ReplicatedNodeGroup<'a> {

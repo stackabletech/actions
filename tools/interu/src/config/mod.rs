@@ -5,6 +5,8 @@ use std::{
 };
 
 use rand::{distributions::WeightedIndex, prelude::Distribution as _, thread_rng};
+#[cfg(feature = "schemars")]
+use schemars::JsonSchema;
 use serde::Deserialize;
 use snafu::{OptionExt, ResultExt, Snafu};
 use tracing::instrument;
@@ -64,6 +66,7 @@ pub enum ValidationError {
     InvalidProfileConfig { source: StrategyValidationError },
 }
 
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
