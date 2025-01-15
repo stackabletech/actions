@@ -13,6 +13,9 @@ enum Error {
     #[snafu(display("failed to load config"))]
     LoadConfig { source: config::Error },
 
+    #[snafu(display("failed to validate test options"))]
+    ValidateTestOptions { source: config::Error },
+
     #[snafu(display("failed to determine expanded parameters"))]
     DetermineParameters { source: config::Error },
 
@@ -31,6 +34,12 @@ fn main() -> Result<(), Error> {
     tracing::info!("load config and instance mappings file");
     let config = Config::from_file(&cli.config).context(LoadConfigSnafu)?;
     let instances = Instances::from_file(&cli.instances).context(LoadInstancesSnafu)?;
+
+    if cli.check_test_definitions {
+        config
+            .validate_test_options(&cli.profile, &cli.test_definitions)
+            .context(ValidateTestOptionsSnafu)?;
+    }
 
     tracing::info!("determine parameters");
     let parameters = config

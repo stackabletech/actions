@@ -1,9 +1,12 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::Path};
 
 use serde::{Deserialize, Serialize};
-use snafu::{ensure, Snafu};
+use snafu::{ensure, ResultExt, Snafu};
 
-use crate::config::runner::Runner;
+use crate::config::{
+    runner::Runner,
+    test::{self, TestDefinition},
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -20,6 +23,17 @@ impl Profile {
     ) -> Result<(), StrategyValidationError> {
         self.strategy.validate(profile_name, runners)
     }
+
+    pub fn validate_test_options<P>(
+        &self,
+        profile_name: &str,
+        path: P,
+    ) -> Result<(), StrategyValidationError>
+    where
+        P: AsRef<Path>,
+    {
+        self.strategy.validate_test_options(profile_name, path)
+    }
 }
 
 #[derive(Debug, Snafu)]
@@ -34,6 +48,12 @@ pub enum StrategyValidationError {
 
     #[snafu(display("strategy {at} references a runner already referenced by another weight"))]
     NonUniqueWeightRunner { at: String },
+
+    #[snafu(display("strategy {at} defines invalid test options"))]
+    InvalidTestOptions {
+        source: TestOptionsValidationError,
+        at: String,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -59,18 +79,25 @@ impl Strategy {
         }
     }
 
-    pub fn get_test_options(&self) -> (usize, &TestRun, &str) {
-        match self {
-            Strategy::Weighted(options) => (
-                options.options.parallelism,
-                &options.options.test_run,
-                options.options.test_parameter.as_str(),
-            ),
-            Strategy::UseRunner(options) => (
-                options.options.parallelism,
-                &options.options.test_run,
-                options.options.test_parameter.as_str(),
-            ),
+    pub fn validate_test_options<P>(
+        &self,
+        profile_name: &str,
+        path: P,
+    ) -> Result<(), StrategyValidationError>
+    where
+        P: AsRef<Path>,
+    {
+        self.get_test_options()
+            .validate(path)
+            .context(InvalidTestOptionsSnafu {
+                at: format!("profiles.{profile_name}.options"),
+            })
+    }
+
+    pub fn get_test_options(&self) -> &TestOptions {
+        match &self {
+            Strategy::Weighted(weighted) => &weighted.options,
+            Strategy::UseRunner(use_runner) => &use_runner.options,
         }
     }
 }
@@ -156,6 +183,18 @@ impl UseRunnerOptions {
     }
 }
 
+#[derive(Debug, Snafu)]
+pub enum TestOptionsValidationError {
+    #[snafu(display("failed to load test definition file"))]
+    ReadFile { source: test::Error },
+
+    #[snafu(display("encountered unknown test {test_name:?}"))]
+    UnknownTest { test_name: String },
+
+    #[snafu(display("encountered unknown test-suite {test_suite:?}"))]
+    UnknownTestSuite { test_suite: String },
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TestOptions {
@@ -166,6 +205,49 @@ pub struct TestOptions {
 
     #[serde(default)]
     pub test_parameter: String,
+}
+
+impl TestOptions {
+    pub fn validate<P>(&self, path: P) -> Result<(), TestOptionsValidationError>
+    where
+        P: AsRef<Path>,
+    {
+        match self.test_run {
+            TestRun::TestSuite => {
+                let test_definition = TestDefinition::from_file(path).context(ReadFileSnafu)?;
+
+                if !test_definition
+                    .suites
+                    .iter()
+                    .any(|s| s.name == self.test_parameter)
+                {
+                    return UnknownTestSuiteSnafu {
+                        test_suite: self.test_parameter.clone(),
+                    }
+                    .fail();
+                }
+
+                Ok(())
+            }
+            TestRun::Test => {
+                let test_definition = TestDefinition::from_file(path).context(ReadFileSnafu)?;
+
+                if !test_definition
+                    .tests
+                    .iter()
+                    .any(|s| s.name == self.test_parameter)
+                {
+                    return UnknownTestSnafu {
+                        test_name: self.test_parameter.clone(),
+                    }
+                    .fail();
+                }
+
+                Ok(())
+            }
+            TestRun::All => Ok(()),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, strum::Display)]

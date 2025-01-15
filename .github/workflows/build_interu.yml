@@ -32,10 +32,14 @@ jobs:
           targets: ${{ inputs.target }}
 
       - name: Build Binary
-        run: cargo build --target ${{ inputs.target }} --release --package interu
+        env:
+          TARGET: ${{ inputs.target }}
+        run: cargo build --target "$TARGET" --release --package interu
 
       - name: Rename Binary
-        run: mv target/${{ inputs.target }}/release/interu interu-${{ inputs.target }}
+        env:
+          TARGET: ${{ inputs.target }}
+        run: mv "target/$TARGET/release/interu" "interu-$TARGET"
 
       - name: Upload Artifact
         if: inputs.upload

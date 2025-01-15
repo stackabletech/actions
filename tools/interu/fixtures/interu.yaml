@@ -6,7 +6,7 @@ runners:
       - name: default
         arch: amd64
         size: large
-        disk: 50
+        disk-gb: 50
         nodes: 3
 
   default-arm64:
@@ -16,7 +16,7 @@ runners:
       - name: default
         arch: arm64
         size: large
-        disk: 50
+        disk-gb: 50
         nodes: 3
 
   default-mixed:
@@ -26,12 +26,12 @@ runners:
       - name: amd64-nodes
         arch: amd64
         size: large
-        disk: 50
+        disk-gb: 50
         nodes: 3
       - name: arm64-nodes
         arch: arm64
         size: large
-        disk: 50
+        disk-gb: 50
         nodes: 3
 
 profiles:

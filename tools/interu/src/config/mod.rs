@@ -11,7 +11,7 @@ use tracing::instrument;
 
 use crate::{
     config::{
-        profile::{Profile, StrategyValidationError, TestRun},
+        profile::{Profile, StrategyValidationError, TestOptions, TestRun},
         runner::{
             ConvertNodeGroupError, Distribution, ReplicatedNodeGroup, Runner, RunnerValidationError,
         },
@@ -21,6 +21,7 @@ use crate::{
 
 pub mod profile;
 pub mod runner;
+pub mod test;
 
 /// Errors which can be encountered when reading and validating the config file.
 #[derive(Debug, Snafu)]
@@ -42,6 +43,9 @@ pub enum Error {
         source: ValidationError,
         path: PathBuf,
     },
+
+    #[snafu(display("failed to validate test options"))]
+    ValidateTestOptions { source: StrategyValidationError },
 
     #[snafu(display("failed to find profile named {profile_name:?}"))]
     UnknownProfileName { profile_name: String },
@@ -92,25 +96,19 @@ impl Config {
         Ok(config)
     }
 
-    #[instrument(name = "validate_config", skip(self))]
-    fn validate(&self) -> Result<(), ValidationError> {
-        for (runner_name, runner) in &self.runners {
-            tracing::debug!(runner_name, "validate runner");
+    pub fn get_profile(&self, profile_name: &String) -> Result<&Profile, Error> {
+        self.profiles
+            .get(profile_name)
+            .context(UnknownProfileNameSnafu { profile_name })
+    }
 
-            runner
-                .validate(runner_name)
-                .context(InvalidRunnerConfigSnafu)?;
-        }
-
-        for (profile_name, profile) in &self.profiles {
-            tracing::debug!(profile_name, "validate profile");
-
-            profile
-                .validate(profile_name, &self.runners)
-                .context(InvalidProfileConfigSnafu)?;
-        }
-
-        Ok(())
+    pub fn validate_test_options<P>(&self, profile_name: &String, path: P) -> Result<(), Error>
+    where
+        P: AsRef<Path>,
+    {
+        self.get_profile(profile_name)?
+            .validate_test_options(&profile_name, path)
+            .context(ValidateTestOptionsSnafu)
     }
 
     /// Determines the final expanded parameters based on the provided profile.
@@ -120,10 +118,7 @@ impl Config {
         instances: &'a Instances,
     ) -> Result<Parameters<'a>, Error> {
         // First, lookup the profile by name. Error if the profile does't exist.
-        let profile = self
-            .profiles
-            .get(profile_name)
-            .context(UnknownProfileNameSnafu { profile_name })?;
+        let profile = self.get_profile(profile_name)?;
 
         // Next, lookup the runner ref based on the profile strategy
         let runner_ref = match &profile.strategy {
@@ -144,7 +139,11 @@ impl Config {
         let runner = self.runners.get(runner_ref).unwrap();
 
         // Get test options
-        let (test_parallelism, test_run, test_parameter) = profile.strategy.get_test_options();
+        let TestOptions {
+            parallelism,
+            test_run,
+            test_parameter,
+        } = profile.strategy.get_test_options();
 
         // Convert our node groups to replicated node groups
         let node_groups = runner
@@ -158,12 +157,33 @@ impl Config {
         Ok(Parameters {
             kubernetes_distribution: &runner.platform.distribution,
             kubernetes_version: &runner.platform.version,
+            test_parallelism: *parallelism,
             cluster_ttl: &runner.ttl,
-            test_parallelism,
             test_parameter,
             node_groups,
             test_run,
         })
+    }
+
+    #[instrument(name = "validate_config", skip(self))]
+    fn validate(&self) -> Result<(), ValidationError> {
+        for (runner_name, runner) in &self.runners {
+            tracing::debug!(runner_name, "validate runner");
+
+            runner
+                .validate(runner_name)
+                .context(InvalidRunnerConfigSnafu)?;
+        }
+
+        for (profile_name, profile) in &self.profiles {
+            tracing::debug!(profile_name, "validate profile");
+
+            profile
+                .validate(profile_name, &self.runners)
+                .context(InvalidProfileConfigSnafu)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -221,7 +241,7 @@ impl<'a> Display for Parameters<'a> {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::path::PathBuf;
 
     use super::*;
