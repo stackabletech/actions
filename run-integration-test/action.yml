@@ -62,7 +62,7 @@ runs:
       run: |
         set -euo pipefail
 
-        curl -fsSL -o /tmp/kubectl-kuttl "https://github.com/kudobuilder/kuttl/releases/download/v$KUTTL_VERSION/kubectl-kuttl_$KUTTL_VERSION_linux_x86_64"
+        curl -fsSL -o /tmp/kubectl-kuttl "https://github.com/kudobuilder/kuttl/releases/download/v$KUTTL_VERSION/kubectl-kuttl_${KUTTL_VERSION}_linux_x86_64"
         sudo install -m 755 -t /usr/local/bin /tmp/kubectl-kuttl
 
     # Python3 is already installed, if we ever need to specify the version, we can use the
