@@ -10,8 +10,17 @@ inputs:
     description: Replicated API token (only needed if running on replicated)
     default: ""
   interu-version:
-    description: Version of the interu tool
+    description: Version of interu
     default: 0.1.0
+  beku-version:
+    description: Version of beku
+    default: 0.0.8
+  kuttl-version:
+    description: Version of kubectl-kuttl
+    default: 0.19.0
+  stackablectl-version:
+    description: Version of stackablectl
+    default: 24.11.2
 outputs:
   start-time:
     description: The date and time this integration test was started.
@@ -47,31 +56,37 @@ runs:
     # tools of the runner image.
     # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-kubernetes-tools.sh
     - name: Install kubectl-kuttl
+      env:
+        KUTTL_VERSION: ${{ inputs.kuttl-version }}
       shell: bash
       run: |
         set -euo pipefail
 
-        curl -fsSL -o /tmp/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.19.0/kubectl-kuttl_0.19.0_linux_x86_64
+        curl -fsSL -o /tmp/kubectl-kuttl "https://github.com/kudobuilder/kuttl/releases/download/v$KUTTL_VERSION/kubectl-kuttl_$KUTTL_VERSION_linux_x86_64"
         sudo install -m 755 -t /usr/local/bin /tmp/kubectl-kuttl
 
     # Python3 is already installed, if we ever need to specify the version, we can use the
     # setup-python action.
     # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-python.sh
     - name: Install beku
+      env:
+        BEKU_VERSION: ${{ inputs.beku-version }}
       shell: bash
       run: |
         set -euo pipefail
-        pip install beku-stackabletech
+        pip install "beku-stackabletech==$BEKU_VERSION"
 
     # mikefarah/yq is already installed on the runner
     # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-yq.sh
 
     - name: Install stackablectl
+      env:
+        STACKABLECTL_VERSION: ${{ inputs.stackablectl-version }}
       shell: bash
       run: |
         set -euo pipefail
 
-        curl -fsSL -o /tmp/stackablectl https://github.com/stackabletech/stackable-cockpit/releases/latest/download/stackablectl-x86_64-unknown-linux-gnu
+        curl -fsSL -o /tmp/stackablectl "https://github.com/stackabletech/stackable-cockpit/releases/download/stackablectl-$STACKABLECTL_VERSION/stackablectl-x86_64-unknown-linux-gnu"
         sudo install -m 755 -t /usr/local/bin /tmp/stackablectl
 
     - name: Install apt packages

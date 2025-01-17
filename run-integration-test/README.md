@@ -95,6 +95,9 @@ profiles:
 - `test-profile` (required)
 - `replicated-api-token` (required)
 - `interu-version` (optional)
+- `beku-version` (optional)
+- `kuttl-version` (optional)
+- `stackablectl-version` (optional)
 
 > [!NOTE]
 > `test-parameter` maps to a specific test *name*, not to a single test with all dimensions resolved.
