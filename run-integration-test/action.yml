@@ -52,6 +52,50 @@ runs:
         # Run interu to expand parameters into GITHUB_ENV
         interu --instances "$GITHUB_ACTION_PATH/instances.yml" --check-test-definitions "$TEST_PROFILE" --output "$GITHUB_ENV"
 
+    # Install all tools BEFORE creating the cluster, because if some of the tools fail to download
+    # and are therefore not available, there is no need to create the cluster or run the tests,
+    # because the tests can never run in the first place.
+
+    # We don't need to install kubectl, kind or helm because it is already part of the installed
+    # tools of the runner image.
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-kubernetes-tools.sh
+    - name: Install kubectl-kuttl
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        curl -fsSL -o "$TOOL_DIRECTORY/kubectl-kuttl" https://github.com/kudobuilder/kuttl/releases/download/v0.19.0/kubectl-kuttl_0.19.0_linux_x86_64
+        chmod +x "$TOOL_DIRECTORY/kubectl-kuttl"
+
+    # Python3 is already installed, if we ever need to specify the version, we can use the
+    # setup-python action.
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-python.sh
+    - name: Install beku
+      shell: bash
+      run: |
+        set -euo pipefail
+        pip install beku-stackabletech
+
+    # mikefarah/yq is already installed on the runner
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-yq.sh
+
+    - name: Install stackablectl
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        curl -fsSL -o "$TOOL_DIRECTORY/stackablectl" https://github.com/stackabletech/stackable-cockpit/releases/latest/download/stackablectl-x86_64-unknown-linux-gnu
+        chmod +x "$TOOL_DIRECTORY/stackablectl"
+
+    - name: Install apt packages
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        sudo apt update
+        sudo apt install -y \
+          gettext-base
+
     - name: Prepare Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos'
       id: prepare-replicated-cluster
@@ -89,46 +133,6 @@ runs:
 
         OPERATOR_NAME=$(echo "$REPOSITORY" | cut -d / -f 2 | sed 's/-operator//g')
         echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_ENV"
-
-    # We don't need to install kubectl, kind or helm because it is already part of the installed
-    # tools of the runner image.
-    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-kubernetes-tools.sh
-    - name: Install kubectl-kuttl
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        curl -L -o "$TOOL_DIRECTORY/kubectl-kuttl" https://github.com/kudobuilder/kuttl/releases/download/v0.19.0/kubectl-kuttl_0.19.0_linux_x86_64
-        chmod +x "$TOOL_DIRECTORY/kubectl-kuttl"
-
-    # Python3 is already installed, if we ever need to specify the version, we can use the
-    # setup-python action.
-    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-python.sh
-    - name: Install beku
-      shell: bash
-      run: |
-        set -euo pipefail
-        pip install beku-stackabletech
-
-    # mikefarah/yq is already installed on the runner
-    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-yq.sh
-
-    - name: Install stackablectl
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        curl -L -o "$TOOL_DIRECTORY/stackablectl" https://github.com/stackabletech/stackable-cockpit/releases/latest/download/stackablectl-x86_64-unknown-linux-gnu
-        chmod +x "$TOOL_DIRECTORY/stackablectl"
-
-    - name: Install apt packages
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        sudo apt update
-        sudo apt install -y \
-          gettext-base
 
     - name: Record Test Start Time
       id: start-time
