@@ -115,6 +115,10 @@ runs:
             value: ${{ env.INTERU_KUBERNETES_DISTRIBUTION }}
           - key: triggered-by
             value: ${{ github.triggering_actor }}
+          - key: test-set
+            value: ${{ env.INTERU_TEST_RUN }}=${{ env.INTERU_TEST_PARAMETER }}
+          - key: test-parallelism
+            value: "${{ env.INTERU_TEST_PARALLELISM }}"
 
     - name: Set Replicated kubeconfig
       if: env.INTERU_KUBERNETES_DISTRIBUTION != 'ionos'
