@@ -27,10 +27,12 @@ runs:
       run: |
         set -euo pipefail
 
+        # The following path already is in $PATH, but doesn't exist on the filesystem yet,
+        # thus we need to create it. The TOOL_DIRECTORY variable is made available to the
+        # following steps to more easily reference the directory where tools are placed in.
         TOOL_DIRECTORY="$HOME/.local/bin"
         mkdir -p "$TOOL_DIRECTORY"
 
-        echo "$TOOL_DIRECTORY" | tee -a "$GITHUB_PATH"
         echo "TOOL_DIRECTORY=$TOOL_DIRECTORY" | tee -a "$GITHUB_ENV"
 
     - name: Extract Test and Instance Configuration
