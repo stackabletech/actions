@@ -44,7 +44,7 @@ runs:
         [ -n "$GITHUB_DEBUG" ] && set -x
 
         # Download interu
-        curl -L -o "$TOOL_DIRECTORY/interu" "https://github.com/stackabletech/actions/releases/download/interu-$INTERU_VERSION/interu-x86_64-unknown-linux-gnu"
+        curl -fsSL -o "$TOOL_DIRECTORY/interu" "https://github.com/stackabletech/actions/releases/download/interu-$INTERU_VERSION/interu-x86_64-unknown-linux-gnu"
         chmod +x "$TOOL_DIRECTORY/interu"
 
         # Run interu to expand parameters into GITHUB_ENV
