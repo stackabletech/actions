@@ -59,10 +59,10 @@ calling interu. For example, the `schedule` profile could be used in CI on the `
 
 The following strategies are currently available:
 
-- The `weighted` strategy allows defining two or more `weights`. Each `weight` defines how often the
+- `weighted`: allows defining two or more `weights`. Each `weight` defines how often the
   runner specified is used when this profile is used. It should be noted that the weights *don't*
   need to add up to 100, but it is recommended to more easily gauge the probability.
-- The `use-runner` strategy just uses the specified `runner`.
+- `use-runner`: uses the specified `runner`.
 
 Each profile can additionally specify test `options`, like `parallelism`, `test-run` and
 `test-parameter`.
