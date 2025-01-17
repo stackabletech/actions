@@ -49,6 +49,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - run: |
+          echo "$PATH"
+          echo "$HOME"
+          ls -la "$HOME/.local/bin"
+
       - name: Free Disk Space
         uses: ./free-disk-space
 
