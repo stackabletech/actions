@@ -6,6 +6,7 @@ metadata:
 spec:
   serviceAccount: kubernetes-events
   env: []
+  envFrom: []
   config:
     receivers:
       k8s_events: {}

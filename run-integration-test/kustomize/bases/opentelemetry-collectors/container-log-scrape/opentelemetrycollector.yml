@@ -15,6 +15,7 @@ spec:
         fieldRef:
           apiVersion: v1
           fieldPath: spec.nodeName
+  envFrom: []
   volumeMounts:
     # Mount the volumes to the collector container
     - name: varlogpods

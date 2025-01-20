@@ -10,6 +10,10 @@ nameReference:
   fieldSpecs:
   - kind: OpenTelemetryCollector
     path: spec/env/valueFrom/secretKeyRef/name
+- kind: ConfigMap
+  fieldSpecs:
+  - kind: OpenTelemetryCollector
+    path: spec/envFrom/configMapRef/name
 # - kind: ClusterRole
 #   fieldSpecs:
 #   - kind: ClusterRoleBinding

@@ -36,6 +36,8 @@ runs:
         INTERU_VERSION: ${{ inputs.interu-version }}
         TEST_PROFILE: ${{ inputs.test-profile }}
         GITHUB_DEBUG: ${{ runner.debug }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.run_id }}"
       shell: bash
       run: |
         set -euo pipefail
@@ -44,6 +46,9 @@ runs:
         # Download interu
         curl -fsSL -o /tmp/interu "https://github.com/stackabletech/actions/releases/download/interu-$INTERU_VERSION/interu-x86_64-unknown-linux-gnu"
         sudo install -m 755 -t /usr/local/bin /tmp/interu
+
+        # Generate the cluster name
+        echo "KUBERNETES_CLUSTER_NAME=integration-test-${GITHUB_REPOSITORY}-${GITHUB_RUN_ID}" | tee -a "$GITHUB_ENV"
 
         # Run interu to expand parameters into GITHUB_ENV
         interu --instances "$GITHUB_ACTION_PATH/instances.yml" --check-test-definitions "$TEST_PROFILE" --output "$GITHUB_ENV"
@@ -105,7 +110,7 @@ runs:
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
-        cluster-name: integration-test-${{ github.repository }}-${{ github.run_id }}
+        cluster-name: ${{ env.KUBERNETES_CLUSTER_NAME }}
         kubernetes-distribution: ${{ env.INTERU_KUBERNETES_DISTRIBUTION }}
         kubernetes-version: ${{ env.INTERU_KUBERNETES_VERSION }}
         ttl: ${{ env.INTERU_CLUSTER_TTL }}
@@ -154,11 +159,19 @@ runs:
 
     - name: Apply OpenTelemetry Collectors configurations
       shell: bash
+      env:
+        GITHUB_TRIGGERED_BY: ${{ github.triggering_actor }}
       run: |
         set -euo pipefail
 
+        echo "::group::get info"
+        INTEGRATION_TEST_INFO="${GITHUB_ACTION_PATH}/kustomize/overlays/replicated/integration-test-info.env"
+        echo "KUBERNETES_CLUSTER_NAME=${KUBERNETES_CLUSTER_NAME}" | tee -a "$INTEGRATION_TEST_INFO"
+        echo "TRIGGERED_BY=${GITHUB_TRIGGERED_BY}" | tee -a "$INTEGRATION_TEST_INFO"
+        echo "::endgroup::"
+
         echo "::group::kubectl apply"
-        kubectl apply -k ${GITHUB_ACTION_PATH}/kustomize/overlays/replicated
+        kubectl apply -k "${GITHUB_ACTION_PATH}/kustomize/overlays/replicated"
         echo "Waiting a few seconds for the operator to create the deployment" && sleep 5
         kubectl -n opentelemetry-operator wait --for condition=Progressing deploy/replicated-kubernetes-events-collector --timeout=300s
         kubectl -n opentelemetry-operator wait --for condition=Available deploy/replicated-kubernetes-events-collector --timeout=300s
