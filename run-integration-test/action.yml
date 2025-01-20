@@ -4,19 +4,23 @@ description: |
   This action runs Stackable Operator integration tests on various platforms and
   Kubernetes distributions.
 inputs:
-  test-platform:
-    description: |
-      The platform/distribution to run on (eg: `okd-4.15-amd64`)
-    required: true
-  test-run:
-    description: Type of test run
-    required: true
-  test-parameter:
-    description: Parameter to `--test-suite` or `--test` (ignored for `all`)
-    default: ""
+  test-profile:
+    description: Test profile to run
   replicated-api-token:
     description: Replicated API token (only needed if running on replicated)
     default: ""
+  interu-version:
+    description: Version of interu
+    default: 0.1.0
+  beku-version:
+    description: Version of beku
+    default: 0.0.8
+  kuttl-version:
+    description: Version of kubectl-kuttl
+    default: 0.19.0
+  stackablectl-version:
+    description: Version of stackablectl
+    default: 24.11.2
 outputs:
   start-time:
     description: The date and time this integration test was started.
@@ -29,84 +33,70 @@ runs:
   steps:
     - name: Extract Test and Instance Configuration
       env:
-        TEST_PARAMETER: ${{ inputs.test-parameter }}
-        TEST_PLATFORM: ${{ inputs.test-platform }}
-        TEST_RUN: ${{ inputs.test-run }}
+        INTERU_VERSION: ${{ inputs.interu-version }}
+        TEST_PROFILE: ${{ inputs.test-profile }}
         GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
         [ -n "$GITHUB_DEBUG" ] && set -x
 
-        # Create and enter Python virtual env
-        python -m venv .venv
-        . .venv/bin/activate
+        # Download interu
+        curl -fsSL -o /tmp/interu "https://github.com/stackabletech/actions/releases/download/interu-$INTERU_VERSION/interu-x86_64-unknown-linux-gnu"
+        sudo install -m 755 -t /usr/local/bin /tmp/interu
 
-        # Install proper yq
-        pip install yq==3.4.3
-        yq --version
+        # Run interu to expand parameters into GITHUB_ENV
+        interu --instances "$GITHUB_ACTION_PATH/instances.yml" --check-test-definitions "$TEST_PROFILE" --output "$GITHUB_ENV"
 
-        #####################################
-        # Extract Kubernetes-related Values #
-        #####################################
+    # Install all tools BEFORE creating the cluster, because if some of the tools fail to download
+    # and are therefore not available, there is no need to create the cluster or run the tests,
+    # because the tests can never run in the first place.
 
-        KUBERNETES_DISTRIBUTION=$(echo "$TEST_PLATFORM" | cut -d - -f 1)
-        KUBERNETES_VERSION=$(echo "$TEST_PLATFORM" | cut -d - -f 2)
-        KUBERNETES_ARCHITECTURE=$(echo "$TEST_PLATFORM" | cut -d - -f 3)
+    # We don't need to install kubectl, kind or helm because it is already part of the installed
+    # tools of the runner image.
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-kubernetes-tools.sh
+    - name: Install kubectl-kuttl
+      env:
+        KUTTL_VERSION: ${{ inputs.kuttl-version }}
+      shell: bash
+      run: |
+        set -euo pipefail
 
-        echo "KUBERNETES_DISTRIBUTION=$KUBERNETES_DISTRIBUTION" | tee -a "$GITHUB_ENV"
-        echo "KUBERNETES_VERSION=$KUBERNETES_VERSION" | tee -a "$GITHUB_ENV"
-        echo "KUBERNETES_ARCHITECTURE=$KUBERNETES_ARCHITECTURE" | tee -a "$GITHUB_ENV"
+        curl -fsSL -o /tmp/kubectl-kuttl "https://github.com/kudobuilder/kuttl/releases/download/v$KUTTL_VERSION/kubectl-kuttl_${KUTTL_VERSION}_linux_x86_64"
+        sudo install -m 755 -t /usr/local/bin /tmp/kubectl-kuttl
 
-        ##################################
-        # Extract Instance Configuration #
-        ##################################
+    # Python3 is already installed, if we ever need to specify the version, we can use the
+    # setup-python action.
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-python.sh
+    - name: Install beku
+      env:
+        BEKU_VERSION: ${{ inputs.beku-version }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        pip install "beku-stackabletech==$BEKU_VERSION"
 
-        INSTANCE_SIZE=$(yq -er '."instance-size"' ./tests/infrastructure.yaml)
-        INSTANCE_TYPE=$(yq -er \
-          --arg kubernetes_distribution "$KUBERNETES_DISTRIBUTION" \
-          --arg kubernetes_architecture "$KUBERNETES_ARCHITECTURE" \
-          --arg instance_size "$INSTANCE_SIZE" \
-          '.[$kubernetes_distribution][$kubernetes_architecture][$instance_size]' \
-          "$GITHUB_ACTION_PATH/instances.yml"
-        )
+    # mikefarah/yq is already installed on the runner
+    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-yq.sh
 
-        # Optional config options
-        CLUSTER_TTL=$(yq -er '."cluster-ttl" // "4h"' ./tests/infrastructure.yaml)
-        INSTANCE_NODES=$(yq -er '.nodes // 1' ./tests/infrastructure.yaml)
-        INSTANCE_DISK=$(yq -er '.disk // 50' ./tests/infrastructure.yaml)
-        TEST_PARALLELISM=$(yq -er '.parallelism // 2' ./tests/infrastructure.yaml)
+    - name: Install stackablectl
+      env:
+        STACKABLECTL_VERSION: ${{ inputs.stackablectl-version }}
+      shell: bash
+      run: |
+        set -euo pipefail
 
-        echo "INSTANCE_TYPE=$INSTANCE_TYPE" | tee -a "$GITHUB_ENV"
-        echo "CLUSTER_TTL=$CLUSTER_TTL" | tee -a "$GITHUB_ENV"
-        echo "INSTANCE_NODES=$INSTANCE_NODES" | tee -a "$GITHUB_ENV"
-        echo "INSTANCE_DISK=$INSTANCE_DISK" | tee -a "$GITHUB_ENV"
-        echo "TEST_PARALLELISM=$TEST_PARALLELISM" | tee -a "$GITHUB_ENV"
+        curl -fsSL -o /tmp/stackablectl "https://github.com/stackabletech/stackable-cockpit/releases/download/stackablectl-$STACKABLECTL_VERSION/stackablectl-x86_64-unknown-linux-gnu"
+        sudo install -m 755 -t /usr/local/bin /tmp/stackablectl
 
-        ############################
-        # Validate Test Parameters #
-        ############################
+    - name: Install apt packages
+      shell: bash
+      run: |
+        set -euo pipefail
 
-        if [ -z "$TEST_RUN" ]; then
-          echo "TEST_RUN must be defined and not empty"
-          exit 1
-        fi
-
-        if [ "$TEST_RUN" != "all" ]; then
-          if [ -z "$TEST_PARAMETER" ]; then
-            echo "TEST_PARAMETER must be defined and not empty"
-            exit 1
-          fi
-
-          if [ "$TEST_RUN" == "test-suite" ]; then
-            yq -er --arg test_parameter "$TEST_PARAMETER" '.suites[] | select(.name == $test_parameter)' ./tests/test-definition.yaml
-          elif [ "$TEST_RUN" == "test" ]; then
-            yq -er --arg test_parameter "$TEST_PARAMETER" '.tests[] | select(.name == $test_parameter)' ./tests/test-definition.yaml
-          fi
-        fi
-
-        echo "TEST_PARAMETER=$TEST_PARAMETER" | tee -a "$GITHUB_ENV"
-        echo "TEST_RUN=$TEST_RUN" | tee -a "$GITHUB_ENV"
+        sudo apt update
+        sudo apt install -y \
+          gettext-base
 
     - name: Prepare Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos'
@@ -116,22 +106,22 @@ runs:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
         cluster-name: integration-test-${{ github.repository }}-${{ github.run_id }}
-        instance-type: ${{ env.INSTANCE_TYPE }}
-        kubernetes-distribution: ${{ env.KUBERNETES_DISTRIBUTION }}
-        kubernetes-version: ${{ env.KUBERNETES_VERSION }}
-        ttl: ${{ env.CLUSTER_TTL }}
-        disk: ${{ env.INSTANCE_DISK }}
-        nodes: ${{ env.INSTANCE_NODES }}
+        kubernetes-distribution: ${{ env.INTERU_KUBERNETES_DISTRIBUTION }}
+        kubernetes-version: ${{ env.INTERU_KUBERNETES_VERSION }}
+        ttl: ${{ env.INTERU_CLUSTER_TTL }}
+        node-groups: ${{ env.INTERU_NODE_GROUPS }}
         tags: |
-          - key: node-architecture
-            value: ${{ env.KUBERNETES_ARCHITECTURE }}
           - key: kubernetes-distribution
-            value: ${{ env.KUBERNETES_DISTRIBUTION }}
+            value: ${{ env.INTERU_KUBERNETES_DISTRIBUTION }}
           - key: triggered-by
             value: ${{ github.triggering_actor }}
+          - key: test-set
+            value: ${{ env.INTERU_TEST_RUN }}=${{ env.INTERU_TEST_PARAMETER }}
+          - key: test-parallelism
+            value: "${{ env.INTERU_TEST_PARALLELISM }}"
 
     - name: Set Replicated kubeconfig
-      if: env.KUBERNETES_DISTRIBUTION != 'ionos'
+      if: env.INTERU_KUBERNETES_DISTRIBUTION != 'ionos'
       env:
         KUBECONFIG: ${{ steps.prepare-replicated-cluster.outputs.cluster-kubeconfig }}
       shell: bash
@@ -150,64 +140,13 @@ runs:
         OPERATOR_NAME=$(echo "$REPOSITORY" | cut -d / -f 2 | sed 's/-operator//g')
         echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_ENV"
 
-    - name: Setup Tool Directory
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        TOOL_DIRECTORY="$HOME/.local/bin"
-        mkdir -p "$TOOL_DIRECTORY"
-
-        echo "$TOOL_DIRECTORY" | tee -a "$GITHUB_PATH"
-        echo "TOOL_DIRECTORY=$TOOL_DIRECTORY" | tee -a "$GITHUB_ENV"
-
-    # We don't need to install kubectl, kind or helm because it is already part of the installed
-    # tools of the runner image.
-    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-kubernetes-tools.sh
-    - name: Install kubectl-kuttl
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        curl -L -o "$TOOL_DIRECTORY/kubectl-kuttl" https://github.com/kudobuilder/kuttl/releases/download/v0.19.0/kubectl-kuttl_0.19.0_linux_x86_64
-        chmod +x "$TOOL_DIRECTORY/kubectl-kuttl"
-
-    # Python3 is already installed, if we ever need to specify the version, we can use the
-    # setup-python action.
-    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-python.sh
-    - name: Install beku
-      shell: bash
-      run: |
-        set -euo pipefail
-        pip install beku-stackabletech
-
-    # mikefarah/yq is already installed on the runner
-    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-yq.sh
-
-    - name: Install stackablectl
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        curl -L -o "$TOOL_DIRECTORY/stackablectl" https://github.com/stackabletech/stackable-cockpit/releases/latest/download/stackablectl-x86_64-unknown-linux-gnu
-        chmod +x "$TOOL_DIRECTORY/stackablectl"
-
-    - name: Install apt packages
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        sudo apt update
-        sudo apt install -y \
-          gettext-base
-
     - name: Record Test Start Time
       id: start-time
       shell: bash
       run: |
         echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
-    - name: Run Integration Test (${{ inputs.test-run }}=${{ inputs.test-parameter }})
+    - name: Run Integration Test (${{ env.INTERU_TEST_RUN }}=${{ env.INTERU_TEST_PARAMETER }}/${{ env.INTERU_TEST_PARALLELISM }})
       env:
         REF_NAME: ${{ github.ref_name }}
         GH_TOKEN: ${{ github.token }}
@@ -218,10 +157,10 @@ runs:
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/get_operator_version.sh" "$REF_NAME")
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
-        if [ "$TEST_RUN" == "all" ]; then
-          python ./scripts/run-tests --skip-release --log-level debug --parallel "$TEST_PARALLELISM"
+        if [ "$INTERU_TEST_RUN" == "all" ]; then
+          python ./scripts/run-tests --skip-release --log-level debug --parallel "$INTERU_TEST_PARALLELISM"
         else
-          python ./scripts/run-tests --skip-release --log-level debug "--$TEST_RUN" "$TEST_PARAMETER" --parallel "$TEST_PARALLELISM"
+          python ./scripts/run-tests --skip-release --log-level debug "--$INTERU_TEST_RUN" "$INTERU_TEST_PARAMETER" --parallel "$INTERU_TEST_PARALLELISM"
         fi
 
     - name: Record Test End Time

@@ -5,23 +5,9 @@
 This action runs an operator integration test. It does the following work:
 
 1. Create a test cluster on-the-fly using the requested Kubernetes version, distribution and node
-   architecture via Replicated. See [Test Platform Triple](#test-platform-triple) for more details.
+   architecture via Replicated.
 2. Run the integration test based on the provided test parameters.
 3. Delete the cluster of the tests are done and send out a notification on failure.
-
-## Test Platform Triple
-
-The [`test-platform`](#inputs) input expects a test platform triple to select the appropriate node
-architecture and Kubernetes distribution & version. The triple format is
-`<DISTRIBUTION>-<VERSION>-<ARCHITECTURE>`, eg. `kind-1.31.2-amd64` or `gke-1.31-arm64`.
-
-Each distribution supports different instance types
-based on the cloud vendor machine names. This mapping is done via the `instances.yml` file. Based
-on this file, the following distributions are supported: `eks`, `gke`, `aks`, `kind`, `k3s`, `rke2`.
-There is no mapping for `oke` yet.
-
-Supported Kubernetes version can be inspected on the official Replicated documentation
-[page][supported-clusters]. Supported architectures are `amd64` and `arm64`.
 
 ## Integration Test Configuration File
 
@@ -52,6 +38,15 @@ runners:
         nodes: 3
 ```
 
+The platform is specified using a platform pair, which consists of the name of the Kubernetes
+distribution and version, eg. `rke2-1.31.2`. Each distribution supports different instance types
+based on the cloud vendor machine names. This mapping is done via the `instances.yml` file. Based
+on this file, the following distributions are supported: `eks`, `gke`, `aks`, `kind`, `k3s`, `rke2`.
+There is no mapping for `oke` yet.
+
+Supported Kubernetes version can be inspected on the official Replicated documentation
+[page][supported-clusters]. Supported architectures are `amd64` and `arm64`.
+
 ### Profiles
 
 Profiles allow for a variety of pre-configured runners and strategies. A profile can be chosen when
@@ -59,15 +54,13 @@ calling interu. For example, the `schedule` profile could be used in CI on the `
 
 The following strategies are currently available:
 
-- `weighted`.
-- `use-runner`.
-
-- The `weighted` strategy allows defining two or more `weights`. Each `weight` defines how often the
+- `weighted`: allows defining two or more `weights`. Each `weight` defines how often the
   runner specified is used when this profile is used. It should be noted that the weights *don't*
   need to add up to 100, but it is recommended to more easily gauge the probability.
-- The `use-runner` strategy just uses the specified `runner`.
+- `use-runner`: uses the specified `runner`.
 
-Each profile can additionally specify test `options`, like `parallelism`, `test-run` and `test-parameter`.
+Each profile can additionally specify test `options`, like `parallelism`, `test-run` and
+`test-parameter`.
 
 ```yaml
 profiles:
@@ -99,10 +92,12 @@ profiles:
 
 ### Inputs
 
-- `test-platform`(required, eg: `kind-1.31.2-amd64`)
-- `test-run` (required, `test-suite` or `test`)
-- `test-parameter` (defaults to `smoke`)
+- `test-profile` (required)
 - `replicated-api-token` (required)
+- `interu-version` (optional)
+- `beku-version` (optional)
+- `kuttl-version` (optional)
+- `stackablectl-version` (optional)
 
 > [!NOTE]
 > `test-parameter` maps to a specific test *name*, not to a single test with all dimensions resolved.
