@@ -1,0 +1,141 @@
+---
+# https://github.com/open-telemetry/opentelemetry-operator/blob/main/tests/e2e/daemonset-features/01-install.yaml
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: container-log-scrape
+spec:
+  mode: daemonset
+  # hostNetwork: true
+  serviceAccount: container-log-scrape
+  env:
+    # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor/README.md#as-an-agent
+    - name: KUBE_NODE_NAME
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: spec.nodeName
+  volumeMounts:
+    # Mount the volumes to the collector container
+    - name: varlogpods
+      mountPath: /var/log/pods
+      readOnly: true
+    - name: varlibdockercontainers
+      mountPath: /var/lib/docker/containers
+      readOnly: true
+  volumes:
+    # Typically the collector will want access to pod logs and container logs
+    - name: varlogpods
+      hostPath:
+        path: /var/log/pods
+    - name: varlibdockercontainers
+      hostPath:
+        path: /var/lib/docker/containers
+  config:
+    receivers:
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/filelogreceiver
+      filelog/varlogpods:
+        # A storage extension (eg: redis, or file) can be used for storing log offsets. Otherwise it is held in memory.
+        # See: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/extension/storage
+        # storage: {}
+        include:
+          - /var/log/pods/*/*/*.log
+        exclude:
+          # Exclude logs from all containers named otc-container
+          # This is to prevent log amplification
+          - /var/log/pods/*/otc-container/*.log
+        start_at: end
+        include_file_path: true
+        include_file_name: false
+        # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/README.md#what-operators-are-available
+        operators:
+          # parse container logs
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/container.md
+          - id: container-parser
+            type: container
+            format: containerd
+            add_metadata_from_filepath: true
+          - id: klog-parser
+            type: regex_parser
+            on_error: send_quiet
+            # Eg:  kindnet-cni log:
+            # I1214 14:13:50.384530       1 main.go:295] Handling node with IPs: map[172.18.0.2:{}]
+            # https://seankhliao.com/blog/12021-06-17-opentelemetry-collector-logs/
+            regex: '^(?P<severity>[FEWIDT])(?P<timestamp_field>.{20})\s+(?P<threadid>\d+)\s(?P<file>\w+\.go):(?P<line>\d+)]\s+(?P<message>.*)$'
+            timestamp:
+              parse_from: body.timestamp_field
+              layout: "%m%d %H:%M:%S.%f"
+            severity:
+              parse_from: body.severity
+              mapping:
+                fatal: F
+                error: E
+                warning: W
+                info: I
+                debug: D
+                trace: T
+          - id: rust-tracing-fmt-plain
+            type: regex_parser
+            on_error: send_quiet
+            # 2024-12-14T13:55:52.550715642+00:00 INFO openobserve::service::alerts::scheduler: Pulled 0 jobs from scheduler
+            regex: '^(?P<timestamp_field>.{35})\s+(?P<severity>\w+)\s+(?P<target>\w+):\s+(?P<message>.*)$'
+            timestamp:
+              parse_from: body.timestamp_field
+              layout: "%Y-%m-%dT%H:%M:%S.%f%j"
+            severity:
+              parse_from: body.severity
+              # yamllint disable rule:comments-indentation
+              # mapping:
+              #   fatal: FATAL
+              #   error: ERROR
+              #   warning: WARN
+              #   info: INFO
+              #   debug: DEBUG
+              #   trace: TRACE
+              # yamllint enable rule:comments-indentation
+
+          - type: key_value_parser
+            on_error: send_quiet
+            parse_from: body.message
+
+    processors:
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor
+      k8sattributes:
+        filter:
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor/README.md#as-an-agent
+          node_from_env_var: KUBE_NODE_NAME # this should be same as the var set from the downward API further up
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/transformprocessor
+      # transform:
+      #   error_mode: ignore
+      #   log_statements:
+      #     # Currently the body from go app logs contains a timestamp, severity, then log messages.
+      #     # I want to see if we can hoist those up a level.
+      #     - context: log
+      #       statements:
+      #         - set(attributes["body"], body)
+      resourcedetection/env:
+        detectors: [env]
+        timeout: 2s
+        override: false
+      # yamllint disable rule:comments-indentation
+      # memory_limiter:
+      #   check_interval: 1s
+      #   limit_percentage: 75
+      #   spike_limit_percentage: 15
+      # batch:
+      #   send_batch_size: 10000
+      #   timeout: 10s
+      # yamllint enable rule:comments-indentation
+
+    exporters:
+      # Configuration done in the overlay
+      otlp/grpc:
+        headers: {}
+
+    service:
+      pipelines:
+        logs:
+          receivers: [filelog/varlogpods]
+          # processors: [memory_limiter, batch]
+          processors: [k8sattributes, resourcedetection/env]
+          exporters: [otlp/grpc]

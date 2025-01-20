@@ -1,0 +1,16 @@
+---
+nameReference:
+- kind: ServiceAccount
+  fieldSpecs:
+  - kind: OpenTelemetryCollector
+    path: spec/serviceAccount
+  - kind: ClusterRoleBinding
+    path: subjects/name
+- kind: Secret
+  fieldSpecs:
+  - kind: OpenTelemetryCollector
+    path: spec/env/valueFrom/secretKeyRef/name
+# - kind: ClusterRole
+#   fieldSpecs:
+#   - kind: ClusterRoleBinding
+#     path: roleRef/name

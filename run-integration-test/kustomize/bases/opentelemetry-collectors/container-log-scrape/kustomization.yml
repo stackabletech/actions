@@ -1,0 +1,9 @@
+---
+# commonLabels:
+
+resources:
+- serviceaccount.yml
+- clusterrole-container-log-scrape.yml
+- clusterrolebinding-container-log-scrape.yml
+- clusterrolebinding-k8sattributes-processor.yml
+- opentelemetrycollector.yml

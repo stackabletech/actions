@@ -1,0 +1,15 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubernetes-metrics
+  labels:
+    app: kubernetes-metrics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubernetes-metrics
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-metrics
+  namespace: opentelemetry-operator

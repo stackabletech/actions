@@ -1,0 +1,59 @@
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: kubernetes-events
+spec:
+  serviceAccount: kubernetes-events
+  env: []
+  config:
+    receivers:
+      k8s_events: {}
+      k8s_cluster:
+        # https://kubernetes.io/docs/reference/node/node-status/#condition
+        node_conditions_to_report: [Ready, MemoryPressure, DiskPressure, PIDPressure]
+        allocatable_types_to_report: [cpu, memory, ephemeral-storage, storage]
+        metrics:
+          k8s.container.cpu_limit:
+            enabled: false
+        resource_attributes:
+          container.id:
+            enabled: false
+
+    processors:
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor
+      k8sattributes:
+        # Use the k8s attributes set by the receiver
+        # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor#as-a-gateway
+        passthrough: true
+      resourcedetection/env:
+        detectors: [env]
+        timeout: 2s
+        override: false
+      # yamllint disable rule:comments-indentation
+      # memory_limiter:
+      #   check_interval: 1s
+      #   limit_percentage: 75
+      #   spike_limit_percentage: 15
+      # batch:
+      #   send_batch_size: 10000
+      #   timeout: 10s
+      # yamllint enable rule:comments-indentation
+
+    exporters:
+      # Configuration done in the overlay
+      otlp/grpc:
+        headers: {}
+
+    service:
+      pipelines:
+        logs:
+          receivers: [k8s_events]
+          # processors: [memory_limiter, batch]
+          processors: [k8sattributes, resourcedetection/env]
+          exporters: [otlp/grpc]
+        metrics:
+          receivers: [k8s_cluster]
+          # processors: [memory_limiter, batch]
+          processors: [k8sattributes, resourcedetection/env]
+          exporters: [otlp/grpc]

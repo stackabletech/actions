@@ -1,0 +1,26 @@
+---
+# See also namespace setting for the helm chart below. Helm needs to calculate the namespace for the certificate subject.
+namespace: opentelemetry-operator
+
+resources:
+- namespace.yml
+
+helmCharts:
+- name: opentelemetry-operator
+  repo: https://open-telemetry.github.io/opentelemetry-helm-charts
+  version: 0.75.1
+  releaseName: opentelemetry-operator
+  includeCRDs: true
+  skipTests: true
+  namespace: opentelemetry-operator
+  # https://github.com/open-telemetry/opentelemetry-helm-charts/blob/opentelemetry-operator-0.75.1/charts/opentelemetry-collector/values.yaml
+  valuesInline:
+    manager:
+      collectorImage:
+        # https://github.com/open-telemetry/opentelemetry-collector-releases/blob/main/distributions/otelcol-k8s/manifest.yaml
+        repository: otel/opentelemetry-collector-k8s
+    admissionWebhooks:
+      certManager:
+        enabled: false
+      autoGenerateCert:
+        enabled: true
