@@ -140,6 +140,35 @@ runs:
         OPERATOR_NAME=$(echo "$REPOSITORY" | cut -d / -f 2 | sed 's/-operator//g')
         echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_ENV"
 
+    - name: Install OpenTelemetry Operator
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        echo "::group::kubectl apply"
+        kubectl kustomize --enable-helm "${GITHUB_ACTION_PATH}/kustomize/bases/opentelemetry-operator" | kubectl apply -f -
+        kubectl -n opentelemetry-operator wait --for condition=Progressing deploy/opentelemetry-operator --timeout=300s
+        kubectl -n opentelemetry-operator wait --for condition=Available deploy/opentelemetry-operator --timeout=300s
+        kubectl -n opentelemetry-operator get pods
+        echo "::endgroup::"
+
+    - name: Apply OpenTelemetry Collectors configurations
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        echo "::group::kubectl apply"
+        kubectl apply -k ${GITHUB_ACTION_PATH}/kustomize/overlays/replicated
+        echo "Waiting a few seconds for the operator to create the deployment" && sleep 5
+        kubectl -n opentelemetry-operator wait --for condition=Progressing deploy/replicated-kubernetes-events-collector --timeout=300s
+        kubectl -n opentelemetry-operator wait --for condition=Available deploy/replicated-kubernetes-events-collector --timeout=300s
+        kubectl -n opentelemetry-operator rollout status ds replicated-container-log-scrape-collector --timeout=300s
+        echo "::endgroup::"
+        echo "::group::kubectl get"
+        kubectl -n opentelemetry-operator get opentelemetrycollectors
+        kubectl -n opentelemetry-operator get pods
+        echo "::endgroup::"
+
     - name: Record Test Start Time
       id: start-time
       shell: bash
