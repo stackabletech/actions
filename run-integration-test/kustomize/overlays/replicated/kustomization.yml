@@ -1,0 +1,30 @@
+---
+namePrefix: replicated-
+
+resources:
+- ../../bases/opentelemetry-collectors
+
+patches:
+# Update all collectors to set the exporter endpoints and any other common overrides.
+- target:
+    group: opentelemetry.io
+    version: v1beta1
+    kind: OpenTelemetryCollector
+  patch: |-
+    - op: add
+      path: /spec/config/exporters/otlp~1grpc/endpoint
+      value: 212.227.162.207:30171
+    - op: add
+      path: /spec/config/exporters/otlp~1grpc/tls
+      value:
+        insecure: true
+# Specifically override config for the kubernetes-events collector.
+- target:
+    group: opentelemetry.io
+    version: v1beta1
+    kind: OpenTelemetryCollector
+    name: kubernetes-events
+  patch: |-
+    # OpenSearch Metrics collector is not yet available
+    - op: remove
+      path: /spec/config/service/pipelines/metrics
