@@ -1,0 +1,12 @@
+---
+# Forcing everything into a known namespace because the ClusterRoleBinding needs to know it for the ServiceAccounts.
+# We could probably use a transformer to detect the namespace for the given ServiceAccounts.
+namespace: opentelemetry-operator
+
+resources:
+- clusterrole-k8sattributes-processor.yml
+- ./container-log-scrape
+- ./kubernetes-events
+
+configurations:
+- crds.yml

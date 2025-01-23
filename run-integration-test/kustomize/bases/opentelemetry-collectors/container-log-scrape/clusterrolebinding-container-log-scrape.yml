@@ -1,0 +1,15 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: container-log-scrape
+  labels:
+    app: container-log-scrape
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: container-log-scrape
+subjects:
+- kind: ServiceAccount
+  name: container-log-scrape
+  namespace: opentelemetry-operator

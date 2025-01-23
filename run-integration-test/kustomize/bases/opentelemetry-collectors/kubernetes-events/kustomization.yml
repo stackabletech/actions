@@ -1,0 +1,11 @@
+---
+# commonLabels:
+
+resources:
+- serviceaccount.yml
+- clusterrole-kubernetes-events.yml
+- clusterrolebinding-kubernetes-events.yml
+- clusterrole-kubernetes-metrics.yml
+- clusterrolebinding-kubernetes-metrics.yml
+- clusterrolebinding-k8sattributes-processor.yml
+- opentelemetrycollector.yml

@@ -1,0 +1,62 @@
+---
+namePrefix: replicated-
+
+resources:
+- ../../bases/opentelemetry-collectors
+
+patches:
+# Update all collectors to set the exporter endpoints and any other common overrides.
+- target:
+    group: opentelemetry.io
+    version: v1beta1
+    kind: OpenTelemetryCollector
+  patch: |-
+    - op: add
+      path: /spec/config/exporters/otlp~1grpc/endpoint
+      value: 212.227.162.207:30171
+    - op: add
+      path: /spec/config/exporters/otlp~1grpc/tls
+      value:
+        insecure: true
+    - op: add
+      path: /spec/envFrom/-
+      value:
+        configMapRef:
+          name: integration-test-info
+    - op: add
+      path: /spec/config/processors/attributes
+      value:
+        actions:
+          - action: upsert
+            key: k8s.cluster.name
+            value: ${env:KUBERNETES_CLUSTER_NAME}
+          - action: upsert
+            key: github.actions.triggered_by
+            value: ${env:TRIGGERED_BY}
+    - op: add
+      path: /spec/config/service/pipelines/logs/processors/-
+      value: attributes
+
+# Specifically override config for the kubernetes-events collector.
+- target:
+    group: opentelemetry.io
+    version: v1beta1
+    kind: OpenTelemetryCollector
+    name: kubernetes-events
+  patch: |-
+    # OpenSearch Metrics collector is not yet available
+    - op: remove
+      path: /spec/config/service/pipelines/metrics
+    # - op: add
+    #   path: /spec/config/service/pipelines/metrics/processors/-
+    #   value: attributes
+
+configMapGenerator:
+# These get used by the attributes processor in each collector
+- name: integration-test-info
+  namespace: opentelemetry-operator
+  envs:
+  # KUBERNETES_CLUSTER_NAME
+  # KUBERNETES_DISTRIBUTION
+  # TRIGGERED_BY
+  - integration-test-info.env
