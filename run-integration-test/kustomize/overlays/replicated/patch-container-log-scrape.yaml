@@ -1,0 +1,17 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: container-log-scrape
+  namespace: opentelemetry-operator
+spec:
+  config:
+    exporters:
+      otlp/grpc:
+        $patch: delete
+      otlphttp:
+        endpoint: https://loki.nick.stackable.build/loki/api/v1/push
+    service:
+      pipelines:
+        logs:
+          exporters:
+            - otlphttp
