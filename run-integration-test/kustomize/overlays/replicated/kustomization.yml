@@ -21,9 +21,9 @@ patches:
         configMapRef:
           name: integration-test-info
     - op: add
-      path: /spec/config/processors/attributes
+      path: /spec/config/processors/resource
       value:
-        actions:
+        attributes:
           - action: upsert
             key: k8s.cluster.name
             value: ${env:KUBERNETES_CLUSTER_NAME}
@@ -32,7 +32,7 @@ patches:
             value: ${env:TRIGGERED_BY}
     - op: add
       path: /spec/config/service/pipelines/logs/processors/-
-      value: attributes
+      value: resource
 
 # Specifically override config for the kubernetes-events collector.
 - target:
