@@ -188,9 +188,22 @@ runs:
       run: |
         echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
-    - name: Pause for manual testing
+    - name: Run Integration Test (${{ env.INTERU_TEST_RUN }}=${{ env.INTERU_TEST_PARAMETER }}/${{ env.INTERU_TEST_PARALLELISM }})
+      env:
+        REF_NAME: ${{ github.ref_name }}
+        GH_TOKEN: ${{ github.token }}
       shell: bash
-      run: sleep 1800
+      run: |
+        set -euo pipefail
+
+        OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/get_operator_version.sh" "$REF_NAME")
+        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
+
+        if [ "$INTERU_TEST_RUN" == "all" ]; then
+          python ./scripts/run-tests --skip-release --log-level debug --parallel "$INTERU_TEST_PARALLELISM"
+        else
+          python ./scripts/run-tests --skip-release --log-level debug "--$INTERU_TEST_RUN" "$INTERU_TEST_PARAMETER" --parallel "$INTERU_TEST_PARALLELISM"
+        fi
 
     - name: Record Test End Time
       id: end-time
