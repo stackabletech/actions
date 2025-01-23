@@ -11,7 +11,6 @@ on:
       - free-disk-space/action.yml
       - publish-image/action.yml
       - publish-index-manifest/action.yml
-      - run-integration-test/*
       - shard/action.yml
       - smoke/*
 
@@ -95,18 +94,3 @@ jobs:
           image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
           image-repository: stackable/smoke
           image-index-manifest-tag: ${{ matrix.versions }}-stackable0.0.0-dev
-
-  run_integration_test:
-    name: Run Integration Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-
-      - name: Run Integration Test
-        uses: ./run-integration-test
-        with:
-          replicated-api-token: ${{ secrets.REPLICATED_API_TOKEN }}
-          test-profile: schedule
