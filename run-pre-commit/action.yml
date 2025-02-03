@@ -27,12 +27,12 @@ runs:
   using: composite
   steps:
     - name: Setup Python
-      uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+      uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
       with:
         python-version: ${{ inputs.python-version }}
 
     - name: Setup Rust Toolchain
-      uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa
+      uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c
       if: ${{ inputs.rust }}
       with:
         toolchain: ${{ inputs.rust }}

@@ -17,10 +17,10 @@ inputs:
     default: 0.0.8
   kuttl-version:
     description: Version of kubectl-kuttl
-    default: 0.19.0
+    default: 0.21.0
   stackablectl-version:
     description: Version of stackablectl
-    default: 24.11.2
+    default: 24.11.3
 outputs:
   start-time:
     description: The date and time this integration test was started.
@@ -106,7 +106,7 @@ runs:
     - name: Prepare Replicated Cluster
       if: env.KUBERNETES_DISTRIBUTION != 'ionos'
       id: prepare-replicated-cluster
-      uses: replicatedhq/replicated-actions/create-cluster@77121785951d05387334b773644c356885191f14 # v1.16.2
+      uses: replicatedhq/replicated-actions/create-cluster@c98ab3b97925af5db9faf3f9676df7a9c6736985 # v1.17.0
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
@@ -216,7 +216,7 @@ runs:
       if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
       # If the creation of the cluster failed, we don't want to error and abort
       continue-on-error: true
-      uses: replicatedhq/replicated-actions/remove-cluster@77121785951d05387334b773644c356885191f14 # v1.16.2
+      uses: replicatedhq/replicated-actions/remove-cluster@c98ab3b97925af5db9faf3f9676df7a9c6736985 # v1.17.0
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
