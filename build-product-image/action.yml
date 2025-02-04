@@ -10,7 +10,7 @@ inputs:
     required: true
   image-tools-version:
     description: The Stackable image-tools version
-    default: 0.0.13
+    default: 0.0.14
   bake-config-file:
     description: Path to the bake config file, defaults to `./conf.py`
     default: ./conf.py
@@ -89,12 +89,12 @@ runs:
       run: |
         set -euo pipefail
 
-        # Extract the image uri and replace 'docker.stackable.tech/stackable'
+        # Extract the image uri and replace 'oci.stackable.tech/sdp'
         # with 'localhost' until bake does the right thing
         OLD_IMAGE_URI="$(< bake-target-tags)"
 
         # Replace the image uri in the bake file
-        sed -i -e 's/docker\.stackable\.tech\/stackable/localhost/' bake-target-tags
+        sed -i -e 's/oci\.stackable\.tech\/sdp/localhost/' bake-target-tags
 
         # Finally, re-tag image
         docker tag "$OLD_IMAGE_URI" "$(< bake-target-tags)"

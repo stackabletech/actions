@@ -60,7 +60,7 @@ runs:
         set -euo pipefail
 
         # Construct the image index uri, which for example contains:
-        # docker.stackable.tech/stackable/kafka:3.4.1-stackable0.0.0-dev
+        # oci.stackable.tech/sdp/kafka:3.4.1-stackable0.0.0-dev
         IMAGE_INDEX_URI="$REGISTRY_URI/$IMAGE_REPOSITORY:$IMAGE_INDEX_MANIFEST_TAG"
         echo "IMAGE_INDEX_URI=$IMAGE_INDEX_URI" | tee -a "$GITHUB_ENV"
 
@@ -100,7 +100,7 @@ runs:
         DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/get_manifest_digest.sh" "$IMAGE_INDEX_URI")
 
         # Construct the image repo digest, which for example contains:
-        # docker.stackable.tech/stackable/kafka@sha256:91...
+        # oci.stackable.tech/sdp/kafka@sha256:91...
         IMAGE_REPO_DIGEST="$REGISTRY_URI/$IMAGE_REPOSITORY@$DIGEST"
 
         # This generates a signature and publishes it to the registry, next to
