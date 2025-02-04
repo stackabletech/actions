@@ -16,7 +16,7 @@ This action builds a *single* container image using `bake`. It does the followin
 
 1. Free disk space to avoid running out of disk space during larger builds.
 2. Build the image using `bake` which internally uses `docker buildx`.
-3. Temporarily retag the image to use `localhost` instead of `docker.stackable.tech/stackable`.
+3. Temporarily retag the image to use `localhost` instead of `oci.stackable.tech/sdp`.
 4. Produce output values to be used in later steps.
 
 This action is considered to be the **single** source of truth regarding image index tag and image
@@ -25,7 +25,7 @@ manifest tag. All subsequent tasks must use these values to ensure consistency.
 Currently, bake provides the following ouput in the `bake-target-tags` file:
 
 ```plain
-docker.stackable.tech/stackable/kafka:3.4.1-stackable0.0.0-dev-amd64
+oci.stackable.tech/sdp/kafka:3.4.1-stackable0.0.0-dev-amd64
 ```
 
 Until bake supports the ability to specify the registry, this action will retag the image as:
@@ -43,7 +43,7 @@ localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
 
 - `product-name` (eg: `kafka`)
 - `product-version` (eg: `3.4.1`)
-- `image-tools-version` (eg: `0.0.13`)
+- `image-tools-version` (eg: `0.0.14`)
 - `bake-config-file` (defaults to `./conf.py`)
 - `sdp-version` (defaults to: `0.0.0-dev`)
 - `extra-tag-data` (optional, eg. `pr321`)
