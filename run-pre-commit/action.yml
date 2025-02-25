@@ -15,6 +15,11 @@ inputs:
       Override which Rust components are installed. Only takes effect when Rust
       is installed.
     default: rustfmt,clippy
+  rust-tools:
+    description: |
+      Install Rust-based tools using `cargo install --locked`. Tools can be
+      specified using the following format: `CRATE[@<VER>]`. Individual tools
+      are separated by space
   hadolint:
     description: Whether to install hadolint (and which version to use)
   nix:
@@ -37,6 +42,18 @@ runs:
       with:
         toolchain: ${{ inputs.rust }}
         components: ${{ inputs.rust-components }}
+
+    - name: Install Rust Tools
+      if: ${{ inputs.rust-tools }}
+      env:
+        RUST_TOOLS: ${{ inputs.rust-tools }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # Make a list out of the space separated list off tools/crates
+        RUST_TOOLS=($RUST_TOOLS)
+        cargo install --locked "${RUST_TOOLS[@]}"
 
     - name: Setup Hadolint
       if: ${{ inputs.hadolint }}
