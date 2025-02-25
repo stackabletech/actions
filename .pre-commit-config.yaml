@@ -31,3 +31,13 @@ repos:
     rev: 5db9d9cde2f3deb5035dea3e45f0a9fff2f29448 # 1.7.4
     hooks:
       - id: actionlint
+
+  - repo: local
+    hooks:
+      - id: zizmor
+        name: zizmor
+        language: system
+        files: ^\.github/workflows/
+        entry: zizmor
+        stages: [pre-commit]
+        pass_filenames: true
