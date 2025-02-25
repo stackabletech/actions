@@ -4,6 +4,7 @@ name: pre-commit
 on:
   pull_request:
 
+permissions: {}
 
 jobs:
   pre-commit:
@@ -15,3 +16,5 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - uses: ./run-pre-commit
+        with:
+          rust-tools: zizmor@1.4.1
