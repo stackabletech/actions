@@ -51,9 +51,17 @@ runs:
         path: ~/.cache/pre-commit
         key: pre-commit-${{ inputs.pre-commit-version }}-python${{ inputs.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
+    - name: Setup Rust Toolchain Cache
+      id: rust-toolchain-cache
+      if: ${{ inputs.rust }}
+      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: ~/.rustup/toolchains
+        key: rust-toolchains-${{ inputs.rust }}-components-${{ inputs.rust-components }}
+
     - name: Setup Rust Toolchain
       uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c
-      if: ${{ inputs.rust }}
+      if: ${{ inputs.rust && steps.rust-toolchain-cache.outputs.cache-hit != 'true' }}
       with:
         toolchain: ${{ inputs.rust }}
         components: ${{ inputs.rust-components }}
