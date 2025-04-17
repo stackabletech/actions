@@ -33,6 +33,14 @@ runs:
       uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
       with:
         python-version: ${{ inputs.python-version }}
+        # It doesn't make a whole lot of sense to use the pre-commit config file
+        # as the dependency file, but the setup-python action looks for
+        # requirements.txt and pyproject.toml by default, which are both not
+        # present (in most cases). To override these two defaults, we need to
+        # specify a different file. Specifying the pre-commit config at least
+        # guarantees that the cache is invalidated if the config changes.
+        # Ideally we want to invalidate when the pre-commit or Python version
+        # changes, but that's not easily possible.
         cache-dependency-path: .pre-commit-config.yaml
         cache: 'pip'
 
