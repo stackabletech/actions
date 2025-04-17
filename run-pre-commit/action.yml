@@ -30,6 +30,7 @@ runs:
       uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
       with:
         python-version: ${{ inputs.python-version }}
+        cache: 'pip'
 
     - name: Setup Rust Toolchain
       uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c
