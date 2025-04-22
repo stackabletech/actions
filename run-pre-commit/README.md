@@ -38,6 +38,7 @@ jobs:
 ### Inputs
 
 - `python-version` (defaults to `3.12`)
+- `pre-commit-version` (defaults to `4.2.0`)
 - `rust` (eg: `1.80.1`. Disabled if not specified)
 - `rust-components` (defaults to `rustfmt,clippy`)
 - `hadolint` (eg: `v2.12.0`. Disabled if not specified)
