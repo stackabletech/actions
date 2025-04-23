@@ -112,7 +112,7 @@ runs:
 
     - name: Setup nix
       if: inputs.nix
-      uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 #v30
+      uses: cachix/install-nix-action@754537aaedb35f72ab11a60cc162c49ef3016495 #v31.2.0
       with:
         github_access_token: ${{ inputs.nix-github-token }}
         install_url: https://releases.nixos.org/nix/nix-${{ inputs.nix }}/install
