@@ -30,7 +30,7 @@ runs:
   using: composite
   steps:
     - name: Setup Python
-      uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+      uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
       with:
         python-version: ${{ inputs.python-version }}
         # It doesn't make a whole lot of sense to use the pre-commit config file
@@ -77,7 +77,7 @@ runs:
         key: rust-toolchains-${{ inputs.rust }}-components-${{ env.RUST_COMPONENTS }}
 
     - name: Setup Rust Toolchain
-      uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c
+      uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
       if: ${{ inputs.rust && steps.rust-toolchain-cache.outputs.cache-hit != 'true' }}
       with:
         toolchain: ${{ inputs.rust }}
@@ -112,7 +112,7 @@ runs:
 
     - name: Setup nix
       if: inputs.nix
-      uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 #v30
+      uses: cachix/install-nix-action@754537aaedb35f72ab11a60cc162c49ef3016495 #v31.2.0
       with:
         github_access_token: ${{ inputs.nix-github-token }}
         install_url: https://releases.nixos.org/nix/nix-${{ inputs.nix }}/install
