@@ -61,7 +61,7 @@ runs:
         payload: |
           channel: "${{ inputs.channel-id }}"
           text: "${{ env.MESSAGE_TEXT }}"
-          ${{ github.run_attempt > 1 && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
+          ${{ env.SLACK_THREAD_ID != 'none' && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
           attachments:
             - pretext: "See the details below for a summary of which job(s) ${{ env.MESSAGE_VERB }}."
               color: "${{ env.MESSAGE_COLOR }}"
