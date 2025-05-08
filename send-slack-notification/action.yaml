@@ -34,23 +34,23 @@ runs:
         method: chat.postMessage
         token: ${{ inputs.slack-token }}
         payload: |
-          channel: ${{ inputs.channel-id }}
+          channel: "${{ inputs.channel-id }}"
           text: "*${{ github.workflow }}* failed (attempt ${{ github.run_attempt }})"
           ${{ github.run_attempt > 1 && format('thread_ts: {0}', steps.slack-thread-id.outputs.SLACK_THREAD_ID) }}
           attachments:
             - pretext: See the details below for a summary of which job(s) failed.
-              color: #aa0000
+              color: "#aa0000"
               fields:
                 - title: Build/Publish Image
                   short: true
-                  value: ${{ inputs.build-result }}
+                  value: "${{ inputs.build-result }}"
                 - title: Build/Publish Manifests
                   short: true
-                  value: ${{ inputs.publish-manifests-result }}
+                  value: "${{ inputs.publish-manifests-result }}"
               actions:
                 - type: button
                   text: Go to workflow run
-                  url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+                  url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}"
 
     - name: Save Slack Thread ID to File
       env:
