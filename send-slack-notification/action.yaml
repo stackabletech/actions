@@ -1,0 +1,67 @@
+---
+name: Send Failure Notification via Slack
+description: ""
+inputs:
+  channel-id:
+    description: The channel to sent the message to
+    default: C07UG6JH44F # notifications-container-images
+  build-result:
+    description: The result of the build job
+  publish-manifests-result:
+    description: The result of the publish manifests job
+  slack-token:
+    description: The Slack token
+runs:
+  using: composite
+  steps:
+    - name: Retrieve Slack Thread ID
+      if: ${{ github.run_attempt > 1 }}
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: slack-thread-id-${{ github.run_id }}
+
+    - name: Output Slack Thread ID
+      id: slack-thread-id
+      if: ${{ github.run_attempt > 1 }}
+      shell: bash
+      run: |
+        echo "SLACK_THREAD_ID=$(cat slack-thread-id)" | tee -a "$GITHUB_OUTPUT"
+
+    - name: Send Notification
+      id: send-notification
+      uses: slackapi/slack-github-action@b0fa283ad8fea605de13dc3f449259339835fc52 # 2.1.0
+      with:
+        method: chat.postMessage
+        token: ${{ inputs.slack-token }}
+        payload: |
+          channel: ${{ inputs.channel-id }}
+          text: *${{ github.workflow }}* failed (attempt ${{ github.run_attempt }})
+          ${{ github.run_attempt > 1 && format("thread_ts: {0}", steps.slack-thread-id.outputs.SLACK_THREAD_ID) }}
+          attachments:
+            - pretext: See the details below for a summary of which job(s) failed.
+              color: #aa0000
+              fields:
+                - title: Build/Publish Image
+                  short: true
+                  value: ${{ inputs.build-result }}
+                - title: Build/Publish Manifests
+                  short: true
+                  value: ${{ inputs.publish-manifests-result }}
+              actions:
+                - type: button
+                  text: Go to workflow run
+                  url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+
+    - name: Save Slack Thread ID to File
+      env:
+        SLACK_THREAD_ID: ${{ steps.send-notification.outputs.ts }}
+      shell: bash
+      run: |
+        echo "$SLACK_THREAD_ID" > slack-thread-id
+
+    - name: Store Slack Thread ID as Artifact
+      if: ${{ github.run_attempt == 1 }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: slack-thread-id-${{ github.run_id }}
+        path: slack-thread-id
