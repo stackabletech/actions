@@ -80,10 +80,10 @@ runs:
     - name: Save Slack Thread ID to File
       if: ${{ env.SLACK_THREAD_ID == 'none' }}
       env:
-        SLACK_THREAD_ID: ${{ steps.send-notification.outputs.ts }}
+        SLACK_THREAD_ID_OUTPUT: ${{ steps.send-notification.outputs.ts }}
       shell: bash
       run: |
-        echo "$SLACK_THREAD_ID" > slack-thread-id
+        echo "$SLACK_THREAD_ID_OUTPUT" > slack-thread-id
 
     - name: Store Slack Thread ID as Artifact
       if: ${{ env.SLACK_THREAD_ID == 'none' }}
