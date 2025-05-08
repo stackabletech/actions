@@ -46,6 +46,7 @@ runs:
         else
           MESSAGE_VERB=succeeded
           MESSAGE_COLOR=10c400
+        fi
 
         echo "MESSAGE_TEXT=*$GITHUB_WORKFLOW* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)" | tee -a "$GITHUB_ENV"
         echo "MESSAGE_COLOR=$MESSAGE_COLOR" | tee -a "$GITHUB_ENV"
