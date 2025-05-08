@@ -36,7 +36,7 @@ runs:
         payload: |
           channel: "${{ inputs.channel-id }}"
           text: "*${{ github.workflow }}* failed (attempt ${{ github.run_attempt }})"
-          ${{ github.run_attempt > 1 && format('thread_ts: {0}', steps.slack-thread-id.outputs.SLACK_THREAD_ID) }}
+          ${{ github.run_attempt > 1 && format('thread_ts: {0}', steps.slack-thread-id.outputs.SLACK_THREAD_ID) || '' }}
           attachments:
             - pretext: See the details below for a summary of which job(s) failed.
               color: "#aa0000"
