@@ -1,5 +1,5 @@
 ---
-name: Send Failure Notification via Slack
+name: Send Notification via Slack
 description: ""
 inputs:
   channel-id:
@@ -32,9 +32,24 @@ runs:
           echo "SLACK_THREAD_ID=none" | tee -a "$GITHUB_ENV"
         fi
 
+    - name: Format message
+      env:
+        PUBLISH_MANIFESTS_RESULT: ${{ inputs.publish-manifests-result }}
+        GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        GITHUB_WORKFLOW: ${{ github.workflow  }}
+        BUILD_RESULT: ${{ inputs.build-result }}
       shell: bash
       run: |
-        echo "SLACK_THREAD_ID=$(cat slack-thread-id)" | tee -a "$GITHUB_OUTPUT"
+        if [ "$PUBLISH_MANIFESTS_RESULT" = "failure" ] || [ "$BUILD_RESULT" = "failure" ]; then
+          MESSAGE_VERB=failed
+          MESSAGE_COLOR=aa0000
+        else
+          MESSAGE_VERB=succeeded
+          MESSAGE_COLOR=10c400
+
+        echo "MESSAGE_TEXT=*$GITHUB_WORKFLOW* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)" | tee -a "$GITHUB_ENV"
+        echo "MESSAGE_COLOR=$MESSAGE_COLOR" | tee -a "$GITHUB_ENV"
+        echo "MESSAGE_VERB=$MESSAGE_VERB" | tee -a "$GITHUB_ENV"
 
     - name: Send Notification
       id: send-notification
@@ -44,11 +59,11 @@ runs:
         token: ${{ inputs.slack-token }}
         payload: |
           channel: "${{ inputs.channel-id }}"
-          text: "*${{ github.workflow }}* failed (attempt ${{ github.run_attempt }})"
-          ${{ github.run_attempt > 1 && format('thread_ts: "{0}"', steps.slack-thread-id.outputs.SLACK_THREAD_ID) || '' }}
+          text: "${{ env.MESSAGE_TEXT }}"
+          ${{ github.run_attempt > 1 && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
           attachments:
-            - pretext: See the details below for a summary of which job(s) failed.
-              color: "#aa0000"
+            - pretext: "See the details below for a summary of which job(s) ${{ env.MESSAGE_VERB }}."
+              color: "${{ env.MESSAGE_COLOR }}"
               fields:
                 - title: Build/Publish Image
                   short: true
