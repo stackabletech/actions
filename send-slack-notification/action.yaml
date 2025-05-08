@@ -15,14 +15,23 @@ runs:
   using: composite
   steps:
     - name: Retrieve Slack Thread ID
-      if: ${{ github.run_attempt > 1 }}
+      id: retrieve-slack-thread-id
+      continue-on-error: true
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with:
         name: slack-thread-id-${{ github.run_id }}
 
-    - name: Output Slack Thread ID
-      id: slack-thread-id
-      if: ${{ github.run_attempt > 1 }}
+    - name: Extract Slack Thread ID into Environment Variable
+      env:
+        RETRIEVE_SLACK_THREAD_ID_RESULT: ${{ steps.retrieve-slack-thread-id.result }}
+      shell: bash
+      run: |
+        if [ "$RETRIEVE_SLACK_THREAD_ID_RESULT" = "success" ]; then
+          echo "SLACK_THREAD_ID=$(cat slack-thread-id)" | tee -a "$GITHUB_ENV"
+        else
+          echo "SLACK_THREAD_ID=none" | tee -a "$GITHUB_ENV"
+        fi
+
       shell: bash
       run: |
         echo "SLACK_THREAD_ID=$(cat slack-thread-id)" | tee -a "$GITHUB_OUTPUT"
@@ -53,6 +62,7 @@ runs:
                   url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}"
 
     - name: Save Slack Thread ID to File
+      if: ${{ env.SLACK_THREAD_ID == 'none' }}
       env:
         SLACK_THREAD_ID: ${{ steps.send-notification.outputs.ts }}
       shell: bash
@@ -60,7 +70,7 @@ runs:
         echo "$SLACK_THREAD_ID" > slack-thread-id
 
     - name: Store Slack Thread ID as Artifact
-      if: ${{ github.run_attempt == 1 }}
+      if: ${{ env.SLACK_THREAD_ID == 'none' }}
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: slack-thread-id-${{ github.run_id }}
