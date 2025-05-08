@@ -23,10 +23,10 @@ runs:
 
     - name: Extract Slack Thread ID into Environment Variable
       env:
-        RETRIEVE_SLACK_THREAD_ID_RESULT: ${{ steps.retrieve-slack-thread-id.result }}
+        RETRIEVE_SLACK_THREAD_ID_OUTCOME: ${{ steps.retrieve-slack-thread-id.outcome }}
       shell: bash
       run: |
-        if [ "$RETRIEVE_SLACK_THREAD_ID_RESULT" = "success" ]; then
+        if [ "$RETRIEVE_SLACK_THREAD_ID_OUTCOME" = "success" ]; then
           echo "SLACK_THREAD_ID=$(cat slack-thread-id)" | tee -a "$GITHUB_ENV"
         else
           echo "SLACK_THREAD_ID=none" | tee -a "$GITHUB_ENV"
