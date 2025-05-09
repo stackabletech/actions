@@ -22,15 +22,10 @@ runs:
         name: slack-thread-id-${{ github.run_id }}
 
     - name: Extract Slack Thread ID into Environment Variable
-      env:
-        RETRIEVE_SLACK_THREAD_ID_OUTCOME: ${{ steps.retrieve-slack-thread-id.outcome }}
+      if: steps.retrieve-slack-thread-id.outcome == 'success'
       shell: bash
       run: |
-        if [ "$RETRIEVE_SLACK_THREAD_ID_OUTCOME" = "success" ]; then
-          echo "SLACK_THREAD_ID=$(cat slack-thread-id)" | tee -a "$GITHUB_ENV"
-        else
-          echo "SLACK_THREAD_ID=none" | tee -a "$GITHUB_ENV"
-        fi
+        echo "SLACK_THREAD_ID=$(cat slack-thread-id)" | tee -a "$GITHUB_ENV"
 
     - name: Format message
       env:
@@ -61,7 +56,7 @@ runs:
         payload: |
           channel: "${{ inputs.channel-id }}"
           text: "${{ env.MESSAGE_TEXT }}"
-          ${{ env.SLACK_THREAD_ID != 'none' && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
+          ${{ steps.retrieve-slack-thread-id.outcome == 'success' && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
           attachments:
             - pretext: "See the details below for a summary of which job(s) ${{ env.MESSAGE_VERB }}."
               color: "${{ env.MESSAGE_COLOR }}"
