@@ -2,7 +2,7 @@
 
 > Manifest: [send-slack-notification/action.yaml][send-slack-notification]
 
-This action sends a slack message to notify about container image build failures and successes.
+This action sends a Slack message to notify about container image build failures and successes.
 Subsequent attempts of the same workflow run are automatically threaded in Slack.
 The color of the message is automatically selected based on the provided results.
 
