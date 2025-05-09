@@ -73,7 +73,7 @@ runs:
                   url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}"
 
     - name: Save Slack Thread ID to File
-      if: ${{ env.SLACK_THREAD_ID == 'none' }}
+      if: steps.retrieve-slack-thread-id.outcome == 'failure'
       env:
         SLACK_THREAD_ID_OUTPUT: ${{ steps.send-notification.outputs.ts }}
       shell: bash
@@ -81,7 +81,7 @@ runs:
         echo "$SLACK_THREAD_ID_OUTPUT" > slack-thread-id
 
     - name: Store Slack Thread ID as Artifact
-      if: ${{ env.SLACK_THREAD_ID == 'none' }}
+      if: steps.retrieve-slack-thread-id.outcome == 'failure'
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: slack-thread-id-${{ github.run_id }}
