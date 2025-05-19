@@ -82,11 +82,10 @@ runs:
     - name: Setup Rust Toolchain
       uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
       if: ${{ inputs.rust && steps.rust-toolchain-cache.outputs.cache-hit != 'true' }}
-      env:
-        RUSTUP_VERSION: ${{ inputs.rustup-version }}
       with:
         toolchain: ${{ inputs.rust }}
         components: ${{ inputs.rust-components }}
+        rustup-version: ${{ inputs.rustup-version }}
 
     - name: Install Hadolint
       if: ${{ inputs.hadolint }}
