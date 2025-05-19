@@ -18,6 +18,9 @@ inputs:
       Override which Rust components are installed. Only takes effect when Rust
       is installed.
     default: rustfmt,clippy
+  rustup-version:
+    description: Rustup version used when setting up the Rust toolchain(s)
+    default: 1.28.1
   hadolint:
     description: Whether to install hadolint (and which version to use)
   nix:
@@ -79,6 +82,8 @@ runs:
     - name: Setup Rust Toolchain
       uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
       if: ${{ inputs.rust && steps.rust-toolchain-cache.outputs.cache-hit != 'true' }}
+      env:
+        RUSTUP_VERSION: ${{ inputs.rustup-version }}
       with:
         toolchain: ${{ inputs.rust }}
         components: ${{ inputs.rust-components }}

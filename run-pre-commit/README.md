@@ -41,6 +41,7 @@ jobs:
 - `pre-commit-version` (defaults to `4.2.0`)
 - `rust` (eg: `1.80.1`. Disabled if not specified)
 - `rust-components` (defaults to `rustfmt,clippy`)
+- `rustup-version` (defaults to `1.28.1`)
 - `hadolint` (eg: `v2.12.0`. Disabled if not specified)
 - `nix` (eg: `2.25.2`. Disabled if not specified)
 - `nix-github-token` (eg: `secrets.GITHUB_TOKEN`. Required when `nix` is set)
