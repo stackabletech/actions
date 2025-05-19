@@ -88,6 +88,9 @@ runs:
         toolchain: ${{ inputs.rust }}
         components: ${{ inputs.rust-components }}
 
+    - shell: bash
+      run: rustup --version
+
     - name: Install Hadolint
       if: ${{ inputs.hadolint }}
       shell: bash
