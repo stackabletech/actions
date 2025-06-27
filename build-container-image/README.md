@@ -28,4 +28,4 @@ All subsequent tasks must use this value to ensure consistency.
 - `image-manifest-tag` (eg: `3.4.1-stackable0.0.0-dev-amd64`)
 - `image-manifest-uri` (eg: `localhost/kafka:3.4.1-stackable0.0.0-dev-amd64`)
 
-[build-container-image]: ./action.yml
+[build-container-image]: ./action.yaml

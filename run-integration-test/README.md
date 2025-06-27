@@ -108,4 +108,4 @@ profiles:
 - `end-time`
 
 [supported-clusters]: https://docs.replicated.com/vendor/testing-supported-clusters
-[run-integration-test]: ./action.yml
+[run-integration-test]: ./action.yaml
