@@ -60,7 +60,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        IMAGE_ARCH=$("$GITHUB_ACTION_PATH/../.scripts/get_architecture.sh")
+        IMAGE_ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
 
         # Will be either:
         # - 3.9.2-stackable0.0.0-dev-arm64 or
