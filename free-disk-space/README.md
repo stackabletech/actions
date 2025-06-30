@@ -22,6 +22,6 @@ None
 
 None
 
-[free-disk-space]: ./action.yml
-[build-container-image]: ../build-container-image/action.yml
-[build-product-image]: ../build-product-image/action.yml
+[free-disk-space]: ./action.yaml
+[build-container-image]: ../build-container-image/action.yaml
+[build-product-image]: ../build-product-image/action.yaml

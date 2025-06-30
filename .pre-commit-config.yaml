@@ -31,3 +31,12 @@ repos:
     rev: 5db9d9cde2f3deb5035dea3e45f0a9fff2f29448 # 1.7.4
     hooks:
       - id: actionlint
+
+  - repo: local
+    hooks:
+      - id: update-readme-list
+        name: update-readme-list
+        language: system
+        entry: .scripts/local/update_readme_list.sh
+        stages: [pre-commit, pre-merge-commit, manual]
+        pass_filenames: false

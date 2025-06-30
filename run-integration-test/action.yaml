@@ -196,7 +196,7 @@ runs:
       run: |
         set -euo pipefail
 
-        OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/get_operator_version.sh" "$REF_NAME")
+        OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$REF_NAME")
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
         if [ "$INTERU_TEST_RUN" == "all" ]; then

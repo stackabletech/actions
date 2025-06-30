@@ -35,7 +35,7 @@ runs:
         CONFIG_FILE: ${{ inputs.config-file }}
       run: |
         set -euo pipefail
-        python "$GITHUB_ACTION_PATH/../.scripts/shard.py"
+        python "$GITHUB_ACTION_PATH/../.scripts/actions/shard.py"
 
     - name: Print Shards
       shell: bash

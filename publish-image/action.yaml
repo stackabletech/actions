@@ -85,7 +85,7 @@ runs:
         docker image push "$IMAGE_MANIFEST_URI"
 
         # Output for the next step
-        IMAGE_REPO_DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/get_repo_digest.sh" "$IMAGE_MANIFEST_URI")
+        IMAGE_REPO_DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_repo_digest.sh" "$IMAGE_MANIFEST_URI")
         echo "IMAGE_REPO_DIGEST=$IMAGE_REPO_DIGEST" | tee -a "$GITHUB_ENV"
 
     - name: Sign the container image (${{ env.IMAGE_REPO_DIGEST }})
