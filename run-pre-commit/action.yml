@@ -123,4 +123,9 @@ runs:
         BASE_SHA: ${{ github.event.pull_request.base.sha }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
-        pre-commit run --show-diff-on-failure --color always --from-ref "$BASE_SHA" --to-ref "$HEAD_SHA"
+        pre-commit run \
+          --verbose \
+          --show-diff-on-failure \
+          --color always \
+          --from-ref "$BASE_SHA" \
+          --to-ref "$HEAD_SHA"
