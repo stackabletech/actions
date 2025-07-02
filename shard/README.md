@@ -45,4 +45,4 @@ jobs:
 
 - `versions` (eg: `["3.7.1", "3.8.0"]`)
 
-[shard]: ./action.yml
+[shard]: ./action.yaml

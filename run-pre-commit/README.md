@@ -49,4 +49,4 @@ jobs:
 
 None
 
-[run-pre-commit]: ./action.yml
+[run-pre-commit]: ./action.yaml

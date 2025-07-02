@@ -97,7 +97,7 @@ runs:
         set -euo pipefail
 
         # Get the image index manifest digest
-        DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/get_manifest_digest.sh" "$IMAGE_INDEX_URI")
+        DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_manifest_digest.sh" "$IMAGE_INDEX_URI")
 
         # Construct the image repo digest, which for example contains:
         # oci.stackable.tech/sdp/kafka@sha256:91...

@@ -37,4 +37,4 @@ following work:
 
 None
 
-[publish-image]: ./action.yml
+[publish-image]: ./action.yaml

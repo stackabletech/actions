@@ -26,4 +26,4 @@ This action creates an image index manifest, publishes it, and signs it. It does
 
 None
 
-[publish-index-manifest]: .//action.yml
+[publish-index-manifest]: ./action.yaml
