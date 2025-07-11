@@ -29,6 +29,21 @@ inputs:
 runs:
   using: composite
   steps:
+    # Immediately abort without setting up any other tooling to avoid unnecessary workflow runtime.
+    - name: Abort if nix-github-token input is not set
+      if: inputs.nix && !inputs.nix-github-token
+      shell: bash
+      run: |
+        echo "nix-github-token input must be set when nix input is set"
+        exit 1
+
+    - name: Setup nix
+      if: inputs.nix
+      uses: cachix/install-nix-action@f0fe604f8a612776892427721526b4c7cfb23aba # v31.4.1
+      with:
+        github_access_token: ${{ inputs.nix-github-token }}
+        install_url: https://releases.nixos.org/nix/nix-${{ inputs.nix }}/install
+
     - name: Setup Python
       uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
@@ -83,6 +98,10 @@ runs:
         toolchain: ${{ inputs.rust }}
         components: ${{ inputs.rust-components }}
 
+    - name: Setup Rust Cache
+      if: ${{ inputs.rust }}
+      uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+
     - name: Install Hadolint
       if: ${{ inputs.hadolint }}
       shell: bash
@@ -102,20 +121,6 @@ runs:
         chmod 700 "$LOCATION_BIN"
 
         echo "$LOCATION_DIR" | tee -a "$GITHUB_PATH"
-
-    - name: Abort if nix-github-token input is not set
-      if: inputs.nix && !inputs.nix-github-token
-      shell: bash
-      run: |
-        echo "nix-github-token input must be set when nix input is set"
-        exit 1
-
-    - name: Setup nix
-      if: inputs.nix
-      uses: cachix/install-nix-action@f0fe604f8a612776892427721526b4c7cfb23aba # v31.4.1
-      with:
-        github_access_token: ${{ inputs.nix-github-token }}
-        install_url: https://releases.nixos.org/nix/nix-${{ inputs.nix }}/install
 
     - name: Run pre-commit
       shell: bash
