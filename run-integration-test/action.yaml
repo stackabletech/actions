@@ -20,7 +20,7 @@ inputs:
     default: 0.22.0
   stackablectl-version:
     description: Version of stackablectl
-    default: 25.3.0
+    default: 1.1.0
 outputs:
   start-time:
     description: The date and time this integration test was started.
