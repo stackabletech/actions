@@ -6,13 +6,13 @@ description: |
 inputs:
   # Test inputs
   test-mode:
-    description: Test mode to run in
+    description: Interu test mode to run in
   test-mode-input:
-    description: The profile or runner to be used based on the test-mode
+    description: The Interu profile or runner to be used based on the test-mode
   test-suite:
-    description: The test-suite used to run the test(s)
+    description: The Beku test-suite to run
   test:
-    description: The individual test to run
+    description: Matching Beku tests to run
 
   # Tokens
   replicated-api-token:
