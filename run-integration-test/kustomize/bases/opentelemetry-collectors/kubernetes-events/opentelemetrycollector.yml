@@ -21,6 +21,8 @@ spec:
           container.id:
             enabled: false
 
+    extensions: {}
+
     processors:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor
       k8sattributes:
@@ -45,6 +47,7 @@ spec:
     exporters: {}
 
     service:
+      extensions: []
       pipelines:
         logs:
           receivers: [k8s_events]

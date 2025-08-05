@@ -99,6 +99,8 @@ spec:
             on_error: send_quiet
             parse_from: body.message
 
+    extensions: {}
+
     processors:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor
       k8sattributes:
@@ -132,6 +134,7 @@ spec:
     exporters: {}
 
     service:
+      extensions: []
       pipelines:
         logs:
           receivers: [filelog/varlogpods]

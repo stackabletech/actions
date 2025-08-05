@@ -12,11 +12,22 @@ patches:
     kind: OpenTelemetryCollector
   patch: |-
     - op: add
+      path: /spec/config/extensions/basicauth
+      value:
+        client_auth:
+          username: ${env:TELEMETRY_AUTH_USERNAME}
+          password: ${env:TELEMETRY_AUTH_PASSWORD}
+    - op: add
+      path: /spec/config/service/extensions/-
+      value: basicauth
+    - op: add
       path: /spec/config/exporters/otlphttp
       value:
         traces_endpoint: https://tempo.nick.stackable.build/v1/traces
         metrics_endpoint: https://mimir.nick.stackable.build/v1/metrics
         logs_endpoint: https://loki.nick.stackable.build/otlp/v1/logs
+        auth:
+          authenticator: basicauth
     - op: add
       path: /spec/config/service/pipelines/logs/exporters/-
       value: otlphttp
@@ -25,6 +36,11 @@ patches:
       value:
         configMapRef:
           name: integration-test-info
+    - op: add
+      path: /spec/envFrom/-
+      value:
+        secretRef:
+          name: telemetry-ingestion-auth
     - op: add
       path: /spec/config/processors/attributes
       value:
@@ -61,6 +77,7 @@ patches:
     # - op: add
     #   path: /spec/config/service/pipelines/metrics/exporters/-
     #   value: otlphttp
+
 configMapGenerator:
 # These get used by the attributes processor in each collector
 - name: integration-test-info
@@ -71,3 +88,9 @@ configMapGenerator:
   # KUBERNETES_VERSION
   # TRIGGERED_BY
   - integration-test-info.env
+
+secretGenerator:
+- name: telemetry-ingestion-auth
+  namespace: opentelemetry-operator
+  envs:
+  - telemetry-ingestion-auth.env
