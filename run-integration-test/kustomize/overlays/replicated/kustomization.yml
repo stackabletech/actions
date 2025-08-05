@@ -33,6 +33,12 @@ patches:
             key: k8s.cluster.name
             value: ${env:KUBERNETES_CLUSTER_NAME}
           - action: upsert
+            key: k8s.cluster.distribution
+            value: ${env:KUBERNETES_DISTRIBUTION}
+          - action: upsert
+            key: k8s.cluster.version
+            value: ${env:KUBERNETES_VERSION}
+          - action: upsert
             key: github.actions.triggered_by
             value: ${env:TRIGGERED_BY}
     - op: add
@@ -62,5 +68,6 @@ configMapGenerator:
   envs:
   # KUBERNETES_CLUSTER_NAME
   # KUBERNETES_DISTRIBUTION
+  # KUBERNETES_VERSION
   # TRIGGERED_BY
   - integration-test-info.env
