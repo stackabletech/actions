@@ -42,24 +42,29 @@ patches:
         secretRef:
           name: telemetry-ingestion-auth
     - op: add
-      path: /spec/config/processors/attributes
+      path: /spec/config/processors/attributes/actions/-
       value:
-        actions:
-          - action: upsert
+        action: upsert
             key: k8s.cluster.name
             value: ${env:KUBERNETES_CLUSTER_NAME}
-          - action: upsert
+    - op: add
+      path: /spec/config/processors/attributes/actions/-
+      value:
+        action: upsert
             key: k8s.cluster.distribution
             value: ${env:KUBERNETES_DISTRIBUTION}
-          - action: upsert
+    - op: add
+      path: /spec/config/processors/attributes/actions/-
+      value:
+        action: upsert
             key: k8s.cluster.version
             value: ${env:KUBERNETES_VERSION}
-          - action: upsert
+    - op: add
+      path: /spec/config/processors/attributes/actions/-
+      value:
+        action: upsert
             key: github.actions.triggered_by
             value: ${env:TRIGGERED_BY}
-    - op: add
-      path: /spec/config/service/pipelines/logs/processors/-
-      value: attributes
 
 # Specifically override config for the kubernetes-events collector.
 - target:

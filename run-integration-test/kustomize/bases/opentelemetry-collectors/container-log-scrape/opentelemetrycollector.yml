@@ -116,6 +116,11 @@ spec:
       #     - context: log
       #       statements:
       #         - set(attributes["body"], body)
+
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/resourceprocessor
+      attributes:
+        actions: []
+
       resourcedetection/env:
         detectors: [env]
         timeout: 2s
@@ -139,6 +144,6 @@ spec:
         logs:
           receivers: [filelog/varlogpods]
           # processors: [memory_limiter, batch]
-          processors: [k8sattributes, resourcedetection/env]
+          processors: [k8sattributes, resourcedetection/env, attributes]
           # Enable configured exporters in the overlay
           exporters: []

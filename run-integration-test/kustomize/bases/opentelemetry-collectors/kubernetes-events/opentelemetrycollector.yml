@@ -29,6 +29,11 @@ spec:
         # Use the k8s attributes set by the receiver
         # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor#as-a-gateway
         passthrough: true
+
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/resourceprocessor
+      attributes:
+        actions: []
+
       resourcedetection/env:
         detectors: [env]
         timeout: 2s
@@ -52,12 +57,12 @@ spec:
         logs:
           receivers: [k8s_events]
           # processors: [memory_limiter, batch]
-          processors: [k8sattributes, resourcedetection/env]
+          processors: [k8sattributes, resourcedetection/env, attributes]
           # Enable configured exporters in the overlay
           exporters: []
         metrics:
           receivers: [k8s_cluster]
           # processors: [memory_limiter, batch]
-          processors: [k8sattributes, resourcedetection/env]
+          processors: [k8sattributes, resourcedetection/env, attributes]
           # Enable configured exporters in the overlay
           exporters: []
