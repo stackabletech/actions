@@ -68,12 +68,12 @@ runs:
           [ -n "$TEST_SUITE" ] && echo ::warning::The test-suite input is ignored, because a profile is selected.
           [ -n "$TEST" ] && echo ::warning::The test input is ignored, because a profile is selected.
 
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "§TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_ENV"
+          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_ENV"
         else
           [ -n "$TEST_SUITE" ] && ARGS+="--test-suite $TEST_SUITE"
           [ -n "$TEST" ] && ARGS+=" --test $TEST"
 
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "§TEST_MODE_INPUT" $ARGS --output "$GITHUB_ENV"
+          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" $ARGS --output "$GITHUB_ENV"
         fi
 
     # Install all tools BEFORE creating the cluster, because if some of the tools fail to download
