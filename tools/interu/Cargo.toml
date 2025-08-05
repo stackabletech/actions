@@ -4,7 +4,7 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-argh.workspace = true
+clap.workspace = true
 rand.workspace = true
 rstest.workspace = true
 serde.workspace = true
