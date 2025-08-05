@@ -12,12 +12,14 @@ patches:
     kind: OpenTelemetryCollector
   patch: |-
     - op: add
-      path: /spec/config/exporters/otlp~1grpc/endpoint
-      value: 212.227.162.207:30171
-    - op: add
-      path: /spec/config/exporters/otlp~1grpc/tls
+      path: /spec/config/exporters/otlphttp
       value:
-        insecure: true
+        traces_endpoint: https://tempo.nick.stackable.build/v1/traces
+        metrics_endpoint: https://mimir.nick.stackable.build/v1/metrics
+        logs_endpoint: https://loki.nick.stackable.build/otlp/v1/logs
+    - op: add
+      path: /spec/config/service/pipelines/logs/exporters/-
+      value: otlphttp
     - op: add
       path: /spec/envFrom/-
       value:
@@ -50,7 +52,9 @@ patches:
     # - op: add
     #   path: /spec/config/service/pipelines/metrics/processors/-
     #   value: attributes
-
+    # - op: add
+    #   path: /spec/config/service/pipelines/metrics/exporters/-
+    #   value: otlphttp
 configMapGenerator:
 # These get used by the attributes processor in each collector
 - name: integration-test-info

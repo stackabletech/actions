@@ -128,10 +128,8 @@ spec:
       #   timeout: 10s
       # yamllint enable rule:comments-indentation
 
-    exporters:
-      # Configuration done in the overlay
-      otlp/grpc:
-        headers: {}
+    # Configure exporters in the overlay
+    exporters: {}
 
     service:
       pipelines:
@@ -139,4 +137,5 @@ spec:
           receivers: [filelog/varlogpods]
           # processors: [memory_limiter, batch]
           processors: [k8sattributes, resourcedetection/env]
-          exporters: [otlp/grpc]
+          # Enable configured exporters in the overlay
+          exporters: []
