@@ -20,7 +20,7 @@ inputs:
     default: 0.22.0
   stackablectl-version:
     description: Version of stackablectl
-    default: 25.3.0
+    default: 1.1.0
 outputs:
   start-time:
     description: The date and time this integration test was started.
@@ -104,7 +104,6 @@ runs:
           gettext-base
 
     - name: Prepare Replicated Cluster
-      if: env.KUBERNETES_DISTRIBUTION != 'ionos'
       id: prepare-replicated-cluster
       uses: replicatedhq/replicated-actions/create-cluster@49b440dabd7e0e868cbbabda5cfc0d8332a279fa # v1.19.0
       with:
@@ -126,7 +125,6 @@ runs:
             value: "${{ env.INTERU_TEST_PARALLELISM }}"
 
     - name: Set Replicated kubeconfig
-      if: env.INTERU_KUBERNETES_DISTRIBUTION != 'ionos'
       env:
         KUBECONFIG: ${{ steps.prepare-replicated-cluster.outputs.cluster-kubeconfig }}
       shell: bash
@@ -213,7 +211,7 @@ runs:
         echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Destroy Replicated Cluster
-      if: env.KUBERNETES_DISTRIBUTION != 'ionos' && always()
+      if: always()
       # If the creation of the cluster failed, we don't want to error and abort
       continue-on-error: true
       uses: replicatedhq/replicated-actions/remove-cluster@49b440dabd7e0e868cbbabda5cfc0d8332a279fa # v1.19.0
