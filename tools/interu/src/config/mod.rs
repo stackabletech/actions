@@ -148,9 +148,9 @@ impl Config {
 
         // Get test options
         let TestOptions {
-            parallelism,
-            test_suite,
-            test,
+            beku_parallelism: parallelism,
+            beku_test_suite: test_suite,
+            beku_test: test,
         } = profile.strategy.get_test_options();
 
         // Convert our node groups to replicated node groups
@@ -271,7 +271,7 @@ impl<'a> Display for Parameters<'a> {
         #[rustfmt::skip] // Skip formatting because otherwise the next line would be split into three lines.
         write!(f, "INTERU_KUBERNETES_DISTRIBUTION={kubernetes_distribution}\n")?;
         write!(f, "INTERU_KUBERNETES_VERSION={kubernetes_version}\n")?;
-        write!(f, "INTERU_TEST_PARALLELISM={test_parallelism}\n")?;
+        write!(f, "BEKU_TEST_PARALLELISM={test_parallelism}\n")?;
         write!(f, "INTERU_CLUSTER_TTL={cluster_ttl}\n")?;
 
         if test_suite.is_none() && test.is_none() {
@@ -279,11 +279,11 @@ impl<'a> Display for Parameters<'a> {
         }
 
         if let Some(test_suite_name) = test_suite {
-            write!(f, "INTERU_TEST_SUITE={test_suite_name}\n")?;
+            write!(f, "BEKU_TEST_SUITE={test_suite_name}\n")?;
         }
 
         if let Some(test_name) = test {
-            write!(f, "INTERU_TEST={test_name}\n")?;
+            write!(f, "BEKU_TEST={test_name}\n")?;
         }
 
         // See: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#multiline-strings

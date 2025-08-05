@@ -198,11 +198,9 @@ pub enum TestOptionsValidationError {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TestOptions {
-    pub parallelism: usize,
-
-    pub test_suite: Option<String>,
-
-    pub test: Option<String>,
+    pub beku_parallelism: usize,
+    pub beku_test_suite: Option<String>,
+    pub beku_test: Option<String>,
 }
 
 impl TestOptions {
@@ -210,7 +208,7 @@ impl TestOptions {
     where
         P: AsRef<Path>,
     {
-        if let Some(test_suite_name) = &self.test_suite {
+        if let Some(test_suite_name) = &self.beku_test_suite {
             let test_definition = TestDefinition::from_file(&path).context(ReadFileSnafu)?;
 
             if !test_definition
@@ -225,7 +223,7 @@ impl TestOptions {
             }
         }
 
-        if let Some(test_name) = &self.test {
+        if let Some(test_name) = &self.beku_test {
             let test_definition = TestDefinition::from_file(path).context(ReadFileSnafu)?;
 
             if !test_definition.tests.iter().any(|s| s.name == *test_name) {

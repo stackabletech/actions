@@ -55,11 +55,11 @@ profiles:
       - weight: 10
         runner: default-mixed
     options:
-      parallelism: 1
+      beku-parallelism: 1
 
   openshift:
     strategy: use-runner
     runner: openshift-amd64
     options:
-      test-suite: openshift
-      parallelism: 2
+      beku-test-suite: openshift
+      beku-parallelism: 2
