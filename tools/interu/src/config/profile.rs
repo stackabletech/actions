@@ -200,11 +200,9 @@ pub enum TestOptionsValidationError {
 pub struct TestOptions {
     pub parallelism: usize,
 
-    #[serde(default)]
-    pub test_run: TestRun,
+    pub test_suite: Option<String>,
 
-    #[serde(default)]
-    pub test_parameter: String,
+    pub test: Option<String>,
 }
 
 impl TestOptions {
@@ -212,51 +210,32 @@ impl TestOptions {
     where
         P: AsRef<Path>,
     {
-        match self.test_run {
-            TestRun::TestSuite => {
-                let test_definition = TestDefinition::from_file(path).context(ReadFileSnafu)?;
+        if let Some(test_suite_name) = &self.test_suite {
+            let test_definition = TestDefinition::from_file(&path).context(ReadFileSnafu)?;
 
-                if !test_definition
-                    .suites
-                    .iter()
-                    .any(|s| s.name == self.test_parameter)
-                {
-                    return UnknownTestSuiteSnafu {
-                        test_suite: self.test_parameter.clone(),
-                    }
-                    .fail();
+            if !test_definition
+                .suites
+                .iter()
+                .any(|s| s.name == *test_suite_name)
+            {
+                return UnknownTestSuiteSnafu {
+                    test_suite: test_suite_name.clone(),
                 }
-
-                Ok(())
+                .fail();
             }
-            TestRun::Test => {
-                let test_definition = TestDefinition::from_file(path).context(ReadFileSnafu)?;
-
-                if !test_definition
-                    .tests
-                    .iter()
-                    .any(|s| s.name == self.test_parameter)
-                {
-                    return UnknownTestSnafu {
-                        test_name: self.test_parameter.clone(),
-                    }
-                    .fail();
-                }
-
-                Ok(())
-            }
-            TestRun::All => Ok(()),
         }
+
+        if let Some(test_name) = &self.test {
+            let test_definition = TestDefinition::from_file(path).context(ReadFileSnafu)?;
+
+            if !test_definition.tests.iter().any(|s| s.name == *test_name) {
+                return UnknownTestSnafu {
+                    test_name: test_name.clone(),
+                }
+                .fail();
+            }
+        }
+
+        Ok(())
     }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize, strum::Display)]
-#[strum(serialize_all = "kebab-case")]
-#[serde(rename_all = "kebab-case")]
-pub enum TestRun {
-    TestSuite,
-    Test,
-
-    #[default]
-    All,
 }

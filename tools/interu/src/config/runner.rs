@@ -92,6 +92,7 @@ pub enum Distribution {
     Kind,
     K3s,
     Rke2,
+    Okd,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Deserialize, strum::Display, strum::EnumString)]
