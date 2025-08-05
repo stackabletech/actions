@@ -59,8 +59,8 @@ The following strategies are currently available:
   need to add up to 100, but it is recommended to more easily gauge the probability.
 - `use-runner`: uses the specified `runner`.
 
-Each profile can additionally specify test `options`, like `parallelism`, `test-run` and
-`test-parameter`.
+Each profile can additionally specify test `options`, like `parallelism`, `test-suite` and
+`test-suite`.
 
 ```yaml
 profiles:
@@ -76,12 +76,11 @@ profiles:
     options:
       parallelism: 1
 
-  workflow_dispatch:
+  smoke:
     strategy: use-runner
     runner: default-amd64
     options:
-      test-run: test-suite
-      test-parameter: smoke
+      test-suite: smoke
       parallelism: 2
 ```
 
@@ -92,15 +91,15 @@ profiles:
 
 ### Inputs
 
-- `test-profile` (required)
+- `test-mode` (required)
+- `test-mode-input` (required)
+- `test-suite` (required, if test-mode is `custom`)
+- `test` (required, if test-mode is `custom`)
 - `replicated-api-token` (required)
 - `interu-version` (optional)
 - `beku-version` (optional)
 - `kuttl-version` (optional)
 - `stackablectl-version` (optional)
-
-> [!NOTE]
-> `test-parameter` maps to a specific test *name*, not to a single test with all dimensions resolved.
 
 ### Outputs
 
