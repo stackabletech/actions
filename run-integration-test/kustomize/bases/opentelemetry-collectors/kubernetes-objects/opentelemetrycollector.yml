@@ -1,0 +1,65 @@
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: kubernetes-objects
+spec:
+  serviceAccount: kubernetes-objects
+  env: []
+  envFrom: []
+  config:
+    receivers:
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/k8sobjectsreceiver/testdata/config.yaml
+      k8sobjects:
+        objects:
+        # TODO: Add Stackable objects, and other common k8s objects
+        - name: pods
+          mode: watch
+        - name: events
+          mode: watch
+          group: events.k8s.io
+          exclude_watch_type: [DELETED]
+
+    extensions: {}
+
+    processors:
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor
+      k8sattributes:
+        # Use the k8s attributes set by the receiver
+        # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor#as-a-gateway
+        passthrough: false
+
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/resourceprocessor
+      attributes:
+        actions:
+          # This is to prevent the event label "service_name" having the value "unknown_service"
+          - action: upsert
+            key: service.name
+            value: kubernetes-objects
+
+      resourcedetection/env:
+        detectors: [env]
+        timeout: 2s
+        override: false
+      # yamllint disable rule:comments-indentation
+      # memory_limiter:
+      #   check_interval: 1s
+      #   limit_percentage: 75
+      #   spike_limit_percentage: 15
+      # batch:
+      #   send_batch_size: 10000
+      #   timeout: 10s
+      # yamllint enable rule:comments-indentation
+
+    # Configure exporters in the overlay
+    exporters: {}
+
+    service:
+      extensions: []
+      pipelines:
+        logs:
+          receivers: [k8sobjects]
+          # processors: [memory_limiter, batch]
+          processors: [k8sattributes, resourcedetection/env, attributes]
+          # Enable configured exporters in the overlay
+          exporters: []
