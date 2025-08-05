@@ -1,3 +1,4 @@
+---
 runners:
   default-amd64:
     platform: rke2-1.31.2
