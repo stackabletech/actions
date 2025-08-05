@@ -65,9 +65,15 @@ runs:
 
         # Run interu to expand parameters into GITHUB_ENV
         if [ "$TEST_MODE" == "profile" ]
+          [ -n "$TEST_SUITE" ] && echo ::warning::The test-suite input is ignored, because a profile is selected.
+          [ -n "$TEST" ] && echo ::warning::The test input is ignored, because a profile is selected.
+
           interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "§TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_ENV"
         else
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "§TEST_MODE_INPUT" --test-suite "$TEST_SUITE" --test "$TEST" --output "$GITHUB_ENV"
+          [ -n "$TEST_SUITE" ] && ARGS+="--test-suite $TEST_SUITE"
+          [ -n "$TEST" ] && ARGS+=" --test $TEST"
+
+          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "§TEST_MODE_INPUT" $ARGS --output "$GITHUB_ENV"
         fi
 
     # Install all tools BEFORE creating the cluster, because if some of the tools fail to download
@@ -213,16 +219,10 @@ runs:
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$REF_NAME")
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
-        if [ -n "$INTERU_TEST_SUITE" ] && [ -n "$INTERU_TEST" ]; then
-          # Both test-suite and test are specified. As such, we need to provide both arguments.
-          python ./scripts/run-tests --skip-release --log-level debug --parallel "$INTERU_TEST_PARALLELISM" --test-suite "$INTERU_TEST_SUITE" --test "$INTERU_TEST"
-        elif [ -n "$INTERU_TEST_SUITE" ]; then
-          python ./scripts/run-tests --skip-release --log-level debug --parallel "$INTERU_TEST_PARALLELISM" --test-suite "$INTERU_TEST_SUITE"
-        elif [ -n "$INTERU_TEST" ]; then
-          python ./scripts/run-tests --skip-release --log-level debug --parallel "$INTERU_TEST_PARALLELISM" --test "$INTERU_TEST"
-        else
-          python ./scripts/run-tests --skip-release --log-level debug --parallel "$INTERU_TEST_PARALLELISM"
-        fi
+        [ -n "$BEKU_TEST_SUITE" ] && ARGS+="--test-suite $BEKU_TEST_SUITE"
+        [ -n "$BEKU_TEST" ] && ARGS+=" --test $BEKU_TEST"
+
+        python ./scripts/run-tests --skip-release --log-level debug --parallel "$INTERU_TEST_PARALLELISM" $ARGS
 
     - name: Record Test End Time
       id: end-time

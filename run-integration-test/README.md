@@ -93,8 +93,8 @@ profiles:
 
 - `test-mode` (required)
 - `test-mode-input` (required)
-- `test-suite` (required, if test-mode is `custom`)
-- `test` (required, if test-mode is `custom`)
+- `test-suite` (optional)
+- `test` (optional)
 - `replicated-api-token` (required)
 - `interu-version` (optional)
 - `beku-version` (optional)
