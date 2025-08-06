@@ -144,7 +144,7 @@ runs:
           - key: triggered-by
             value: ${{ github.triggering_actor }}
           - key: test-parallelism
-            value: "${{ env.INTERU_TEST_PARALLELISM }}"
+            value: "${{ env.BEKU_TEST_PARALLELISM }}"
 
     - name: Set Replicated kubeconfig
       env:
