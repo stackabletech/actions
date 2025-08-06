@@ -64,7 +64,7 @@ runs:
         echo "KUBERNETES_CLUSTER_NAME=integration-test-${GITHUB_REPOSITORY}-${GITHUB_RUN_ID}" | tee -a "$GITHUB_ENV"
 
         # Run interu to expand parameters into GITHUB_ENV
-        if [ "$TEST_MODE" == "profile" ]
+        if [ "$TEST_MODE" == "profile" ]; then
           [ -n "$TEST_SUITE" ] && echo ::warning::The test-suite input is ignored, because a profile is selected.
           [ -n "$TEST" ] && echo ::warning::The test input is ignored, because a profile is selected.
 
