@@ -21,7 +21,7 @@ inputs:
   # Tool versions
   interu-version:
     description: Version of interu
-    default: 0.2.0
+    default: 0.2.0-rc.1
   beku-version:
     description: Version of beku
     default: 0.0.10
