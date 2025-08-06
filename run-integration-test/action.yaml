@@ -70,7 +70,7 @@ runs:
 
           interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_ENV"
         else
-          [ -n "$TEST_SUITE" ] && ARGS+="--test-suite $TEST_SUITE"
+          [ -n "$TEST_SUITE" ] && ARGS+=" --test-suite $TEST_SUITE"
           [ -n "$TEST" ] && ARGS+=" --test $TEST"
 
           interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" $ARGS --output "$GITHUB_ENV"
@@ -219,7 +219,7 @@ runs:
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$REF_NAME")
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
-        [ -n "$BEKU_TEST_SUITE" ] && ARGS+="--test-suite $BEKU_TEST_SUITE"
+        [ -n "$BEKU_TEST_SUITE" ] && ARGS+=" --test-suite $BEKU_TEST_SUITE"
         [ -n "$BEKU_TEST" ] && ARGS+=" --test $BEKU_TEST"
 
         python ./scripts/run-tests --skip-release --log-level debug --parallel "$INTERU_TEST_PARALLELISM" $ARGS
