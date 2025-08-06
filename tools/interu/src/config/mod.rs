@@ -11,7 +11,7 @@ use tracing::instrument;
 
 use crate::{
     config::{
-        profile::{Profile, StrategyValidationError, TestOptions, TestRun},
+        profile::{Profile, StrategyValidationError, TestOptions},
         runner::{
             ConvertNodeGroupError, Distribution, ReplicatedNodeGroup, Runner, RunnerValidationError,
         },
@@ -49,6 +49,9 @@ pub enum Error {
 
     #[snafu(display("failed to find profile named {profile_name:?}"))]
     UnknownProfileName { profile_name: String },
+
+    #[snafu(display("failed to find runner named {runner_name:?}"))]
+    UnknownRunnerName { runner_name: String },
 
     #[snafu(display("failed to convert node-group to Replicated format"))]
     ConvertNodeGroup { source: ConvertNodeGroupError },
@@ -96,7 +99,7 @@ impl Config {
         Ok(config)
     }
 
-    pub fn get_profile(&self, profile_name: &String) -> Result<&Profile, Error> {
+    pub fn get_profile(&self, profile_name: &str) -> Result<&Profile, Error> {
         self.profiles
             .get(profile_name)
             .context(UnknownProfileNameSnafu { profile_name })
@@ -112,9 +115,9 @@ impl Config {
     }
 
     /// Determines the final expanded parameters based on the provided profile.
-    pub fn determine_parameters<'a>(
+    pub fn determine_parameters_by_profile<'a>(
         &'a self,
-        profile_name: &String,
+        profile_name: &str,
         instances: &'a Instances,
     ) -> Result<Parameters<'a>, Error> {
         // First, lookup the profile by name. Error if the profile does't exist.
@@ -136,13 +139,18 @@ impl Config {
         };
 
         // Get the runner based on the runner ref
-        let runner = self.runners.get(runner_ref).unwrap();
+        let runner = self
+            .runners
+            .get(runner_ref)
+            .context(UnknownRunnerNameSnafu {
+                runner_name: runner_ref,
+            })?;
 
         // Get test options
         let TestOptions {
-            parallelism,
-            test_run,
-            test_parameter,
+            beku_parallelism: parallelism,
+            beku_test_suite: test_suite,
+            beku_test: test,
         } = profile.strategy.get_test_options();
 
         // Convert our node groups to replicated node groups
@@ -157,11 +165,45 @@ impl Config {
         Ok(Parameters {
             kubernetes_distribution: &runner.platform.distribution,
             kubernetes_version: &runner.platform.version,
+            test_suite: test_suite.as_deref(),
             test_parallelism: *parallelism,
             cluster_ttl: &runner.ttl,
-            test_parameter,
+            test: test.as_deref(),
             node_groups,
-            test_run,
+        })
+    }
+
+    pub fn determine_parameters_by_runner<'a>(
+        &'a self,
+        runner_name: &str,
+        instances: &'a Instances,
+        parallelism: usize,
+        test_suite: Option<&'a str>,
+        test: Option<&'a str>,
+    ) -> Result<Parameters<'a>, Error> {
+        // Get the runner based on the runner name
+        let runner = self
+            .runners
+            .get(runner_name)
+            .context(UnknownRunnerNameSnafu { runner_name })?;
+
+        // Convert our node groups to replicated node groups
+        let node_groups = runner
+            .node_groups
+            .clone()
+            .into_iter()
+            .map(|ng| ReplicatedNodeGroup::try_from(ng, instances, &runner.platform.distribution))
+            .collect::<Result<Vec<_>, ConvertNodeGroupError>>()
+            .context(ConvertNodeGroupSnafu)?;
+
+        Ok(Parameters {
+            kubernetes_distribution: &runner.platform.distribution,
+            kubernetes_version: &runner.platform.version,
+            test_parallelism: parallelism,
+            cluster_ttl: &runner.ttl,
+            node_groups,
+            test_suite,
+            test,
         })
     }
 
@@ -205,11 +247,9 @@ pub struct Parameters<'a> {
     /// Number of tests which get run in parallel.
     test_parallelism: usize,
 
-    /// Optional test parameter passed to `test_run`.
-    test_parameter: &'a str,
+    test_suite: Option<&'a str>,
 
-    /// Set of tests to run.
-    test_run: &'a TestRun,
+    test: Option<&'a str>,
 }
 
 impl<'a> Display for Parameters<'a> {
@@ -222,17 +262,29 @@ impl<'a> Display for Parameters<'a> {
             cluster_ttl,
             node_groups,
             test_parallelism,
-            test_parameter,
-            test_run,
+            test_suite,
+            test,
         } = self;
+
+        let mut test_set = String::new();
 
         #[rustfmt::skip] // Skip formatting because otherwise the next line would be split into three lines.
         write!(f, "INTERU_KUBERNETES_DISTRIBUTION={kubernetes_distribution}\n")?;
         write!(f, "INTERU_KUBERNETES_VERSION={kubernetes_version}\n")?;
-        write!(f, "INTERU_TEST_PARALLELISM={test_parallelism}\n")?;
-        write!(f, "INTERU_TEST_PARAMETER={test_parameter}\n")?;
+        write!(f, "BEKU_TEST_PARALLELISM={test_parallelism}\n")?;
         write!(f, "INTERU_CLUSTER_TTL={cluster_ttl}\n")?;
-        write!(f, "INTERU_TEST_RUN={test_run}\n")?;
+
+        if test_suite.is_none() && test.is_none() {
+            test_set.push_str("all");
+        }
+
+        if let Some(test_suite_name) = test_suite {
+            write!(f, "BEKU_TEST_SUITE={test_suite_name}\n")?;
+        }
+
+        if let Some(test_name) = test {
+            write!(f, "BEKU_TEST={test_name}\n")?;
+        }
 
         // See: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#multiline-strings
         let node_groups = serde_yaml::to_string(&node_groups).expect("must be serializable");

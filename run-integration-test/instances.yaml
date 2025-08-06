@@ -1,3 +1,4 @@
+---
 ########################
 # Cloud based clusters #
 ########################
@@ -59,3 +60,11 @@ rke2:
     small: r1.small
     medium: r1.medium
     large: r1.large
+
+# https://docs.replicated.com/vendor/testing-supported-clusters#openshift-okd
+okd:
+  amd64:
+    # OpenShift does not support r1.small instance types. (From docs)
+    small: r1.medium
+    medium: r1.large
+    large: r1.xlarge

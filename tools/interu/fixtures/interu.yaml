@@ -1,3 +1,4 @@
+---
 runners:
   default-amd64:
     platform: rke2-1.31.2
@@ -34,6 +35,16 @@ runners:
         disk-gb: 50
         nodes: 3
 
+  openshift-amd64:
+    platform: okd-4.19.0
+    ttl: 4h
+    node-groups:
+      - name: default
+        arch: amd64
+        size: medium
+        disk-gb: 50
+        nodes: 1
+
 profiles:
   schedule:
     strategy: weighted
@@ -45,12 +56,11 @@ profiles:
       - weight: 10
         runner: default-mixed
     options:
-      parallelism: 1
+      beku-parallelism: 1
 
-  workflow_dispatch:
+  openshift:
     strategy: use-runner
-    runner: default-amd64
+    runner: openshift-amd64
     options:
-      test-run: test-suite
-      test-parameter: smoke
-      parallelism: 2
+      beku-test-suite: openshift
+      beku-parallelism: 2
