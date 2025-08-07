@@ -105,6 +105,7 @@ profiles:
 
 - `start-time`
 - `end-time`
+- `health`: The health of the last few runs as a "weather" icon. These icons are geared towards working within Slack messages.
 
 [supported-clusters]: https://docs.replicated.com/vendor/testing-supported-clusters
 [run-integration-test]: ./action.yaml

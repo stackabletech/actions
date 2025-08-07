@@ -1,0 +1,29 @@
+/* Calculate the percentage of successes of the last few tries (usually 5) */
+
+/* Set the scale to 1 to get 1 digit after the decimal point */
+scale = 1
+
+/* Calculate the percentage of successes */
+/* The variables below are replaced by envsubst */
+health = ${SUCCESSES}/(${LAST_TRIES}+1)
+
+/* Convert the percentage into "weather" icons
+if (health > 0.8) {
+  print ":sunny:"
+} else {
+  if (health > 0.6) {
+    print ":partly_sunny:"
+  } else {
+    if (health > 0.4) {
+      print ":cloud:"
+    } else {
+      if (health > 0.2) {
+        print ":rain_cloud:"
+      } else {
+        print ":thunder_cloud_and_rain:"
+      }
+    }
+  }
+}
+
+quit
