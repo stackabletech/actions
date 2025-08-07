@@ -1,5 +1,6 @@
-use std::{fs::OpenOptions, io::Write as _};
+use std::{fs::OpenOptions, io::Write as _, path::PathBuf};
 
+use clap::Parser;
 use snafu::{report, ResultExt, Snafu};
 
 use crate::{cli::Cli, config::Config, instances::Instances};
@@ -29,42 +30,79 @@ enum Error {
 #[report]
 fn main() -> Result<(), Error> {
     tracing::debug!("setup cli from env");
-    let cli: Cli = argh::from_env();
+    let cli = Cli::parse();
 
     tracing::info!("load config and instance mappings file");
     let config = Config::from_file(&cli.config).context(LoadConfigSnafu)?;
     let instances = Instances::from_file(&cli.instances).context(LoadInstancesSnafu)?;
 
-    if cli.check_test_definitions {
-        config
-            .validate_test_options(&cli.profile, &cli.test_definitions)
-            .context(ValidateTestOptionsSnafu)?;
+    match cli.command {
+        cli::Command::Profile(profile_arguments) => {
+            if profile_arguments.check_test_definitions {
+                config
+                    .validate_test_options(
+                        &profile_arguments.profile,
+                        &profile_arguments.test_definitions,
+                    )
+                    .context(ValidateTestOptionsSnafu)?;
+            }
+
+            tracing::info!("determine parameters");
+            let parameters = config
+                .determine_parameters_by_profile(&profile_arguments.profile, &instances)
+                .context(DetermineParametersSnafu)?;
+
+            let parameters = parameters.to_string();
+
+            // Optionally write the expanded parameters into an output file
+            if let Some(output_path) = cli.output {
+                write_to_output_file(output_path, &parameters)?;
+            }
+
+            // Output the expanded parameters to stdout if no --quiet flag was passed
+            if !cli.quiet {
+                print!("{parameters}");
+            }
+        }
+        cli::Command::Custom(custom_arguments) => {
+            let parameters = config
+                .determine_parameters_by_runner(
+                    &custom_arguments.runner,
+                    &instances,
+                    custom_arguments.parallel,
+                    custom_arguments.test_suite.as_deref(),
+                    custom_arguments.test.as_deref(),
+                )
+                .context(DetermineParametersSnafu)?;
+
+            let parameters = parameters.to_string();
+
+            // Optionally write the expanded parameters into an output file
+            if let Some(output_path) = cli.output {
+                write_to_output_file(output_path, &parameters)?;
+            }
+
+            // Output the expanded parameters to stdout if no --quiet flag was passed
+            if !cli.quiet {
+                print!("{parameters}");
+            }
+        }
     }
 
-    tracing::info!("determine parameters");
-    let parameters = config
-        .determine_parameters(&cli.profile, &instances)
-        .context(DetermineParametersSnafu)?;
+    Ok(())
+}
 
+fn write_to_output_file(output_path: PathBuf, parameters: &str) -> Result<(), Error> {
     let parameters = parameters.to_string();
+    tracing::info!(output_path = %output_path.display(), "write parameters to output file");
 
-    // Optionally write the expanded parameters into an output file
-    if let Some(output_path) = cli.output {
-        tracing::info!(output_path = %output_path.display(), "write parameters to output file");
+    let mut file = OpenOptions::new()
+        .append(true)
+        .open(output_path)
+        .context(WriteOutputFileSnafu)?;
 
-        let mut file = OpenOptions::new()
-            .append(true)
-            .open(output_path)
-            .context(WriteOutputFileSnafu)?;
-
-        file.write(parameters.as_bytes())
-            .context(WriteOutputFileSnafu)?;
-    }
-
-    // Output the expanded parameters to stdout if no --quiet flag was passed
-    if !cli.quiet {
-        print!("{parameters}");
-    }
+    file.write(parameters.as_bytes())
+        .context(WriteOutputFileSnafu)?;
 
     Ok(())
 }

@@ -6,7 +6,7 @@ resolver = "2"
 edition = "2021"
 
 [workspace.dependencies]
-argh = "0.1.12"
+clap = { version = "4.5.42", features = ["derive"] }
 rand = "0.8.5"
 rstest = "0.23.0"
 serde = { version = "1.0.216", features = ["derive"] }
