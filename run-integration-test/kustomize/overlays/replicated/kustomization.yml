@@ -12,25 +12,14 @@ patches:
     kind: OpenTelemetryCollector
   patch: |-
     - op: add
-      path: /spec/config/extensions/basicauth
+      path: /spec/config/exporters/otlp
       value:
-        client_auth:
-          username: ${env:TELEMETRY_AUTH_USERNAME}
-          password: ${env:TELEMETRY_AUTH_PASSWORD}
-    - op: add
-      path: /spec/config/service/extensions/-
-      value: basicauth
-    - op: add
-      path: /spec/config/exporters/otlphttp
-      value:
-        traces_endpoint: https://tempo.nick.stackable.build/v1/traces
-        metrics_endpoint: https://mimir.nick.stackable.build/v1/metrics
-        logs_endpoint: https://loki.nick.stackable.build/otlp/v1/logs
-        auth:
-          authenticator: basicauth
+        endpoint: 212.227.162.207:30171
+        tls:
+          insecure: true
     - op: add
       path: /spec/config/service/pipelines/logs/exporters/-
-      value: otlphttp
+      value: otlp
     - op: add
       path: /spec/envFrom/-
       value:
