@@ -68,8 +68,8 @@ runs:
 
         # Run interu to expand parameters into GITHUB_ENV
         if [ "$TEST_MODE" == "profile" ]; then
-          [ -n "${TEST_SUITE:-}" ] && echo ::warning::The test-suite input is ignored, because a profile is selected.
-          [ -n "${TEST:-}" ] && echo ::warning::The test input is ignored, because a profile is selected.
+          [ -n "${TEST_SUITE:-}" ] && echo "::warning::The test-suite input is ignored, because a profile is selected."
+          [ -n "${TEST:-}" ] && echo "::warning::The test input is ignored, because a profile is selected."
 
           interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_ENV"
         else
