@@ -42,25 +42,25 @@ patches:
         secretRef:
           name: telemetry-ingestion-auth
     - op: add
-      path: /spec/config/processors/attributes/actions/-
+      path: /spec/config/processors/resource/attributes/-
       value:
         action: upsert
             key: k8s.cluster.name
             value: ${env:KUBERNETES_CLUSTER_NAME}
     - op: add
-      path: /spec/config/processors/attributes/actions/-
+      path: /spec/config/processors/resource/attributes/-
       value:
         action: upsert
             key: k8s.cluster.distribution
             value: ${env:KUBERNETES_DISTRIBUTION}
     - op: add
-      path: /spec/config/processors/attributes/actions/-
+      path: /spec/config/processors/resource/attributes/-
       value:
         action: upsert
             key: k8s.cluster.version
             value: ${env:KUBERNETES_VERSION}
     - op: add
-      path: /spec/config/processors/attributes/actions/-
+      path: /spec/config/processors/resource/attributes/-
       value:
         action: upsert
             key: github.actions.triggered_by
@@ -77,8 +77,6 @@ patches:
     - op: remove
       path: /spec/config/service/pipelines/metrics
     # - op: add
-    #   path: /spec/config/service/pipelines/metrics/processors/-
-    #   value: attributes
     # - op: add
     #   path: /spec/config/service/pipelines/metrics/exporters/-
     #   value: otlphttp
