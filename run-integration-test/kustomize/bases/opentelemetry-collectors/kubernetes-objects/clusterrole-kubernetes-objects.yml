@@ -1,0 +1,24 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubernetes-objects
+  labels:
+    app: kubernetes-objects
+rules:
+  # TODO: Add Stackable objects, and other common k8s objects
+  - apiGroups:
+     - ""
+    resources:
+      - events
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+     - "events.k8s.io"
+    resources:
+     - events
+    verbs:
+     - watch
+     - list
