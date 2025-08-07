@@ -4,11 +4,18 @@ description: ""
 inputs:
   channel-id:
     description: The channel to sent the message to
-    default: C07UG6JH44F # notifications-container-images
+  type:
+    description: |
+      The type of notification to send. Supported types are `container-image-build`
+      and `integration-test`.
   build-result:
     description: The result of the build job
   publish-manifests-result:
     description: The result of the publish manifests job
+  test-result:
+    description: The result of an integration test
+  test-health:
+    description: The health of the past few integration tests
   slack-token:
     description: The Slack token
 runs:
