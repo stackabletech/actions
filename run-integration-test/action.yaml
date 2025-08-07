@@ -64,16 +64,16 @@ runs:
         echo "KUBERNETES_CLUSTER_NAME=integration-test-${GITHUB_REPOSITORY}-${GITHUB_RUN_ID}" | tee -a "$GITHUB_ENV"
 
         # Run interu to expand parameters into GITHUB_ENV
-        if [ "$TEST_MODE" == "profile" ]
-          [ -n "$TEST_SUITE" ] && echo ::warning::The test-suite input is ignored, because a profile is selected.
-          [ -n "$TEST" ] && echo ::warning::The test input is ignored, because a profile is selected.
+        if [ "$TEST_MODE" == "profile" ]; then
+          [ -n "${TEST_SUITE:-}" ] && echo ::warning::The test-suite input is ignored, because a profile is selected.
+          [ -n "${TEST:-}" ] && echo ::warning::The test input is ignored, because a profile is selected.
 
           interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_ENV"
         else
-          [ -n "$TEST_SUITE" ] && ARGS+=" --test-suite $TEST_SUITE"
-          [ -n "$TEST" ] && ARGS+=" --test $TEST"
+          [ -n "${TEST_SUITE:-}" ] && ARGS+=" --test-suite $TEST_SUITE"
+          [ -n "${TEST:-}" ] && ARGS+=" --test $TEST"
 
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" $ARGS --output "$GITHUB_ENV"
+          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" ${ARGS:-} --output "$GITHUB_ENV"
         fi
 
     # Install all tools BEFORE creating the cluster, because if some of the tools fail to download
@@ -144,7 +144,7 @@ runs:
           - key: triggered-by
             value: ${{ github.triggering_actor }}
           - key: test-parallelism
-            value: "${{ env.INTERU_TEST_PARALLELISM }}"
+            value: "${{ env.BEKU_TEST_PARALLELISM }}"
 
     - name: Set Replicated kubeconfig
       env:
@@ -219,10 +219,10 @@ runs:
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$REF_NAME")
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
 
-        [ -n "$BEKU_TEST_SUITE" ] && ARGS+=" --test-suite $BEKU_TEST_SUITE"
-        [ -n "$BEKU_TEST" ] && ARGS+=" --test $BEKU_TEST"
+        [ -n "${BEKU_TEST_SUITE:-}" ] && ARGS+=" --test-suite $BEKU_TEST_SUITE"
+        [ -n "${BEKU_TEST:-}" ] && ARGS+=" --test $BEKU_TEST"
 
-        python ./scripts/run-tests --skip-release --log-level debug --parallel "$INTERU_TEST_PARALLELISM" $ARGS
+        python ./scripts/run-tests --skip-release --log-level debug --parallel "$BEKU_TEST_PARALLELISM" ${ARGS:-}
 
     - name: Record Test End Time
       id: end-time
