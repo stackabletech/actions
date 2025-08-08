@@ -114,3 +114,4 @@ jobs:
           build-result: ${{ needs.build.result }}
           slack-token: ${{ secrets.SLACK_CONTAINER_IMAGE_TOKEN }}
           channel-id: C07UG6JH44F # notifications-container-images
+          type: container-image-build
