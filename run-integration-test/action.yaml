@@ -41,6 +41,9 @@ outputs:
   health:
     description: The health of this integration test over the last few tries.
     value: ${{ steps.health.outputs.HEALTH }}
+  failed-tests:
+    description: The (potentially empty) list of failed tests
+    value: ${{ steps.failed-tests.outputs.FAILED_TESTS }}
 runs:
   using: composite
   steps:
@@ -221,12 +224,12 @@ runs:
         set -euo pipefail
 
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$REF_NAME")
-        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
+        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION" | tee -a test-output.log
 
         [ -n "${BEKU_TEST_SUITE:-}" ] && ARGS+=" --test-suite $BEKU_TEST_SUITE"
         [ -n "${BEKU_TEST:-}" ] && ARGS+=" --test $BEKU_TEST"
 
-        python ./scripts/run-tests --skip-release --log-level debug --parallel "$BEKU_TEST_PARALLELISM" ${ARGS:-}
+        python ./scripts/run-tests --skip-release --log-level debug --parallel "$BEKU_TEST_PARALLELISM" ${ARGS:-} | tee -a test-output.log
 
     - name: Record Test End Time
       id: end-time
@@ -244,6 +247,15 @@ runs:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
         cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
+
+    - name: Extract Failed Tests
+      id: failed-tests
+      if: steps.integration-test.conclusion == "failure"
+      shell: bash
+      run: |
+        # Only look at the last 200 lines of test output which should be more than enough to capture all test results
+        FAILED_TESTS=$(tail --lines 200 test-output.log | grep -E '\s{8}--- FAIL:' | sed -e 's|^.*kuttl/harness/||')
+        echo "FAILED_TESTS=$FAILED_TESTS" | tee -a "$GITHUB_OUTPUT"
 
     - name: Calculate Health
       if: always()
