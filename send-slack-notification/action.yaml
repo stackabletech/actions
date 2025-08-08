@@ -35,20 +35,20 @@ runs:
         TEST_HEALTH: ${{ inputs.test-health }}
       shell: bash
       run: |
-        if [ -n "${NOTIFICATION_TYPE:-}" ]; then
+        if [ -z "${NOTIFICATION_TYPE:-}" ]; then
           echo "The type input must be provided"
           exit 1
         fi
 
         if [ "$NOTIFICATION_TYPE" == "container-image-build" ]; then
-          [ -n "${PUBLISH_MANIFESTS_RESULT:-}" ] && echo "The publish-manifests-result input must be provided" && exit 1
-          [ -n "${BUILD_RESULT:-}" ] && echo "The build-result input must be provided" && exit 1
+          [ -z "${PUBLISH_MANIFESTS_RESULT:-}" ] && echo "The publish-manifests-result input must be provided" && exit 1
+          [ -z "${BUILD_RESULT:-}" ] && echo "The build-result input must be provided" && exit 1
 
           echo "PUBLISH_MANIFESTS_RESULT=$PUBLISH_MANIFESTS_RESULT" | tee -a "$GITHUB_ENV"
           echo "BUILD_RESULT=$BUILD_RESULT" | tee -a "$GITHUB_ENV"
         elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
-          [ -n "${TEST_RESULT:-}" ] && echo "The test-result input must be provided" && exit 1
-          [ -n "${TEST_HEALTH:-}" ] && echo "The test-health input must be provided" && exit 1
+          [ -z "${TEST_RESULT:-}" ] && echo "The test-result input must be provided" && exit 1
+          [ -z "${TEST_HEALTH:-}" ] && echo "The test-health input must be provided" && exit 1
 
           echo "FAILED_TESTS=$FAILED_TESTS" | tee -a "$GITHUB_ENV"
           echo "TEST_RESULT=$TEST_RESULT" | tee -a "$GITHUB_ENV"
