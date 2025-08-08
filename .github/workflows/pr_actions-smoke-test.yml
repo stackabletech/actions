@@ -102,6 +102,11 @@ jobs:
     runs-on: ubuntu-latest
     if: failure() || github.run_attempt > 1
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
       - name: Send Notification
         uses: ./send-slack-notification
         with:
