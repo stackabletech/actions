@@ -45,6 +45,7 @@ jobs:
         with:
           type: integration-test
           channel-id: DEADBEEF
+          failed-tests: ${{ needs.job_1.failed-tests }}
           test-result: ${{ needs.job_1.result }}
           test-health: ${{ needs.job_1.health }}
           slack-token: ${{ secrets.MY_SECRET }}
