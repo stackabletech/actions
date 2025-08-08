@@ -83,10 +83,14 @@ runs:
         if [ "$NOTIFICATION_TYPE" == "container-image-build" ]; then
           # TODO (@Techassi): Also add success template
           if [ "$PUBLISH_MANIFESTS_RESULT" = "failure" ] || [ "$BUILD_RESULT" = "failure" ]; then
-            echo "MESSAGE_VERB=failed" | tee -a "$GITHUB_ENV"
+            MESSAGE_VERB=failed
+            echo "MESSAGE_VERB=$MESSAGE_VERB" | tee -a "$GITHUB_ENV"
+
             echo "MESSAGE_COLOR=aa0000" | tee -a "$GITHUB_ENV"
           else
-            echo "MESSAGE_VERB=succeeded" | tee -a "$GITHUB_ENV"
+            MESSAGE_VERB=succeeded
+            echo "MESSAGE_VERB=$MESSAGE_VERB" | tee -a "$GITHUB_ENV"
+
             echo "MESSAGE_COLOR=10c400" | tee -a "$GITHUB_ENV"
           fi
 
