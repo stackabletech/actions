@@ -1,26 +1,32 @@
-/* Calculate the percentage of successes of the last few tries (usually 5) */
+/*
+  Calculate the percentage of successes of the last few tries (usually 5) and
+  return emojis suited for Slack and Github and the rate of successes formatted
+  like <successes>/<total_tries>.
+*/
 
 /* Set the scale to 1 to get 1 digit after the decimal point */
 scale = 1
 
 /* Calculate the percentage of successes */
 /* The variables below are replaced by envsubst */
-health = ${SUCCESSES}/(${LAST_TRIES}+1)
+total_tries = ${LAST_TRIES}+1
+successes = ${SUCCESSES}
+health = successes/total_tries
 
-/* Convert the percentage into "weather" icons
+/* Convert the percentage into "weather" icons */
 if (health > 0.8) {
-  print ":sunny:"
+  print ":sunny:,:sunny:,", successes, "/", total_tries
 } else {
   if (health > 0.6) {
-    print ":partly_sunny:"
+    print ":partly_sunny:,:partly_sunny:,", successes, "/", total_tries
   } else {
     if (health > 0.4) {
-      print ":cloud:"
+      print ":cloud:,:cloud:,", successes, "/", total_tries
     } else {
       if (health > 0.2) {
-        print ":rain_cloud:"
+        print ":rain_cloud:,:cloud_with_rain:,", successes, "/", total_tries
       } else {
-        print ":thunder_cloud_and_rain:"
+        print ":thunder_cloud_and_rain:,:cloud_with_lightning_and_rain:,", successes, "/", total_tries
       }
     }
   }
