@@ -76,8 +76,8 @@ runs:
     - name: Format message
       env:
         GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
-        GITHUB_REPOSITORY: ${{ github.repository  }}
-        GITHUB_WORKFLOW: ${{ github.workflow  }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_WORKFLOW: ${{ github.workflow }}
       shell: bash
       run: |
         if [ "$NOTIFICATION_TYPE" == "container-image-build" ]; then
