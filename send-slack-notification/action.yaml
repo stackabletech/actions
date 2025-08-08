@@ -95,17 +95,17 @@ runs:
           fi
 
           echo "MESSAGE_TEXT=*$GITHUB_WORKFLOW* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)" | tee -a "$GITHUB_ENV"
-          echo "MESSAGE_TEMPLATE=$(cat ${GITHUB_ACTION_PATH}/templates/container-image-build/failure.tpl)" | tee -a "$GITHUB_ENV"
+          echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/container-image-build/failure.tpl)\nEOF" | tee -a "$GITHUB_ENV"
         elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
           echo "HEALTH_SLACK_EMOJI=$(cut -d ',' -f 1 $TEST_HEALTH)" | tee -a "$GITHUB_ENV"
           echo "HEALTH_RATE=$(cut -d ',' -f 3 $TEST_HEALTH)" | tee -a "$GITHUB_ENV"
 
           if [ "$TEST_RESULT" == "failure" ]; then
             echo "MESSAGE_TEXT=The integration test for *GITHUB_REPOSITORY* failed" | tee -a "$GITHUB_ENV"
-            echo "MESSAGE_TEMPLATE=$(cat ${GITHUB_ACTION_PATH}/templates/integration-test/failure.tpl)" | tee -a "$GITHUB_ENV"
+            echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/integration-test/failure.tpl)\nEOF" | tee -a "$GITHUB_ENV"
           else
             echo "MESSAGE_TEXT=The integration test for *GITHUB_REPOSITORY* succeeded" | tee -a "$GITHUB_ENV"
-            echo "MESSAGE_TEMPLATE=$(cat ${GITHUB_ACTION_PATH}/templates/integration-test/success.tpl)" | tee -a "$GITHUB_ENV"
+            echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/integration-test/success.tpl)\nEOF" | tee -a "$GITHUB_ENV"
           fi
         fi
 
