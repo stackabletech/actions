@@ -111,8 +111,8 @@ runs:
       with:
         method: chat.postMessage
         token: ${{ inputs.slack-token }}
-        payload: |
-          ${{ env.MESSAGE_TEMPLATE }}
+        payload: ${{ env.MESSAGE_TEMPLATE }}
+        payload-templated: true
 
     - name: Save Slack Thread ID to File
       if: steps.retrieve-slack-thread-id.outcome == 'failure'
