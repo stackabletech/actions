@@ -1,6 +1,6 @@
 ---
 name: Send Notification via Slack
-description: ""
+description: "This action sends notifications for different types of workflows"
 inputs:
   channel-id:
     description: The channel to sent the message to
