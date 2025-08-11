@@ -264,20 +264,20 @@ runs:
         INTEGRATION_TEST_CONCLUSION: ${{ steps.integration-test.conclusion }}
         WORKFLOW_NAME: "Integration Test"
         GH_TOKEN: ${{ github.token }}
-        LAST_TRIES: "4"
+        LAST_TRIES_LIMIT: "4"
       shell: bash
       run: |
         set -euo pipefail
-
-        export LAST_TRIES="$LAST_TRIES"
 
         # First, we retrieve the number of successes of the last (currently) 4 runs. Afterwards we
         # add 1 to the number of successes if this run succeeded. This ultimately represents the
         # number of successes in the last 5 runs, similar to what Jenkins does. This score is then
         # turned into an appropriate "weather" emoji and provided as an output to follow-up steps.
-        SUCCESSES=$(gh run list --limit "$LAST_TRIES" --workflow "$WORKFLOW_NAME" --json conclusion | jq '[.[] | select(.conclusion == "success")] | length')
-        [ "$CONCLUSION" == "success" ] && SUCCESSES=$(echo "$SUCCESSES+1" | bc)
+        LAST_RUNS=$(gh run list --limit "$LAST_TRIES_LIMIT" --workflow "$WORKFLOW_NAME" --json conclusion)
+        SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
+        export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq 'length')
+
+        [ "$INTEGRATION_TEST_CONCLUSION" == "success" ] && SUCCESSES=$(echo "$SUCCESSES+1" | bc)
         export SUCCESSES="$SUCCESSES"
 
-        # TODO (@Techassi): Emit emojis for both Slack and GitHub
         echo "HEALTH=$(cat "${GITHUB_ACTION_PATH}/health" | envsubst | bc)" | tee -a "$GITHUB_OUTPUT"

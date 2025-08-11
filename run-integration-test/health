@@ -9,7 +9,7 @@ scale = 1
 
 /* Calculate the percentage of successes */
 /* The variables below are replaced by envsubst */
-total_tries = ${LAST_TRIES}+1
+total_tries = ${LAST_TRIES_TOTAL}+1
 successes = ${SUCCESSES}
 health = successes/total_tries
 
