@@ -250,7 +250,7 @@ runs:
 
     - name: Extract Failed Tests
       id: failed-tests
-      if: steps.integration-test.conclusion == "failure"
+      if: steps.integration-test.conclusion == 'failure'
       shell: bash
       run: |
         # Only look at the last 200 lines of test output which should be more than enough to capture all test results
