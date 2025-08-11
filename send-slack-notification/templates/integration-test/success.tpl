@@ -1,6 +1,6 @@
-channel: "${{ inputs.channel-id }}"
+channel: "${{ env.CHANNEL_ID }}"
 text: "${{ env.MESSAGE_TEXT }}"
-${{ steps.retrieve-slack-thread-id.outcome == 'success' && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
+${{ env.SLACK_THREAD_YAML }}
 blocks:
   - type: "section"
     text:
