@@ -5,28 +5,25 @@ resources:
 - ../../bases/opentelemetry-collectors
 
 patches:
-# Update all collectors to set the exporter endpoints and any other common overrides.
+# Update collectors to set the exporter endpoints.
+- path: patch-container-log-scrape.yaml
+- path: patch-kubernetes-events.yaml
+
+# Update all collectors to set common overrides.
 - target:
     group: opentelemetry.io
     version: v1beta1
     kind: OpenTelemetryCollector
   patch: |-
     - op: add
-      path: /spec/config/exporters/otlp~1grpc/endpoint
-      value: 212.227.162.207:30171
-    - op: add
-      path: /spec/config/exporters/otlp~1grpc/tls
-      value:
-        insecure: true
-    - op: add
       path: /spec/envFrom/-
       value:
         configMapRef:
           name: integration-test-info
     - op: add
-      path: /spec/config/processors/attributes
+      path: /spec/config/processors/resource
       value:
-        actions:
+        attributes:
           - action: upsert
             key: k8s.cluster.name
             value: ${env:KUBERNETES_CLUSTER_NAME}
@@ -35,7 +32,7 @@ patches:
             value: ${env:TRIGGERED_BY}
     - op: add
       path: /spec/config/service/pipelines/logs/processors/-
-      value: attributes
+      value: resource
 
 # Specifically override config for the kubernetes-events collector.
 - target:
