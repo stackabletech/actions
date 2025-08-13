@@ -38,6 +38,12 @@ outputs:
   end-time:
     description: The date and time this integration test finished.
     value: ${{ steps.end-time.outputs.END_TIME }}
+  health:
+    description: The health of this integration test over the last few tries.
+    value: ${{ steps.health.outputs.HEALTH }}
+  failed-tests:
+    description: The (potentially empty) list of failed tests
+    value: ${{ steps.failed-tests.outputs.FAILED_TESTS }}
 runs:
   using: composite
   steps:
@@ -65,8 +71,8 @@ runs:
 
         # Run interu to expand parameters into GITHUB_ENV
         if [ "$TEST_MODE" == "profile" ]; then
-          [ -n "${TEST_SUITE:-}" ] && echo ::warning::The test-suite input is ignored, because a profile is selected.
-          [ -n "${TEST:-}" ] && echo ::warning::The test input is ignored, because a profile is selected.
+          [ -n "${TEST_SUITE:-}" ] && echo "::warning::The test-suite input is ignored, because a profile is selected."
+          [ -n "${TEST:-}" ] && echo "::warning::The test input is ignored, because a profile is selected."
 
           interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_ENV"
         else
@@ -209,6 +215,7 @@ runs:
         echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Run Integration Test
+      id: integration-test
       env:
         REF_NAME: ${{ github.ref_name }}
         GH_TOKEN: ${{ github.token }}
@@ -217,12 +224,12 @@ runs:
         set -euo pipefail
 
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$REF_NAME")
-        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION"
+        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION" | tee -a test-output.log
 
         [ -n "${BEKU_TEST_SUITE:-}" ] && ARGS+=" --test-suite $BEKU_TEST_SUITE"
         [ -n "${BEKU_TEST:-}" ] && ARGS+=" --test $BEKU_TEST"
 
-        python ./scripts/run-tests --skip-release --log-level debug --parallel "$BEKU_TEST_PARALLELISM" ${ARGS:-}
+        python ./scripts/run-tests --skip-release --log-level debug --parallel "$BEKU_TEST_PARALLELISM" ${ARGS:-} | tee -a test-output.log
 
     - name: Record Test End Time
       id: end-time
@@ -240,3 +247,37 @@ runs:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
         cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
+
+    - name: Extract Failed Tests
+      id: failed-tests
+      if: steps.integration-test.conclusion == 'failure'
+      shell: bash
+      run: |
+        # Only look at the last 200 lines of test output which should be more than enough to capture all test results
+        FAILED_TESTS=$(tail --lines 200 test-output.log | grep -E '\s{8}--- FAIL:' | sed -e 's|^.*kuttl/harness/||')
+        echo "FAILED_TESTS=$FAILED_TESTS" | tee -a "$GITHUB_OUTPUT"
+
+    - name: Calculate Health
+      if: always()
+      id: health
+      env:
+        INTEGRATION_TEST_CONCLUSION: ${{ steps.integration-test.conclusion }}
+        WORKFLOW_NAME: "Integration Test"
+        GH_TOKEN: ${{ github.token }}
+        LAST_TRIES_LIMIT: "4"
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # First, we retrieve the number of successes of the last (currently) 4 runs. Afterwards we
+        # add 1 to the number of successes if this run succeeded. This ultimately represents the
+        # number of successes in the last 5 runs, similar to what Jenkins does. This score is then
+        # turned into an appropriate "weather" emoji and provided as an output to follow-up steps.
+        LAST_RUNS=$(gh run list --limit "$LAST_TRIES_LIMIT" --workflow "$WORKFLOW_NAME" --json conclusion)
+        SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
+        export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq 'length')
+
+        [ "$INTEGRATION_TEST_CONCLUSION" == "success" ] && SUCCESSES=$(echo "$SUCCESSES+1" | bc)
+        export SUCCESSES="$SUCCESSES"
+
+        echo "HEALTH=$(cat "${GITHUB_ACTION_PATH}/health" | envsubst | bc)" | tee -a "$GITHUB_OUTPUT"
