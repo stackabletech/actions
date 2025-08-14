@@ -7,7 +7,6 @@ blocks:
       type: "mrkdwn"
       text: "${{ env.HEALTH_SLACK_EMOJI }} (${{ env.HEALTH_RATE }}) The integration test failed because of the following individual tests:"
   - type: "rich_text"
-    border: 0
     elements:
       - type: "rich_text_preformatted"
         elements:
