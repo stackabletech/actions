@@ -26,11 +26,6 @@ patches:
         configMapRef:
           name: integration-test-info
     - op: add
-      path: /spec/envFrom/-
-      value:
-        secretRef:
-          name: telemetry-ingestion-auth
-    - op: add
       path: /spec/config/processors/resource/attributes/-
       value:
         action: upsert
@@ -80,9 +75,3 @@ configMapGenerator:
   # KUBERNETES_VERSION
   # TRIGGERED_BY
   - integration-test-info.env
-
-secretGenerator:
-- name: telemetry-ingestion-auth
-  namespace: opentelemetry-operator
-  envs:
-  - telemetry-ingestion-auth.env
