@@ -44,10 +44,10 @@ spec:
       # These are useful for correlating. For span/event specific atrtibutes, see above.
       resource:
         attributes:
-          # This is to prevent the event label "service_name" having the value "unknown_service"
-          - action: upsert
-            key: service.name
-            value: kubernetes-objects
+        # This is to prevent the event label "service_name" having the value "unknown_service"
+        - action: upsert
+          key: service.name
+          value: kubernetes-objects
 
       resourcedetection/env:
         detectors: [env]
