@@ -15,6 +15,7 @@ spec:
         fieldRef:
           apiVersion: v1
           fieldPath: spec.nodeName
+  # This key exists so it can be easily extended in an overlay:
   envFrom: []
   volumeMounts:
     # Mount the volumes to the collector container
@@ -99,6 +100,7 @@ spec:
             on_error: send_quiet
             parse_from: body.message
 
+    # This key exists so it can be easily extended in an overlay:
     extensions: {}
 
     processors:
@@ -119,6 +121,7 @@ spec:
 
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/resourceprocessor
       attributes:
+        # This key exists so it can be easily extended in an overlay:
         actions: []
 
       resourcedetection/env:
@@ -139,6 +142,7 @@ spec:
     exporters: {}
 
     service:
+      # This key exists so it can be easily extended in an overlay:
       extensions: []
       pipelines:
         logs:

@@ -5,10 +5,13 @@ metadata:
   name: kubernetes-events
 spec:
   serviceAccount: kubernetes-events
+  # This key exists so it can be easily extended in an overlay:
   env: []
+  # This key exists so it can be easily extended in an overlay:
   envFrom: []
   config:
     receivers:
+      # There has to be a value, hence an empty object {}:
       k8s_events: {}
       k8s_cluster:
         # https://kubernetes.io/docs/reference/node/node-status/#condition
@@ -21,6 +24,7 @@ spec:
           container.id:
             enabled: false
 
+    # This key exists so it can be easily extended in an overlay:
     extensions: {}
 
     processors:
@@ -34,6 +38,7 @@ spec:
       # These are attributes for the specific spans, log events, etc...
       # For higher level attributes see the "resource" attributes below.
       attributes:
+        # This key exists so it can be easily extended in an overlay:
         actions: []
 
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/resourceprocessor
@@ -64,6 +69,7 @@ spec:
     exporters: {}
 
     service:
+      # This key exists so it can be easily extended in an overlay:
       extensions: []
       pipelines:
         logs:
