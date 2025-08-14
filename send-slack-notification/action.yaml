@@ -1,19 +1,65 @@
 ---
 name: Send Notification via Slack
-description: ""
+description: "This action sends notifications for different types of workflows"
 inputs:
   channel-id:
     description: The channel to sent the message to
-    default: C07UG6JH44F # notifications-container-images
+  type:
+    description: |
+      The type of notification to send. Supported types are `container-image-build`
+      and `integration-test`.
   build-result:
     description: The result of the build job
   publish-manifests-result:
     description: The result of the publish manifests job
+  test-result:
+    description: The result of an integration test
+  test-health:
+    description: The health of the past few integration tests
+  failed-tests:
+    description: The list (plain text) of failed tests
   slack-token:
     description: The Slack token
 runs:
   using: composite
   steps:
+    - name: Validate Inputs
+      env:
+        NOTIFICATION_TYPE: ${{ inputs.type }}
+
+        PUBLISH_MANIFESTS_RESULT: ${{ inputs.publish-manifests-result }}
+        BUILD_RESULT: ${{ inputs.build-result }}
+
+        FAILED_TESTS: ${{ inputs.failed-tests }}
+        TEST_RESULT: ${{ inputs.test-result }}
+        TEST_HEALTH: ${{ inputs.test-health }}
+      shell: bash
+      run: |
+        if [ -z "${NOTIFICATION_TYPE:-}" ]; then
+          echo "The type input must be provided"
+          exit 1
+        fi
+
+        if [ "$NOTIFICATION_TYPE" == "container-image-build" ]; then
+          [ -z "${PUBLISH_MANIFESTS_RESULT:-}" ] && echo "The publish-manifests-result input must be provided" && exit 1
+          [ -z "${BUILD_RESULT:-}" ] && echo "The build-result input must be provided" && exit 1
+
+          echo "PUBLISH_MANIFESTS_RESULT=$PUBLISH_MANIFESTS_RESULT" | tee -a "$GITHUB_ENV"
+          echo "BUILD_RESULT=$BUILD_RESULT" | tee -a "$GITHUB_ENV"
+        elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
+          [ -z "${TEST_RESULT:-}" ] && echo "The test-result input must be provided" && exit 1
+          [ -z "${TEST_HEALTH:-}" ] && echo "The test-health input must be provided" && exit 1
+
+          echo "FAILED_TESTS=$FAILED_TESTS" | tee -a "$GITHUB_ENV"
+          echo "TEST_RESULT=$TEST_RESULT" | tee -a "$GITHUB_ENV"
+          echo "TEST_HEALTH=$TEST_HEALTH" | tee -a "$GITHUB_ENV"
+        else
+          echo "Supported notification types are: 'container-image-build' and 'integration-test'"
+          exit 1
+        fi
+
+        echo "NOTIFICATION_TYPE=$NOTIFICATION_TYPE" | tee -a "$GITHUB_ENV"
+
     - name: Retrieve Slack Thread ID
       id: retrieve-slack-thread-id
       continue-on-error: true
@@ -29,48 +75,52 @@ runs:
 
     - name: Format message
       env:
-        PUBLISH_MANIFESTS_RESULT: ${{ inputs.publish-manifests-result }}
         GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
-        GITHUB_WORKFLOW: ${{ github.workflow  }}
-        BUILD_RESULT: ${{ inputs.build-result }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_WORKFLOW: ${{ github.workflow }}
       shell: bash
       run: |
-        if [ "$PUBLISH_MANIFESTS_RESULT" = "failure" ] || [ "$BUILD_RESULT" = "failure" ]; then
-          MESSAGE_VERB=failed
-          MESSAGE_COLOR=aa0000
-        else
-          MESSAGE_VERB=succeeded
-          MESSAGE_COLOR=10c400
-        fi
+        if [ "$NOTIFICATION_TYPE" == "container-image-build" ]; then
+          # TODO (@Techassi): Also add success template
+          if [ "$PUBLISH_MANIFESTS_RESULT" = "failure" ] || [ "$BUILD_RESULT" = "failure" ]; then
+            MESSAGE_VERB=failed
+            echo "MESSAGE_VERB=$MESSAGE_VERB" | tee -a "$GITHUB_ENV"
 
-        echo "MESSAGE_TEXT=*$GITHUB_WORKFLOW* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)" | tee -a "$GITHUB_ENV"
-        echo "MESSAGE_COLOR=$MESSAGE_COLOR" | tee -a "$GITHUB_ENV"
-        echo "MESSAGE_VERB=$MESSAGE_VERB" | tee -a "$GITHUB_ENV"
+            echo "MESSAGE_COLOR=aa0000" | tee -a "$GITHUB_ENV"
+          else
+            MESSAGE_VERB=succeeded
+            echo "MESSAGE_VERB=$MESSAGE_VERB" | tee -a "$GITHUB_ENV"
+
+            echo "MESSAGE_COLOR=10c400" | tee -a "$GITHUB_ENV"
+          fi
+
+          echo "MESSAGE_TEXT=*$GITHUB_WORKFLOW* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)" | tee -a "$GITHUB_ENV"
+          echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/container-image-build/failure.tpl)\nEOF" | tee -a "$GITHUB_ENV"
+        elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
+          echo "HEALTH_SLACK_EMOJI=$(cut -d ',' -f 1 $TEST_HEALTH)" | tee -a "$GITHUB_ENV"
+          echo "HEALTH_RATE=$(cut -d ',' -f 3 $TEST_HEALTH)" | tee -a "$GITHUB_ENV"
+
+          if [ "$TEST_RESULT" == "failure" ]; then
+            echo "MESSAGE_TEXT=The integration test for *GITHUB_REPOSITORY* failed" | tee -a "$GITHUB_ENV"
+            echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/integration-test/failure.tpl)\nEOF" | tee -a "$GITHUB_ENV"
+          else
+            echo "MESSAGE_TEXT=The integration test for *GITHUB_REPOSITORY* succeeded" | tee -a "$GITHUB_ENV"
+            echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/integration-test/success.tpl)\nEOF" | tee -a "$GITHUB_ENV"
+          fi
+        fi
 
     - name: Send Notification
       id: send-notification
       uses: slackapi/slack-github-action@b0fa283ad8fea605de13dc3f449259339835fc52 # 2.1.0
+      env:
+        SLACK_THREAD_YAML: |
+          ${{ steps.retrieve-slack-thread-id.outcome == 'success' && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
+        CHANNEL_ID: ${{ inputs.channel-id }}
       with:
         method: chat.postMessage
         token: ${{ inputs.slack-token }}
-        payload: |
-          channel: "${{ inputs.channel-id }}"
-          text: "${{ env.MESSAGE_TEXT }}"
-          ${{ steps.retrieve-slack-thread-id.outcome == 'success' && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
-          attachments:
-            - pretext: "See the details below for a summary of which job(s) ${{ env.MESSAGE_VERB }}."
-              color: "${{ env.MESSAGE_COLOR }}"
-              fields:
-                - title: Build/Publish Image
-                  short: true
-                  value: "${{ inputs.build-result }}"
-                - title: Build/Publish Manifests
-                  short: true
-                  value: "${{ inputs.publish-manifests-result }}"
-              actions:
-                - type: button
-                  text: Go to workflow run
-                  url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}"
+        payload: ${{ env.MESSAGE_TEMPLATE }}
+        payload-templated: true
 
     - name: Save Slack Thread ID to File
       if: steps.retrieve-slack-thread-id.outcome == 'failure'

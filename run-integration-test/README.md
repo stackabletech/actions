@@ -105,6 +105,9 @@ profiles:
 
 - `start-time`
 - `end-time`
+- `health`: The health of the integration tests. Contains three comma-separated values: Slack emoji,
+  GitHub emoji, and success rate.
+- `failed-tests`: A (potentially empty) plain text list of failed tests.
 
 [supported-clusters]: https://docs.replicated.com/vendor/testing-supported-clusters
 [run-integration-test]: ./action.yaml

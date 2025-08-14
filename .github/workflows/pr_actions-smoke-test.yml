@@ -6,12 +6,13 @@ on:
   pull_request:
     paths:
       - .github/workflows/pr_actions-smoke-test.yml
-      - build-container-image/action.yml
-      - build-product-image/action.yml
-      - free-disk-space/action.yml
-      - publish-image/action.yml
-      - publish-index-manifest/action.yml
-      - shard/action.yml
+      - build-container-image/action.yaml
+      - build-product-image/action.yaml
+      - free-disk-space/action.yaml
+      - publish-image/action.yaml
+      - publish-index-manifest/action.yaml
+      - send-slack-notification/action.yaml
+      - shard/action.yaml
       - smoke/*
 
 jobs:
@@ -94,3 +95,23 @@ jobs:
           image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
           image-repository: stackable/smoke
           image-index-manifest-tag: ${{ matrix.versions }}-stackable0.0.0-dev
+
+  notify:
+    name: Failure Notification
+    needs: [generate_matrix, build, publish_manifests]
+    runs-on: ubuntu-latest
+    if: failure() || github.run_attempt > 1
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Send Notification
+        uses: ./send-slack-notification
+        with:
+          publish-manifests-result: ${{ needs.publish_manifests.result }}
+          build-result: ${{ needs.build.result }}
+          slack-token: ${{ secrets.SLACK_CONTAINER_IMAGE_TOKEN }}
+          channel-id: C07UG6JH44F # notifications-container-images
+          type: container-image-build
