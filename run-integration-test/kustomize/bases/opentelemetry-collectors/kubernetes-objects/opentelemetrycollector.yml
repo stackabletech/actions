@@ -2,27 +2,25 @@
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
-  name: kubernetes-events
+  name: kubernetes-objects
 spec:
-  serviceAccount: kubernetes-events
+  serviceAccount: kubernetes-objects
   # This key exists so it can be easily extended in an overlay:
   env: []
   # This key exists so it can be easily extended in an overlay:
   envFrom: []
   config:
     receivers:
-      # There has to be a value, hence an empty object {}:
-      k8s_events: {}
-      k8s_cluster:
-        # https://kubernetes.io/docs/reference/node/node-status/#condition
-        node_conditions_to_report: [Ready, MemoryPressure, DiskPressure, PIDPressure]
-        allocatable_types_to_report: [cpu, memory, ephemeral-storage, storage]
-        metrics:
-          k8s.container.cpu_limit:
-            enabled: false
-        resource_attributes:
-          container.id:
-            enabled: false
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/k8sobjectsreceiver/testdata/config.yaml
+      k8sobjects:
+        objects:
+        # TODO: Add Stackable objects, and other common k8s objects
+        - name: pods
+          mode: watch
+        - name: events
+          mode: watch
+          group: events.k8s.io
+          exclude_watch_type: [DELETED]
 
     # This key exists so it can be easily extended in an overlay:
     extensions: {}
@@ -32,7 +30,7 @@ spec:
       k8sattributes:
         # Use the k8s attributes set by the receiver
         # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor#as-a-gateway
-        passthrough: true
+        passthrough: false
 
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/attributesprocessor
       # These are attributes for the specific spans, log events, etc...
@@ -46,10 +44,10 @@ spec:
       # These are useful for correlating. For span/event specific atrtibutes, see above.
       resource:
         attributes:
-          # This is to prevent the event label "service_name" having the value "unknown_service"
-          - action: upsert
-            key: service.name
-            value: kubernetes-events
+        # This is to prevent the event label "service_name" having the value "unknown_service"
+        - action: upsert
+          key: service.name
+          value: kubernetes-objects
 
       resourcedetection/env:
         detectors: [env]
@@ -73,13 +71,7 @@ spec:
       extensions: []
       pipelines:
         logs:
-          receivers: [k8s_events]
-          # processors: [memory_limiter, batch]
-          processors: [k8sattributes, resourcedetection/env, resource, attributes]
-          # Enable configured exporters in the overlay
-          exporters: []
-        metrics:
-          receivers: [k8s_cluster]
+          receivers: [k8sobjects]
           # processors: [memory_limiter, batch]
           processors: [k8sattributes, resourcedetection/env, resource, attributes]
           # Enable configured exporters in the overlay

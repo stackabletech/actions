@@ -12,30 +12,43 @@ patches:
     kind: OpenTelemetryCollector
   patch: |-
     - op: add
-      path: /spec/config/exporters/otlp~1grpc/endpoint
-      value: 212.227.162.207:30171
-    - op: add
-      path: /spec/config/exporters/otlp~1grpc/tls
+      path: /spec/config/exporters/otlp
       value:
-        insecure: true
+        endpoint: otel-logs-source.nick.stackable.build
+        # tls:
+        #   insecure: true
+    - op: add
+      path: /spec/config/service/pipelines/logs/exporters/-
+      value: otlp
     - op: add
       path: /spec/envFrom/-
       value:
         configMapRef:
           name: integration-test-info
     - op: add
-      path: /spec/config/processors/attributes
+      path: /spec/config/processors/resource/attributes/-
       value:
-        actions:
-          - action: upsert
+        action: upsert
             key: k8s.cluster.name
             value: ${env:KUBERNETES_CLUSTER_NAME}
-          - action: upsert
+    - op: add
+      path: /spec/config/processors/resource/attributes/-
+      value:
+        action: upsert
+            key: k8s.cluster.distribution
+            value: ${env:KUBERNETES_DISTRIBUTION}
+    - op: add
+      path: /spec/config/processors/resource/attributes/-
+      value:
+        action: upsert
+            key: k8s.cluster.version
+            value: ${env:KUBERNETES_VERSION}
+    - op: add
+      path: /spec/config/processors/resource/attributes/-
+      value:
+        action: upsert
             key: github.actions.triggered_by
             value: ${env:TRIGGERED_BY}
-    - op: add
-      path: /spec/config/service/pipelines/logs/processors/-
-      value: attributes
 
 # Specifically override config for the kubernetes-events collector.
 - target:
@@ -48,8 +61,9 @@ patches:
     - op: remove
       path: /spec/config/service/pipelines/metrics
     # - op: add
-    #   path: /spec/config/service/pipelines/metrics/processors/-
-    #   value: attributes
+    # - op: add
+    #   path: /spec/config/service/pipelines/metrics/exporters/-
+    #   value: otlphttp
 
 configMapGenerator:
 # These get used by the attributes processor in each collector
@@ -58,5 +72,6 @@ configMapGenerator:
   envs:
   # KUBERNETES_CLUSTER_NAME
   # KUBERNETES_DISTRIBUTION
+  # KUBERNETES_VERSION
   # TRIGGERED_BY
   - integration-test-info.env

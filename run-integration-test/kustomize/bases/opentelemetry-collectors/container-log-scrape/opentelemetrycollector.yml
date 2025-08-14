@@ -15,6 +15,7 @@ spec:
         fieldRef:
           apiVersion: v1
           fieldPath: spec.nodeName
+  # This key exists so it can be easily extended in an overlay:
   envFrom: []
   volumeMounts:
     # Mount the volumes to the collector container
@@ -99,6 +100,9 @@ spec:
             on_error: send_quiet
             parse_from: body.message
 
+    # This key exists so it can be easily extended in an overlay:
+    extensions: {}
+
     processors:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor
       k8sattributes:
@@ -114,6 +118,12 @@ spec:
       #     - context: log
       #       statements:
       #         - set(attributes["body"], body)
+
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/resourceprocessor
+      attributes:
+        # This key exists so it can be easily extended in an overlay:
+        actions: []
+
       resourcedetection/env:
         detectors: [env]
         timeout: 2s
@@ -128,15 +138,16 @@ spec:
       #   timeout: 10s
       # yamllint enable rule:comments-indentation
 
-    exporters:
-      # Configuration done in the overlay
-      otlp/grpc:
-        headers: {}
+    # Configure exporters in the overlay
+    exporters: {}
 
     service:
+      # This key exists so it can be easily extended in an overlay:
+      extensions: []
       pipelines:
         logs:
           receivers: [filelog/varlogpods]
           # processors: [memory_limiter, batch]
-          processors: [k8sattributes, resourcedetection/env]
-          exporters: [otlp/grpc]
+          processors: [k8sattributes, resourcedetection/env, attributes]
+          # Enable configured exporters in the overlay
+          exporters: []

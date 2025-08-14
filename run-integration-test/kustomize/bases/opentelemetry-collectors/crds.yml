@@ -10,6 +10,8 @@ nameReference:
   fieldSpecs:
   - kind: OpenTelemetryCollector
     path: spec/env/valueFrom/secretKeyRef/name
+  - kind: OpenTelemetryCollector
+    path: spec/envFrom/secretRef/name
 - kind: ConfigMap
   fieldSpecs:
   - kind: OpenTelemetryCollector

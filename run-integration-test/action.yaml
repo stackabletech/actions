@@ -193,6 +193,8 @@ runs:
         echo "::group::get info"
         INTEGRATION_TEST_INFO="${GITHUB_ACTION_PATH}/kustomize/overlays/replicated/integration-test-info.env"
         echo "KUBERNETES_CLUSTER_NAME=${KUBERNETES_CLUSTER_NAME}" | tee -a "$INTEGRATION_TEST_INFO"
+        echo "KUBERNETES_DISTRIBUTION=${INTERU_KUBERNETES_DISTRIBUTION}" | tee -a "$INTEGRATION_TEST_INFO"
+        echo "KUBERNETES_VERSION=${INTERU_KUBERNETES_VERSION}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "TRIGGERED_BY=${GITHUB_TRIGGERED_BY}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "::endgroup::"
 
