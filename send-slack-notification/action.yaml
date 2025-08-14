@@ -73,13 +73,18 @@ runs:
       run: |
         echo "SLACK_THREAD_ID=$(cat slack-thread-id)" | tee -a "$GITHUB_ENV"
 
-    - name: Format message
+    - name: Provide message template variables
       env:
         GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        GITHUB_SERVER_URL: ${{ github.server_url }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_WORKFLOW: ${{ github.workflow }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
       shell: bash
       run: |
+        WORKFLOW_RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}"
+        echo "WORKFLOW_RUN_URL=$WORKFLOW_RUN_URL" | tee -a "$GITHUB_ENV"
+
         if [ "$NOTIFICATION_TYPE" == "container-image-build" ]; then
           # TODO (@Techassi): Also add success template
           if [ "$PUBLISH_MANIFESTS_RESULT" = "failure" ] || [ "$BUILD_RESULT" = "failure" ]; then
