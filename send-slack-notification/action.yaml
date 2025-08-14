@@ -97,8 +97,8 @@ runs:
           echo "MESSAGE_TEXT=*$GITHUB_WORKFLOW* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)" | tee -a "$GITHUB_ENV"
           echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/container-image-build/failure.tpl)\nEOF" | tee -a "$GITHUB_ENV"
         elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
-          echo "HEALTH_SLACK_EMOJI=$(cut -d ',' -f 1 $TEST_HEALTH)" | tee -a "$GITHUB_ENV"
-          echo "HEALTH_RATE=$(cut -d ',' -f 3 $TEST_HEALTH)" | tee -a "$GITHUB_ENV"
+          echo "HEALTH_SLACK_EMOJI=$(echo "$TEST_HEALTH" | cut -d ',' -f 1)" | tee -a "$GITHUB_ENV"
+          echo "HEALTH_RATE=$(echo "$TEST_HEALTH" | cut -d ',' -f 3)" | tee -a "$GITHUB_ENV"
 
           if [ "$TEST_RESULT" == "failure" ]; then
             echo "MESSAGE_TEXT=The integration test for *GITHUB_REPOSITORY* failed" | tee -a "$GITHUB_ENV"
