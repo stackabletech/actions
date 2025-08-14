@@ -5,7 +5,7 @@ blocks:
   - type: "section"
     text:
       type: "mrkdwn"
-      text: "${{ env.HEALTH_SLACK_EMOJI }} (${{ env.HEALTH_RATE }})" The integration test for *${{ github.repository }}* succeeded."
+      text: "${{ env.HEALTH_SLACK_EMOJI }} (${{ env.HEALTH_RATE }}) The integration test for *${{ github.repository }}* succeeded."
   - type: "actions"
     elements:
       - type: button
