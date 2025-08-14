@@ -13,7 +13,7 @@ blocks:
           type: "plain_text"
           text: "View Workflow Run"
           emoji: false
-        url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}"
+        url: "${{ env.WORKFLOW_RUN_URL }}"
       - type: button
         text:
           type: "plain_text"

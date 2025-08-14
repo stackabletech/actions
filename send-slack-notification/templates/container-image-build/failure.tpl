@@ -14,4 +14,4 @@ attachments:
     actions:
       - type: button
         text: Go to workflow run
-        url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}"
+        url: "${{ env.WORKFLOW_RUN_URL }}"
