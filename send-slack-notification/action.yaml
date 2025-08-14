@@ -50,7 +50,7 @@ runs:
           [ -z "${TEST_RESULT:-}" ] && echo "The test-result input must be provided" && exit 1
           [ -z "${TEST_HEALTH:-}" ] && echo "The test-health input must be provided" && exit 1
 
-          echo "FAILED_TESTS=$FAILED_TESTS" | tee -a "$GITHUB_ENV"
+          echo "FAILED_TESTS=${FAILED_TESTS:-No failed tests}" | tee -a "$GITHUB_ENV"
           echo "TEST_RESULT=$TEST_RESULT" | tee -a "$GITHUB_ENV"
           echo "TEST_HEALTH=$TEST_HEALTH" | tee -a "$GITHUB_ENV"
         else
