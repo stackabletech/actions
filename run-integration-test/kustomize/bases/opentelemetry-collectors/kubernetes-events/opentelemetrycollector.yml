@@ -37,9 +37,9 @@ spec:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/attributesprocessor
       # These are attributes for the specific spans, log events, etc...
       # For higher level attributes see the "resource" attributes below.
-      attributes:
-        # This key exists so it can be easily extended in an overlay:
-        actions: []
+      # attributes:
+      #   # This key exists so it can be easily extended in an overlay:
+      #   actions: []
 
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/resourceprocessor
       # These are top level attributes about the application as a whole and not any specific event.
@@ -75,12 +75,12 @@ spec:
         logs:
           receivers: [k8s_events]
           # processors: [memory_limiter, batch]
-          processors: [k8sattributes, resourcedetection/env, resource, attributes]
+          processors: [k8sattributes, resourcedetection/env, resource]
           # Enable configured exporters in the overlay
           exporters: []
         metrics:
           receivers: [k8s_cluster]
           # processors: [memory_limiter, batch]
-          processors: [k8sattributes, resourcedetection/env, resource, attributes]
+          processors: [k8sattributes, resourcedetection/env, resource]
           # Enable configured exporters in the overlay
           exporters: []
