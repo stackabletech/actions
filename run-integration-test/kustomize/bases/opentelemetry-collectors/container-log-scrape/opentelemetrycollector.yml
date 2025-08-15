@@ -120,9 +120,9 @@ spec:
       #         - set(attributes["body"], body)
 
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/resourceprocessor
-      attributes:
+      resource:
         # This key exists so it can be easily extended in an overlay:
-        actions: []
+        attributes: []
 
       resourcedetection/env:
         detectors: [env]
@@ -148,6 +148,6 @@ spec:
         logs:
           receivers: [filelog/varlogpods]
           # processors: [memory_limiter, batch]
-          processors: [k8sattributes, resourcedetection/env, attributes]
+          processors: [k8sattributes, resourcedetection/env, resource]
           # Enable configured exporters in the overlay
           exporters: []
