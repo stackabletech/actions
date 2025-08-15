@@ -14,7 +14,7 @@ patches:
     - op: add
       path: /spec/config/exporters/otlp
       value:
-        endpoint: otel-logs-source.nick.stackable.build
+        endpoint: otel-logs-source.nick.stackable.build:443
         # tls:
         #   insecure: true
     - op: add
