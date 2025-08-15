@@ -106,10 +106,10 @@ runs:
           echo "HEALTH_RATE=$(echo "$TEST_HEALTH" | cut -d ',' -f 3)" | tee -a "$GITHUB_ENV"
 
           if [ "$TEST_RESULT" == "failure" ]; then
-            echo "MESSAGE_TEXT=The integration test for *GITHUB_REPOSITORY* failed" | tee -a "$GITHUB_ENV"
+            echo "MESSAGE_TEXT=The integration test for *$GITHUB_REPOSITORY* failed" | tee -a "$GITHUB_ENV"
             echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/integration-test/failure.tpl)\nEOF" | tee -a "$GITHUB_ENV"
           else
-            echo "MESSAGE_TEXT=The integration test for *GITHUB_REPOSITORY* succeeded" | tee -a "$GITHUB_ENV"
+            echo "MESSAGE_TEXT=The integration test for *$GITHUB_REPOSITORY* succeeded" | tee -a "$GITHUB_ENV"
             echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/integration-test/success.tpl)\nEOF" | tee -a "$GITHUB_ENV"
           fi
         fi
