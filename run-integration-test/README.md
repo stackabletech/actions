@@ -59,8 +59,8 @@ The following strategies are currently available:
   need to add up to 100, but it is recommended to more easily gauge the probability.
 - `use-runner`: uses the specified `runner`.
 
-Each profile can additionally specify test `options`, like `parallelism`, `test-suite` and
-`test-suite`.
+Each profile can additionally specify test `options`, like `beku-parallelism`, `beku-test-suite` and
+`beku-test`.
 
 ```yaml
 profiles:
@@ -74,14 +74,14 @@ profiles:
       - weight: 10
         runner: default-mixed
     options:
-      parallelism: 1
+      beku-parallelism: 1
 
   smoke:
     strategy: use-runner
     runner: default-amd64
     options:
-      test-suite: smoke
-      parallelism: 2
+      beku-test-suite: smoke
+      beku-parallelism: 2
 ```
 
 ## Inputs and Outputs
@@ -91,23 +91,26 @@ profiles:
 
 ### Inputs
 
-- `test-mode` (required)
-- `test-mode-input` (required)
-- `test-suite` (optional)
-- `test` (optional)
-- `replicated-api-token` (required)
-- `interu-version` (optional)
-- `beku-version` (optional)
-- `kuttl-version` (optional)
-- `stackablectl-version` (optional)
+| Input                  | Required | Description                                                            |
+| ---------------------- | -------- | ---------------------------------------------------------------------- |
+| `replicated-api-token` | Yes      | Replicated API Token, available via `secrets.REPLICATED_API_TOKEN`     |
+| `test-mode`            | Yes      | Either run a `profile` or a `custom` test                              |
+| `test-mode-input`      | Yes      | The name of the profile or runner, based on the `test-mode`            |
+| `test-suite`           | No       | The name of the BeKu test-suite (only used if running a `custom` test) |
+| `test`                 | No       | The name of the BeKu test (only used if running a `custom` test)       |
+| `interu-version`       | No       | The interu version used by the action                                  |
+| `beku-version`         | No       | The beku version used by the action                                    |
+| `kuttl-version`        | No       | The kubectl-kuttl version used by the action                           |
+| `stackablectl-version` | No       | The stackablectl version used by the action                            |
 
 ### Outputs
 
-- `start-time`
-- `end-time`
-- `health`: The health of the integration tests. Contains three comma-separated values: Slack emoji,
-  GitHub emoji, and success rate.
-- `failed-tests`: A (potentially empty) plain text list of failed tests.
+| Output | Description |
+| ------ | ----------- |
+| `start-time` | The time the test started running, in the `%Y-%m-%dT%H:%M:%S` (eg. `2025-08-20T09:57:53`) format. |
+| `end-time` |  The time the test completed, in the same format as above. |
+| `health` | The health of the integration tests. Contains three comma-separated values: Slack emoji, GitHub emoji, and success rate. |
+| `failed-tests` | A (potentially empty) plain text list of failed tests. |
 
 [supported-clusters]: https://docs.replicated.com/vendor/testing-supported-clusters
 [run-integration-test]: ./action.yaml
