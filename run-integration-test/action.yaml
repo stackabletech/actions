@@ -114,6 +114,7 @@ runs:
 
         echo "::group::Install kubectl"
         curl -fsSL -o /tmp/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+        # Overwrite the existing binary
         sudo install -m 755 -t /usr/local/bin /tmp/kubectl
 
         kubectl version
@@ -142,6 +143,7 @@ runs:
         gpg --verify /tmp/helm/helm.tar.gz.asc /tmp/helm/helm.tar.gz
 
         tar --directory="/tmp/helm" --strip-components=1 -zxvf /tmp/helm/helm.tar.gz "${PLATFORM}-${ARCH}"
+        # Overwrite the existing binary
         sudo install -m 755 -t /usr/local/bin /tmp/helm/helm
 
         helm version
