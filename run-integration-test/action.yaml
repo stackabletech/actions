@@ -112,8 +112,12 @@ runs:
 
         ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
 
+        echo "::group::Install kubectl"
         curl -fsSL -o /tmp/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
         sudo install -m 755 -t /usr/local/bin /tmp/kubectl
+
+        kubectl version
+        echo "::endgroup::"
 
     - name: Install Helm
       env:
@@ -129,6 +133,7 @@ runs:
 
         FILENAME="helm-${HELM_VERSION}-${PLATFORM}-${ARCH}.tar.gz"
 
+        echo "::group::Install helm"
         mkdir /tmp/helm
         curl -fsSL -o /tmp/helm/helm.tar.gz "https://get.helm.sh/${FILENAME}"
         curl -fsSL -o /tmp/helm/helm.tar.gz.asc "https://github.com/helm/helm/releases/download/${HELM_VERSION}/${FILENAME}.asc"
@@ -138,6 +143,9 @@ runs:
 
         tar --directory="/tmp/helm" --strip-components=1 -zxvf /tmp/helm/helm.tar.gz "${PLATFORM}-${ARCH}"
         sudo install -m 755 -t /usr/local/bin /tmp/helm/helm
+
+        helm version
+        echo "::endgroup::"
 
     - name: Install kubectl-kuttl
       env:
