@@ -100,7 +100,9 @@ profiles:
 | `test`                 | No       | The name of the BeKu test (only used if running a `custom` test)       |
 | `interu-version`       | No       | The interu version used by the action                                  |
 | `beku-version`         | No       | The beku version used by the action                                    |
+| `kubectl-version`      | No       | The kubectl version used by the action                                 |
 | `kuttl-version`        | No       | The kubectl-kuttl version used by the action                           |
+| `helm-version`         | No       | The helm version used by the action                                    |
 | `stackablectl-version` | No       | The stackablectl version used by the action                            |
 
 ### Outputs
