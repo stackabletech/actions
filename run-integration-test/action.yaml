@@ -316,7 +316,7 @@ runs:
       id: failed-tests
       # The success() function is automatically used if no other status function is used.
       # See https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#failure-with-conditions
-      if: ${{ failure() && steps.integration-test.conclusion == 'failure' }}
+      if: failure() && steps.integration-test.conclusion == 'failure'
       shell: bash
       run: |
         # Only look at the last 200 lines of test output which should be more than enough to capture all test results
