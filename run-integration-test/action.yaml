@@ -117,7 +117,7 @@ runs:
         # Overwrite the existing binary
         sudo install -m 755 -t /usr/local/bin /tmp/kubectl
 
-        kubectl version
+        kubectl version --client
         echo "::endgroup::"
 
     - name: Install Helm
@@ -146,7 +146,7 @@ runs:
         # Overwrite the existing binary
         sudo install -m 755 -t /usr/local/bin /tmp/helm/helm
 
-        helm version
+        helm version --short
         echo "::endgroup::"
 
     - name: Install kubectl-kuttl
