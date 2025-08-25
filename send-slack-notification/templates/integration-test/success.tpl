@@ -1,7 +1,10 @@
 channel: "${{ env.CHANNEL_ID }}"
-text: "${{ env.MESSAGE_TEXT }}"
 ${{ env.SLACK_THREAD_YAML }}
 blocks:
+  - type: "section"
+    text:
+      type: "mrkdwn"
+      text: "${{ env.MESSAGE_TEXT }}"
   - type: "section"
     text:
       type: "mrkdwn"
