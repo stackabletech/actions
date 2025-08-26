@@ -59,13 +59,16 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Install interu
+      uses: stackabletech/actions/setup-tools
+      with:
+        interu-version: ${{ inputs.interu-version }}
     - name: Extract Test and Instance Configuration
       env:
         TEST_MODE_INPUT: ${{ inputs.test-mode-input }}
         TEST_SUITE: ${{ inputs.test-suite }}
         TEST_MODE: ${{ inputs.test-mode }}
         TEST: ${{ inputs.test }}
-        INTERU_VERSION: ${{ inputs.interu-version }}
         GITHUB_DEBUG: ${{ runner.debug }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_RUN_ID: ${{ github.run_id }}"
@@ -73,10 +76,6 @@ runs:
       run: |
         set -euo pipefail
         [ -n "$GITHUB_DEBUG" ] && set -x
-
-        # Download interu
-        curl -fsSL -o /tmp/interu "https://github.com/stackabletech/actions/releases/download/interu-$INTERU_VERSION/interu-x86_64-unknown-linux-gnu"
-        sudo install -m 755 -t /usr/local/bin /tmp/interu
 
         # Generate the cluster name
         echo "KUBERNETES_CLUSTER_NAME=integration-test-${GITHUB_REPOSITORY}-${GITHUB_RUN_ID}" | tee -a "$GITHUB_ENV"
@@ -97,93 +96,24 @@ runs:
     # Install all tools BEFORE creating the cluster, because if some of the tools fail to download
     # and are therefore not available, there is no need to create the cluster or run the tests,
     # because the tests can never run in the first place.
-
-    # We technically don't need to install kubectl, kind or helm because it is already part of the installed
-    # tools of the runner image, but we at least install kubectl and helm explicitly, to be able to pin the versions.
-    # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-kubernetes-tools.sh
-    - name: Install kubectl
-      env:
-        KUBECTL_VERSION: ${{ inputs.kubectl-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
-      shell: bash
-      run: |
-        set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
-
-        ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
-
-        echo "::group::Install kubectl"
-        curl -fsSL -o /tmp/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
-        # Overwrite the existing binary
-        sudo install -m 755 -t /usr/local/bin /tmp/kubectl
-
-        kubectl version --client
-        echo "::endgroup::"
-
-    - name: Install Helm
-      env:
-        HELM_VERSION: ${{ inputs.helm-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
-      shell: bash
-      run: |
-        set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
-
-        PLATFORM=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_platform.sh")
-        ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
-
-        FILENAME="helm-${HELM_VERSION}-${PLATFORM}-${ARCH}.tar.gz"
-
-        echo "::group::Install helm"
-        mkdir /tmp/helm
-        curl -fsSL -o /tmp/helm/helm.tar.gz "https://get.helm.sh/${FILENAME}"
-        curl -fsSL -o /tmp/helm/helm.tar.gz.asc "https://github.com/helm/helm/releases/download/${HELM_VERSION}/${FILENAME}.asc"
-
-        curl https://keybase.io/mattfarina/pgp_keys.asc | gpg --import
-        gpg --verify /tmp/helm/helm.tar.gz.asc /tmp/helm/helm.tar.gz
-
-        tar --directory="/tmp/helm" --strip-components=1 -zxvf /tmp/helm/helm.tar.gz "${PLATFORM}-${ARCH}"
-        # Overwrite the existing binary
-        sudo install -m 755 -t /usr/local/bin /tmp/helm/helm
-
-        helm version --short
-        echo "::endgroup::"
-
-    - name: Install kubectl-kuttl
-      env:
-        KUTTL_VERSION: ${{ inputs.kuttl-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
-      shell: bash
-      run: |
-        set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
-
-        curl -fsSL -o /tmp/kubectl-kuttl "https://github.com/kudobuilder/kuttl/releases/download/v$KUTTL_VERSION/kubectl-kuttl_${KUTTL_VERSION}_linux_x86_64"
-        sudo install -m 755 -t /usr/local/bin /tmp/kubectl-kuttl
+    - name: Install kubectl, kubectl-kuttl, and helm
+      uses: stackablectl/actions/setup-k8s-tools
+      with:
+        kubectl-version: ${{ inputs.kubectl-version }}
+        kuttl-version: ${{ inputs.kuttl-version }}
+        helm-version: ${{ inputs.helm-version }}
 
     # Python3 is already installed, if we ever need to specify the version, we can use the
     # setup-python action.
     # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-python.sh
-    - name: Install beku
-      env:
-        BEKU_VERSION: ${{ inputs.beku-version }}
-      shell: bash
-      run: |
-        set -euo pipefail
-        pip install "beku-stackabletech==$BEKU_VERSION"
-
+    #
     # mikefarah/yq is already installed on the runner
     # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-yq.sh
-
-    - name: Install stackablectl
-      env:
-        STACKABLECTL_VERSION: ${{ inputs.stackablectl-version }}
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        curl -fsSL -o /tmp/stackablectl "https://github.com/stackabletech/stackable-cockpit/releases/download/stackablectl-$STACKABLECTL_VERSION/stackablectl-x86_64-unknown-linux-gnu"
-        sudo install -m 755 -t /usr/local/bin /tmp/stackablectl
+    - name: Install stackablectl and beku
+      uses: stackabletech/actions/setup-tools
+      with:
+        stackablectl-version: ${{ inputs.stackablectl-version }}
+        beku-version: ${{ inputs.beku-version }}
 
     - name: Install apt packages
       shell: bash
