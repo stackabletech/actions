@@ -28,5 +28,7 @@ particular step in a workflow.
 - [run-integration-test](./run-integration-test/README.md)
 - [run-pre-commit](./run-pre-commit/README.md)
 - [send-slack-notification](./send-slack-notification/README.md)
+- [setup-k8s-tools](./setup-k8s-tools/README.md)
+- [setup-tools](./setup-tools/README.md)
 - [shard](./shard/README.md)
 <!-- end:links -->
