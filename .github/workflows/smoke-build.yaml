@@ -1,11 +1,11 @@
 ---
-name: actions-smoke-test
+name: smoke-build
 
 on:
   workflow_dispatch:
   pull_request:
     paths:
-      - .github/workflows/pr_actions-smoke-test.yml
+      - .github/workflows/smoke-build.yaml
       - build-container-image/action.yaml
       - build-product-image/action.yaml
       - free-disk-space/action.yaml
