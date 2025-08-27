@@ -1,6 +1,6 @@
 ---
-name: Build Product Image
-description: This action builds a product Docker image with a specific version
+name: Build Container Image
+description: This action builds a container image with a specific version
 inputs:
   image-name:
     description: |
@@ -12,11 +12,14 @@ inputs:
       Human-readable tag (usually the version) without architecture information,
       for example: `3.4.1-stackable0.0.0-dev`
   container-file:
-    description: Path to Containerfile (or Dockefile)
+    description: Path to Containerfile (or Dockerfile)
     default: Dockerfile
   build-context:
     description: Path to the build-context
     default: .
+  build-arguments:
+    description: |
+      A comma-separated list of KEY=VALUE pairs provided as build arguments
 outputs:
   image-repository-uri:
     description: |
@@ -45,9 +48,12 @@ runs:
         IMAGE_INDEX_MANIFEST_TAG: ${{ inputs.image-index-manifest-tag }}
         CONTAINER_FILE: ${{ inputs.container-file }}
         BUILD_CONTEXT: ${{ inputs.build-context }}
+        BUILD_ARGUMENTS: ${{ inputs.build-arguments }}
       shell: bash
       run: |
         set -euo pipefail
+
+        DOCKER_BUILD_ARGUMENTS=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_build_arguments.sh" "$BUILD_ARGUMENTS")
 
         IMAGE_ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
         echo "IMAGE_ARCH=${IMAGE_ARCH}" | tee -a "$GITHUB_ENV"
@@ -64,11 +70,12 @@ runs:
         echo "::group::docker buildx build"
         # TODO (@NickLarsenNZ): Allow optional buildx cache
         docker buildx build \
-        --file "${CONTAINER_FILE}" \
-        --platform "linux/${IMAGE_ARCH}" \
-        --tag "${IMAGE_MANIFEST_URI}" \
-        --load \
-        "${BUILD_CONTEXT}"
+          --file "${CONTAINER_FILE}" \
+          --platform "linux/${IMAGE_ARCH}" \
+          --tag "${IMAGE_MANIFEST_URI}" \
+          --load \
+          $DOCKER_BUILD_ARGUMENTS \
+          "${BUILD_CONTEXT}"
         echo "::endgroup::"
 
         echo "::group::docker images"
