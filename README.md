@@ -26,6 +26,7 @@ particular step in a workflow.
 - [publish-image](./publish-image/README.md)
 - [publish-index-manifest](./publish-index-manifest/README.md)
 - [run-integration-test](./run-integration-test/README.md)
+- [run-openshift-preflight](./run-openshift-preflight/README.md)
 - [run-pre-commit](./run-pre-commit/README.md)
 - [send-slack-notification](./send-slack-notification/README.md)
 - [setup-k8s-tools](./setup-k8s-tools/README.md)

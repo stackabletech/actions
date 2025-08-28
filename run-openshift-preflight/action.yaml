@@ -1,0 +1,64 @@
+---
+name: Run OpenShift Preflight
+description: |
+  This action downloads the OpenShift preflight tool, runs it, and then reports
+  if the check passed.
+inputs:
+  preflight-version:
+    default: latest
+    description: The version of the OpenShift preflight tool.
+  image-index-uri:
+    description: |
+      The image index URI (eg. oci.stackable.tech/sdp/kafka:3.4.1-stackable0.0.0-dev) of the image
+      to be checked.
+  image-architecture:
+    description: The image architecture to be checked.
+runs:
+  using: composite
+  steps:
+    - name: Download the OpenShift preflight tool
+      env:
+        PREFLIGHT_VERSION: ${{ inputs.preflight-version }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
+        ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
+        SYSTEM=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_platform.sh")
+
+        if [ "$PREFLIGHT_VERSION" == "latest" ]; then
+          curl -fsSL -o /tmp/openshift-preflight "https://github.com/redhat-openshift-ecosystem/openshift-preflight/releases/latest/download/preflight-${SYSTEM}-${ARCH}"
+        else
+          curl -fsSL -o /tmp/openshift-preflight "https://github.com/redhat-openshift-ecosystem/openshift-preflight/releases/download/${PREFLIGHT_VERSION}/preflight-${SYSTEM}-${ARCH}"
+        fi
+
+        sudo install -m 755 -t /usr/local/bin /tmp/openshift-preflight
+
+    - name: Check Container Image
+      env:
+        IMAGE_ARCHITECTURE: ${{ inputs.image-architecture }}
+        IMAGE_INDEX_URI: ${{ inputs.image-index-uri }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
+        openshift-preflight check container "$IMAGE_INDEX_URI" --platform "linux/$IMAGE_ARCHITECTURE" > preflight.out
+
+    - name: Report Result
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
+        if [ "$(jq -r .passed < preflight.out)" == true ]; then
+          echo "Checks Passed"
+          exit 0
+        else
+          echo "Checks failed"
+          cat preflight.out
+          exit 1
+        fi
