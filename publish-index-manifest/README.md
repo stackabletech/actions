@@ -24,6 +24,6 @@ This action creates an image index manifest, publishes it, and signs it. It does
 
 ### Outputs
 
-None
+- `image-index-uri`: The final image index URI, eg. `oci.stackable.tech/spd/kafka:3.4.1-stackable0.0.0-dev`.
 
 [publish-index-manifest]: ./action.yaml

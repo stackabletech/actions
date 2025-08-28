@@ -28,6 +28,10 @@ inputs:
       ["amd64", "arm64", "riscv"]
     default: |
       ["amd64", "arm64"]
+outputs:
+  image-index-uri:
+    description: The Image Index URI.
+    value: ${{ steps.create-index.outputs.IMAGE_INDEX_URI }}
 runs:
   using: composite
   steps:
@@ -49,7 +53,8 @@ runs:
         set -euo pipefail
         echo "GITHUB_ACTION_PATH=$GITHUB_ACTION_PATH" | tee -a "$GITHUB_ENV"
 
-    - name: Create Image Index Manifest
+    - name: Create Image Index Manifest Manifest
+      id: create-index
       shell: bash
       env:
         IMAGE_INDEX_MANIFEST_TAG: ${{ inputs.image-index-manifest-tag }}
@@ -63,6 +68,7 @@ runs:
         # oci.stackable.tech/sdp/kafka:3.4.1-stackable0.0.0-dev
         IMAGE_INDEX_URI="$REGISTRY_URI/$IMAGE_REPOSITORY:$IMAGE_INDEX_MANIFEST_TAG"
         echo "IMAGE_INDEX_URI=$IMAGE_INDEX_URI" | tee -a "$GITHUB_ENV"
+        echo "IMAGE_INDEX_URI=$IMAGE_INDEX_URI" | tee -a "$GITHUB_OUTPUT"
 
         AMEND_OPTIONS=$(
           jq \
