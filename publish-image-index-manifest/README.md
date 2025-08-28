@@ -1,6 +1,6 @@
-# `publish-index-manifest`
+# `publish-image-index-manifest`
 
-> Manifest: [publish-index-manifest/action.yml][publish-index-manifest]
+> Manifest: [publish-image-index-manifest/action.yml][publish-image-index-manifest]
 
 This action creates an image index manifest, publishes it, and signs it. It does the following work:
 
@@ -11,7 +11,7 @@ This action creates an image index manifest, publishes it, and signs it. It does
 ## Inputs and Outputs
 
 > [!TIP]
-> For descriptions of the inputs and outputs, see the complete [publish-index-manifest] action.
+> For descriptions of the inputs and outputs, see the complete [publish-image-index-manifest] action.
 
 ### Inputs
 
@@ -26,4 +26,4 @@ This action creates an image index manifest, publishes it, and signs it. It does
 
 - `image-index-uri`: The final image index URI, eg. `oci.stackable.tech/spd/kafka:3.4.1-stackable0.0.0-dev`.
 
-[publish-index-manifest]: ./action.yaml
+[publish-image-index-manifest]: ./action.yaml
