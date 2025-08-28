@@ -24,7 +24,7 @@ particular step in a workflow.
 - [build-product-image](./build-product-image/README.md)
 - [free-disk-space](./free-disk-space/README.md)
 - [publish-image](./publish-image/README.md)
-- [publish-index-manifest](./publish-index-manifest/README.md)
+- [publish-image-index-manifest](./publish-image-index-manifest/README.md)
 - [run-integration-test](./run-integration-test/README.md)
 - [run-openshift-preflight](./run-openshift-preflight/README.md)
 - [run-pre-commit](./run-pre-commit/README.md)
