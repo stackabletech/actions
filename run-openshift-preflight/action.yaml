@@ -49,6 +49,8 @@ runs:
         openshift-preflight check container "$IMAGE_INDEX_URI" --platform "linux/$IMAGE_ARCHITECTURE" > preflight.out
 
     - name: Report Result
+      env:
+        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
