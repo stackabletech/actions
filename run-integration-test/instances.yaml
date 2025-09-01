@@ -36,9 +36,12 @@ aks:
     medium: Standard_D8S_v5
     large: Standard_D16S_v5
 
-##################################
-# VM based clusters (only AMD64) #
-##################################
+#######################################
+# VM based clusters (Some only AMD64) #
+#######################################
+
+# Alpha Docs
+# https://docs.google.com/document/d/1Rl0CXds-vjbIn0w0P2sHCDu7X859uE8CQLJsIymZT6c/
 
 # https://docs.replicated.com/vendor/testing-supported-clusters#kind
 kind:
@@ -46,6 +49,10 @@ kind:
     small: r1.small
     medium: r1.medium
     large: r1.large
+  arm64:
+    small: r1a.small
+    medium: r1a.medium
+    large: r1a.large
 
 # https://docs.replicated.com/vendor/testing-supported-clusters#k3s
 k3s:
@@ -53,6 +60,10 @@ k3s:
     small: r1.small
     medium: r1.medium
     large: r1.large
+  arm64:
+    small: r1a.small
+    medium: r1a.medium
+    large: r1a.large
 
 # https://docs.replicated.com/vendor/testing-supported-clusters#rke2-beta
 rke2:
@@ -60,6 +71,10 @@ rke2:
     small: r1.small
     medium: r1.medium
     large: r1.large
+  arm64:
+    small: r1a.small
+    medium: r1a.medium
+    large: r1a.large
 
 # https://docs.replicated.com/vendor/testing-supported-clusters#openshift-okd
 okd:
