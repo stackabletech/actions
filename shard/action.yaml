@@ -5,9 +5,9 @@ inputs:
   product-name:
     description: The name of the product to build via bake (directory name)
     required: true
-  config-file:
-    description: Path the the config file used to generate the shard indices
-    default: ./conf.py
+  boil-version:
+    description: The boil version
+    default: latest
 outputs:
   versions:
     description: A list of product versions
@@ -15,30 +15,29 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+    - uses: stackabletech/actions/setup-tools # TODO: Use released version
       with:
-        python-version: '3.12'
-
-    - name: Extract Action Path
-      shell: bash
-      env:
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
-      run: |
-        set -euo pipefail
-        echo "GITHUB_ACTION_PATH=$GITHUB_ACTION_PATH" | tee -a "$GITHUB_ENV"
+        boil-version: ${{ inputs.boil-version }}
 
     - name: Generate Shards
       id: generate_shards
-      shell: bash
       env:
         PRODUCT_NAME: ${{ inputs.product-name }}
-        CONFIG_FILE: ${{ inputs.config-file }}
-      run: |
-        set -euo pipefail
-        python "$GITHUB_ACTION_PATH/../.scripts/actions/shard.py"
-
-    - name: Print Shards
+        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
+        VERSIONS=$(boil show images "$PRODUCT_NAME")
+        echo "VERSIONS=$VERSIONS" | tee -a "$GITHUB_OUTPUT"
+
+    - name: Print Shards
+      env:
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
         echo versions=${{ steps.generate_shards.outputs.VERSIONS }}
