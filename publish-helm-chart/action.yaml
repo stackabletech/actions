@@ -34,7 +34,7 @@ runs:
       uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
 
     - name: Set up Helm
-      uses: stackabletech/actions/setup-k8s-tools@7279ffd852a8013df52028de0d99eef68700f803 # TODO: Pin this to the latest tag
+      uses: ./setup-k8s-tools
       with:
         helm-version: ${{ inputs.helm-version }}
 
