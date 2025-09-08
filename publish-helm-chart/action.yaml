@@ -12,7 +12,7 @@ inputs:
     description: The password used to login to the Helm Chart registry
     required: true
   chart-repository:
-    description: Path to the Helm chart, for example `sdp-charts/kafka-operator`
+    description: Path to the Helm chart, for example `sdp-charts`
     required: true
   helm-version:
     description: Version of helm
@@ -96,7 +96,7 @@ runs:
         set -euo pipefail
         [ -n "$GITHUB_DEBUG" ] && set -x
 
-        CHART_NAME=$(echo "$CHART_REPOSITORY" | awk -F/ '{print $NF}')
+        CHART_NAME=$(echo "$CHART_DIRECTORY" | awk -F/ '{print $NF}')
         CHART_ARTIFACT="${TEMP_CHART_DIR}/${CHART_NAME}-${CHART_VERSION}.tgz"
         echo "CHART_NAME=$CHART_NAME" | tee -a "$GITHUB_ENV"
 
