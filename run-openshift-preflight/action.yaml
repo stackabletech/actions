@@ -62,5 +62,6 @@ runs:
         else
           echo "Checks failed"
           cat preflight.out
+          cat preflight.log
           exit 1
         fi
