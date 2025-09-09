@@ -129,4 +129,4 @@ runs:
 
         # This generates a signature and publishes it to the registry, next to the chart artifact
         # Uses the keyless signing flow with Github Actions as identity provider
-        cosign sign -y "${CHART_REGISTRY_URI}/${CHART_REPOSITORY}/${CHART_NAME}@${CHART_DIGEST}"
+        cosign sign --yes "${CHART_REGISTRY_URI}/${CHART_REPOSITORY}/${CHART_NAME}@${CHART_DIGEST}"

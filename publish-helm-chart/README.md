@@ -3,6 +3,7 @@
 > Manifest: [publish-helm-chart/action.yml][publish-helm-chart]
 
 This action packages, publishes, and signs a Helm chart.
+It needs the `id-token: write` permission to be able to sign the Helm chart with a GitHub OIDC token.
 
 ## Inputs and Outputs
 
