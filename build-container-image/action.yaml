@@ -55,7 +55,7 @@ runs:
         set -euo pipefail
 
         # Validate that the build arguments input doesn't contain any whitespaces
-        if [[ $BUILD_ARGUMENTS = *" "* ]]; then
+        if echo "$BUILD_ARGUMENTS" | grep '[[:space:]]'; then
           echo "Build arguments MUST not contain any whitespace."
           exit 1
         fi
