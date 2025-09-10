@@ -21,7 +21,7 @@ All subsequent tasks must use this value to ensure consistency.
 - `image-index-manifest-tag` (required, eg: `3.4.1-stackable0.0.0-dev`)
 - `container-file` (defaults to `Dockerfile`)
 - `build-context` (defaults to `.`)
-- `build-arguments`
+- `build-arguments`: MUST not contain any whitespace
 
 ### Outputs
 
