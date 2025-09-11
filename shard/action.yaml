@@ -15,7 +15,7 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: stackabletech/actions/setup-tools # TODO: Use released version
+    - uses: stackabletech/actions/setup-tools@main # TODO: Replace with latest released version
       with:
         boil-version: ${{ inputs.boil-version }}
 
