@@ -23,6 +23,7 @@ particular step in a workflow.
 - [build-container-image](./build-container-image/README.md)
 - [build-product-image](./build-product-image/README.md)
 - [free-disk-space](./free-disk-space/README.md)
+- [publish-helm-chart](./publish-helm-chart/README.md)
 - [publish-image](./publish-image/README.md)
 - [publish-image-index-manifest](./publish-image-index-manifest/README.md)
 - [run-integration-test](./run-integration-test/README.md)

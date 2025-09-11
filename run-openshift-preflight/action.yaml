@@ -46,7 +46,7 @@ runs:
         set -euo pipefail
         [ -n "$GITHUB_DEBUG" ] && set -x
 
-        openshift-preflight check container "$IMAGE_INDEX_URI" --platform "linux/$IMAGE_ARCHITECTURE" > preflight.out
+        openshift-preflight check container "$IMAGE_INDEX_URI" --platform "$IMAGE_ARCHITECTURE" > preflight.out
 
     - name: Report Result
       env:
@@ -62,5 +62,6 @@ runs:
         else
           echo "Checks failed"
           cat preflight.out
+          cat preflight.log
           exit 1
         fi

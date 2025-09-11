@@ -1,0 +1,132 @@
+---
+name: Publish Helm Chart
+description: This action creates, publishes, and signs a Helm Chart
+inputs:
+  chart-registry-uri:
+    description: The URI of the Helm Chart registry
+    required: true
+  chart-registry-username:
+    description: The username used to login to the Helm Chart registry
+    required: true
+  chart-registry-password:
+    description: The password used to login to the Helm Chart registry
+    required: true
+  chart-repository:
+    description: Path to the Helm chart, for example `sdp-charts`
+    required: true
+  helm-version:
+    description: Version of helm
+    # See https://github.com/helm/helm/releases for latest version
+    default: v3.18.6
+  chart-version:
+    description: The Helm Chart version
+    required: true
+  chart-directory:
+    description: The directory where the Chart.yaml file is located
+    required: true
+  app-version:
+    description: The app version to set in the Helm Chart
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Set up Cosign
+      uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
+
+    - name: Set up Helm
+      # We cannot use a path to point to the local action
+      # See https://github.com/orgs/community/discussions/74934
+      uses: stackabletech/actions/setup-k8s-tools@7279ffd852a8013df52028de0d99eef68700f803 # TODO: Pin this to the latest tag
+      with:
+        helm-version: ${{ inputs.helm-version }}
+
+    - name: Log into Container Registry (${{ inputs.chart-registry-uri }}) using Helm
+      env:
+        CHART_REGISTRY_USERNAME: ${{ inputs.chart-registry-username }}
+        CHART_REGISTRY_PASSWORD: ${{ inputs.chart-registry-password }}
+        CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
+        helm registry login --username "$CHART_REGISTRY_USERNAME" --password "$CHART_REGISTRY_PASSWORD" "$CHART_REGISTRY_URI"
+
+    - name: Log into Container Registry (${{ inputs.chart-registry-uri }}) using Docker
+      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+      with:
+        registry: ${{ inputs.chart-registry-uri }}
+        username: ${{ inputs.chart-registry-username }}
+        password: ${{ inputs.chart-registry-password }}
+
+    - name: Package Helm Chart
+      env:
+        CHART_DIRECTORY: ${{ inputs.chart-directory }}
+        CHART_VERSION: ${{ inputs.chart-version }}
+        APP_VERSION: ${{ inputs.app-version }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
+        # Set the Helm Chart version
+        # yq ".version = \"$CHART_VERSION\"" < "$CHART_DIRECTORY/Chart.yaml" > "$CHART_DIRECTORY/Chart.new.yaml"
+        # mv "$CHART_DIRECTORY/Chart.new.yaml" "$CHART_DIRECTORY/Chart.yaml"
+
+        # Create temporary directory to store the Helm Chart
+        TEMP_CHART_DIR=$(mktemp -d)
+        echo "TEMP_CHART_DIR=$TEMP_CHART_DIR" | tee -a "$GITHUB_ENV"
+
+        # Package the Helm Chart
+        helm package \
+          --destination "$TEMP_CHART_DIR" \
+          --version "$CHART_VERSION" \
+          --app-version "$APP_VERSION" \
+          "$CHART_DIRECTORY"
+
+    - name: Publish Helm Chart
+      env:
+        CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
+        CHART_REPOSITORY: ${{ inputs.chart-repository }}
+        CHART_DIRECTORY: ${{ inputs.chart-directory }}
+        CHART_VERSION: ${{ inputs.chart-version }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
+        CHART_NAME=$(echo "$CHART_DIRECTORY" | awk -F/ '{print $NF}')
+        CHART_ARTIFACT="${TEMP_CHART_DIR}/${CHART_NAME}-${CHART_VERSION}.tgz"
+        echo "CHART_NAME=$CHART_NAME" | tee -a "$GITHUB_ENV"
+
+        # Capture the stdout output to extract the digest. It is sad that Helm doesn't provide
+        # structured output, eg. in JSON. There is a 2-year old open issue about it:
+        # https://github.com/helm/helm/issues/11735
+        HELM_OUTPUT=$(helm push "$CHART_ARTIFACT" "oci://${CHART_REGISTRY_URI}/${CHART_REPOSITORY}" 2>&1)
+
+        # Yuck
+        CHART_DIGEST=$(echo "$HELM_OUTPUT" | awk '/^Digest: sha256:[0-9a-f]{64}$/ { print $2 }')
+
+        if [ -z "$CHART_DIGEST" ]; then
+          echo "Could not find digest of Helm Chart"
+          exit 1
+        fi
+
+        echo "CHART_DIGEST=$CHART_DIGEST" | tee -a "$GITHUB_ENV"
+
+    - name: Sign Helm Chart
+      env:
+        CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
+        CHART_REPOSITORY: ${{ inputs.chart-repository }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
+        # This generates a signature and publishes it to the registry, next to the chart artifact
+        # Uses the keyless signing flow with Github Actions as identity provider
+        cosign sign --yes "${CHART_REGISTRY_URI}/${CHART_REPOSITORY}/${CHART_NAME}@${CHART_DIGEST}"

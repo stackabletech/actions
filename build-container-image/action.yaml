@@ -19,7 +19,8 @@ inputs:
     default: .
   build-arguments:
     description: |
-      A comma-separated list of KEY=VALUE pairs provided as build arguments
+      A comma-separated list of KEY=VALUE pairs provided as build arguments.
+      MUST not contain any whitespace.
 outputs:
   image-repository-uri:
     description: |
@@ -53,6 +54,12 @@ runs:
       run: |
         set -euo pipefail
 
+        # Validate that the build arguments input doesn't contain any whitespaces
+        if echo "$BUILD_ARGUMENTS" | grep '[[:space:]]'; then
+          >&2 echo "Build arguments MUST not contain any whitespace."
+          exit 1
+        fi
+
         DOCKER_BUILD_ARGUMENTS=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_build_arguments.sh" "$BUILD_ARGUMENTS")
 
         IMAGE_ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
@@ -75,7 +82,7 @@ runs:
           --tag "${IMAGE_MANIFEST_URI}" \
           --load \
           $DOCKER_BUILD_ARGUMENTS \
-          "${BUILD_CONTEXT}"
+          "$BUILD_CONTEXT"
         echo "::endgroup::"
 
         echo "::group::docker images"
