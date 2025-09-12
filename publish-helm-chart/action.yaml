@@ -36,7 +36,9 @@ runs:
     - name: Set up Helm
       # We cannot use a path to point to the local action
       # See https://github.com/orgs/community/discussions/74934
-      uses: stackabletech/actions/setup-k8s-tools@refactor/build-product-image-use-boil # TODO: Replace with latest released version
+      # Using other "local" actions is super painful. As such, a follow-up PR will make this way
+      # more comfortable again.
+      uses: stackabletech/actions/setup-k8s-tools@main # TODO: Replace with latest released version
       with:
         helm-version: ${{ inputs.helm-version }}
 
