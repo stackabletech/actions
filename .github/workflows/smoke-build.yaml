@@ -61,6 +61,7 @@ jobs:
           product-name: smoke
           product-version: ${{ matrix.versions }}
           extra-tag-data: pr-321
+          boil-config-file: smoke/boil.toml
 
       - name: Publish Container Image on oci.stackable.tech
         uses: ./publish-image
