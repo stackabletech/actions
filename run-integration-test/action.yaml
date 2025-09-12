@@ -60,7 +60,7 @@ runs:
   using: composite
   steps:
     - name: Install interu
-      uses: stackabletech/actions/setup-tools@main # TODO: Replace with latest released version
+      uses: stackabletech/actions/setup-tools@refactor/build-product-image-use-boil # TODO: Replace with latest released version
       with:
         interu-version: ${{ inputs.interu-version }}
     - name: Extract Test and Instance Configuration
@@ -97,7 +97,7 @@ runs:
     # and are therefore not available, there is no need to create the cluster or run the tests,
     # because the tests can never run in the first place.
     - name: Install kubectl, kubectl-kuttl, and helm
-      uses: stackablectl/actions/setup-k8s-tools@main # TODO: Replace with latest released version
+      uses: stackablectl/actions/setup-k8s-tools@refactor/build-product-image-use-boil # TODO: Replace with latest released version
       with:
         kubectl-version: ${{ inputs.kubectl-version }}
         kuttl-version: ${{ inputs.kuttl-version }}
@@ -110,7 +110,7 @@ runs:
     # mikefarah/yq is already installed on the runner
     # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-yq.sh
     - name: Install stackablectl and beku
-      uses: stackabletech/actions/setup-tools@main # TODO: Replace with latest released version
+      uses: stackabletech/actions/setup-tools@refactor/build-product-image-use-boil # TODO: Replace with latest released version
       with:
         stackablectl-version: ${{ inputs.stackablectl-version }}
         beku-version: ${{ inputs.beku-version }}
