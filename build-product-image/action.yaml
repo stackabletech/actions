@@ -76,7 +76,7 @@ runs:
           --write-image-manifest-uris \
           --use-localhost-registry \
           "$IMAGE_REPOSITORY=$BOIL_PRODUCT_VERSION"
-        echo "::endgroup::""
+        echo "::endgroup::"
 
     - name: Extract Environment Variables
       id: image_info
