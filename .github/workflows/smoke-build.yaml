@@ -28,6 +28,7 @@ jobs:
         uses: ./shard
         with:
           product-name: smoke
+          boil-version: 0.1.0
     outputs:
       versions: ${{ steps.shard.outputs.versions }}
 
@@ -60,6 +61,7 @@ jobs:
         with:
           product-version: ${{ matrix.versions }}
           boil-config-file: smoke/boil.toml
+          boil-version: 0.1.0
           registry-namespace: stackable
           extra-tag-data: pr-321
           product-name: smoke
