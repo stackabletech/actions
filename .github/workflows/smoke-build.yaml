@@ -72,7 +72,7 @@ jobs:
           image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
           image-repository: stackable/smoke
           image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
-          source-image-uri: localhost/smoke:${{ steps.build.outputs.image-manifest-tag }}
+          source-image-uri: localhost/stackable/smoke:${{ steps.build.outputs.image-manifest-tag }}
 
   publish_manifests:
     name: Build/Publish ${{ matrix.versions }} Index Manifest
