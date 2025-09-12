@@ -71,9 +71,9 @@ runs:
         echo "::group::boil"
         boil build \
           --image-version "$IMAGE_INDEX_MANIFEST_TAG" \
-          --platform "linux/${IMAGE_ARCH}" \
-          --write-image-manifest-uris \
+          --target-platform "linux/${IMAGE_ARCH}" \
           --configuration "$BOIL_CONFIG_FILE" \
+          --write-image-manifest-uris \
           --use-localhost-registry \
           "$IMAGE_REPOSITORY=$BOIL_PRODUCT_VERSION"
         echo "::endgroup::""
