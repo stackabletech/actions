@@ -29,7 +29,7 @@ runs:
         set -euo pipefail
         [ -n "$GITHUB_DEBUG" ] && set -x
 
-        VERSIONS=$(boil show images "$PRODUCT_NAME | jq ".$PRODUCT_NAME")
+        VERSIONS=$(boil show images "$PRODUCT_NAME" | jq ".$PRODUCT_NAME")
         echo "VERSIONS=$VERSIONS" | tee -a "$GITHUB_OUTPUT"
 
     - name: Print Shards
