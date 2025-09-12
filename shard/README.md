@@ -2,11 +2,11 @@
 
 > Manifest: [shard/action.yml][shard]
 
-This action produces a list of versions for a product. This is to be used as a matrix dimension to
+This action produces a list of versions for an image. This is to be used as a matrix dimension to
 parallelize builds. It does the following work:
 
-1. Reads the `conf.py`, filtering versions for the product
-2. Write the JSON array of version to `$GITHUB_OUTPUT` for use in a matrix.
+1. Reads the `<IMAGE_NAME>/boil-config.toml` file, extracting the versions for the image
+2. Write the JSON array of versions to `$GITHUB_OUTPUT` for use in a matrix.
 
 Example usage:
 
@@ -20,7 +20,7 @@ jobs:
       - id: shard
         uses: stackabletech/actions/shard
         with:
-          product-name: ${{ env.PRODUCT_NAME }}
+          image-name: ${{ env.IMAGE_NAME }}
     outputs:
       versions: ${{ steps.shard.outputs.versions }}
 
@@ -39,10 +39,15 @@ jobs:
 
 ### Inputs
 
-- `product-name` (eg: `kafka`)
+| Input          | Required (Default) | Description                                             |
+| -------------- | ------------------ | ------------------------------------------------------- |
+| `image-name`   | Yes                | The name of the image, eg: `kafka`                      |
+| `boil-version` | No (`latest`)      | The version of boil used to create the list of versions |
 
 ### Outputs
 
-- `versions` (eg: `["3.7.1", "3.8.0"]`)
+| Output     | Example              | Description                                |
+| ---------- | -------------------- | ------------------------------------------ |
+| `versions` | `["3.7.1", "3.8.0"]` | A JSON array containing the image versions |
 
 [shard]: ./action.yaml

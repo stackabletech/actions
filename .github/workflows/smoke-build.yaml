@@ -28,7 +28,7 @@ jobs:
         uses: ./shard
         with:
           product-name: smoke
-          config-file: smoke/conf.py
+          boil-version: 0.1.0
     outputs:
       versions: ${{ steps.shard.outputs.versions }}
 
@@ -41,8 +41,10 @@ jobs:
     strategy:
       matrix:
         runner:
+          # Github's ubuntu-latest runners use 24.04. By default Ubicloud's runners use 22.04.
+          # We therefore explicitly request 24.04 for them as well.
           - {name: "ubuntu-latest", arch: "amd64"}
-          - {name: "ubicloud-standard-8-arm", arch: "arm64"}
+          - {name: "ubicloud-standard-8-arm-ubuntu-2404", arch: "arm64"}
         versions: ${{ fromJson(needs.generate_matrix.outputs.versions) }}
     steps:
       - name: Checkout Repository
@@ -57,10 +59,12 @@ jobs:
         id: build
         uses: ./build-product-image
         with:
-          product-name: smoke
           product-version: ${{ matrix.versions }}
-          bake-config-file: smoke/conf.py
+          boil-config-file: smoke/boil.toml
+          boil-version: 0.1.0
+          registry-namespace: stackable
           extra-tag-data: pr-321
+          product-name: smoke
 
       - name: Publish Container Image on oci.stackable.tech
         uses: ./publish-image
@@ -70,7 +74,7 @@ jobs:
           image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
           image-repository: stackable/smoke
           image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
-          source-image-uri: localhost/smoke:${{ steps.build.outputs.image-manifest-tag }}
+          source-image-uri: localhost/stackable/smoke:${{ steps.build.outputs.image-manifest-tag }}
 
   publish_manifests:
     name: Build/Publish ${{ matrix.versions }} Index Manifest
