@@ -28,7 +28,6 @@ jobs:
         uses: ./shard
         with:
           product-name: smoke
-          config-file: smoke/conf.py
     outputs:
       versions: ${{ steps.shard.outputs.versions }}
 
@@ -41,8 +40,10 @@ jobs:
     strategy:
       matrix:
         runner:
+          # Github's ubuntu-latest runners use 24.04. By default Ubicloud's runners use 22.04.
+          # We therefore explicitly request 24.04 for them as well.
           - {name: "ubuntu-latest", arch: "amd64"}
-          - {name: "ubicloud-standard-8-arm", arch: "arm64"}
+          - {name: "ubicloud-standard-8-arm-ubuntu-2404", arch: "arm64"}
         versions: ${{ fromJson(needs.generate_matrix.outputs.versions) }}
     steps:
       - name: Checkout Repository
@@ -59,7 +60,6 @@ jobs:
         with:
           product-name: smoke
           product-version: ${{ matrix.versions }}
-          bake-config-file: smoke/conf.py
           extra-tag-data: pr-321
 
       - name: Publish Container Image on oci.stackable.tech
