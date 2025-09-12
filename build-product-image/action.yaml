@@ -75,6 +75,7 @@ runs:
           --configuration "$BOIL_CONFIG_FILE" \
           --write-image-manifest-uris \
           --use-localhost-registry \
+          --load \
           "$IMAGE_REPOSITORY=$BOIL_PRODUCT_VERSION"
         echo "::endgroup::"
 
