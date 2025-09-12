@@ -58,10 +58,11 @@ jobs:
         id: build
         uses: ./build-product-image
         with:
-          product-name: smoke
           product-version: ${{ matrix.versions }}
-          extra-tag-data: pr-321
           boil-config-file: smoke/boil.toml
+          registry-namespace: stackable
+          extra-tag-data: pr-321
+          product-name: smoke
 
       - name: Publish Container Image on oci.stackable.tech
         uses: ./publish-image

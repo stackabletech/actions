@@ -21,6 +21,9 @@ inputs:
   extra-tag-data:
     description: |
       Extra data to include in the final image manifest tag (eg: `pr321`)
+  registry-namespace:
+    description: Path of the registry namespace, eg. `sdp` or `stackable`
+    required: true
 outputs:
   image-manifest-tag:
     description: |
@@ -45,6 +48,7 @@ runs:
 
     - name: Building ${{ inputs.product-name }} Container Image using boil
       env:
+        REGISTRY_NAMESPACE: ${{ inputs.registry-namespace }}
         BOIL_PRODUCT_VERSION: ${{ inputs.product-version }}
         BOIL_CONFIG_FILE: ${{ inputs.boil-config-file }}
         IMAGE_REPOSITORY: ${{ inputs.product-name }}
@@ -71,6 +75,7 @@ runs:
         echo "::group::boil"
         boil build \
           --image-version "$IMAGE_INDEX_MANIFEST_TAG" \
+          --registry-namespace "$REGISTRY_NAMESPACE" \
           --target-platform "linux/${IMAGE_ARCH}" \
           --configuration "$BOIL_CONFIG_FILE" \
           --write-image-manifest-uris \

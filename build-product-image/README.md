@@ -31,14 +31,15 @@ localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
 
 ### Inputs
 
-| Input              | Required (Default) | Description                                             |
-| ------------------ | ------------------ | ------------------------------------------------------- |
-| `product-name`     | Yes                | The name of the product image to build (eg: `kafka`)    |
-| `product-version`  | Yes                | The version of the product image to build (eg: `3.4.1`) |
-| `boil-version`     | No (`latest`)      | The version of boil used to build the image             |
-| `boil-config-file` | No (`./boil.toml`) | The path to the boil config file                        |
-| `sdp-version`      | No (`0.0.0-dev`)   | The SDP version of the image                            |
-| `extra-tag-data`   | No                 | Extra data to be included in the tag, eg. `pr321`       |
+| Input                | Required (Default) | Description                                                  |
+| -------------------- | ------------------ | ------------------------------------------------------------ |
+| `product-name`       | Yes                | The name of the product image to build (eg: `kafka`)         |
+| `product-version`    | Yes                | The version of the product image to build (eg: `3.4.1`)      |
+| `registry-namespace` | Yes                | The path of the registry namespace, eg. `sdp` or `stackable` |
+| `boil-version`       | No (`latest`)      | The version of boil used to build the image                  |
+| `boil-config-file`   | No (`./boil.toml`) | The path to the boil config file                             |
+| `sdp-version`        | No (`0.0.0-dev`)   | The SDP version of the image                                 |
+| `extra-tag-data`     | No                 | Extra data to be included in the tag, eg. `pr321`            |
 
 ### Outputs
 
