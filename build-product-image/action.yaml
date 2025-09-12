@@ -69,10 +69,10 @@ runs:
         fi
 
         echo "::group::boil"
-        boil \
+        boil build \
           --image-version "$IMAGE_INDEX_MANIFEST_TAG" \
           --platform "linux/${IMAGE_ARCH}" \
-          --export-image-manifest-uris \
+          --write-image-manifest-uris \
           --configuration "$BOIL_CONFIG_FILE" \
           --use-localhost-registry \
           "$IMAGE_REPOSITORY=$BOIL_PRODUCT_VERSION"
