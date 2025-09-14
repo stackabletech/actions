@@ -60,7 +60,9 @@ runs:
   using: composite
   steps:
     - name: Install interu
-      uses: stackabletech/actions/setup-tools@7279ffd852a8013df52028de0d99eef68700f803 # TODO: Pin this to the latest tag
+      # Using other "local" actions is super painful. As such, a follow-up PR will make this way
+      # more comfortable again.
+      uses: stackabletech/actions/setup-tools@main # TODO: Replace with latest released version
       with:
         interu-version: ${{ inputs.interu-version }}
     - name: Extract Test and Instance Configuration
@@ -97,7 +99,9 @@ runs:
     # and are therefore not available, there is no need to create the cluster or run the tests,
     # because the tests can never run in the first place.
     - name: Install kubectl, kubectl-kuttl, and helm
-      uses: stackablectl/actions/setup-k8s-tools@7279ffd852a8013df52028de0d99eef68700f803 # TODO: Pin this to the latest tag
+      # Using other "local" actions is super painful. As such, a follow-up PR will make this way
+      # more comfortable again.
+      uses: stackablectl/actions/setup-k8s-tools@main # TODO: Replace with latest released version
       with:
         kubectl-version: ${{ inputs.kubectl-version }}
         kuttl-version: ${{ inputs.kuttl-version }}
@@ -110,7 +114,9 @@ runs:
     # mikefarah/yq is already installed on the runner
     # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-yq.sh
     - name: Install stackablectl and beku
-      uses: stackabletech/actions/setup-tools@7279ffd852a8013df52028de0d99eef68700f803 # TODO: Pin this to the latest tag
+      # Using other "local" actions is super painful. As such, a follow-up PR will make this way
+      # more comfortable again.
+      uses: stackabletech/actions/setup-tools@main # TODO: Replace with latest released version
       with:
         stackablectl-version: ${{ inputs.stackablectl-version }}
         beku-version: ${{ inputs.beku-version }}
