@@ -34,13 +34,11 @@ runs:
       uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
 
     - name: Set up Helm
-      # We cannot use a path to point to the local action
-      # See https://github.com/orgs/community/discussions/74934
-      # Using other "local" actions is super painful. As such, a follow-up PR will make this way
-      # more comfortable again.
-      uses: stackabletech/actions/setup-k8s-tools@main # TODO: Replace with latest released version
-      with:
-        helm-version: ${{ inputs.helm-version }}
+      env:
+        HELM_VERSION: ${{ inputs.helm-version }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_helm.sh"
 
     - name: Log into Container Registry (${{ inputs.chart-registry-uri }}) using Helm
       env:

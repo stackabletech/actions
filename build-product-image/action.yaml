@@ -42,11 +42,11 @@ runs:
       uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
     - name: Setup boil (${{ inputs.boil-version }})
-      # Using other "local" actions is super painful. As such, a follow-up PR will make this way
-      # more comfortable again.
-      uses: stackabletech/actions/setup-tools@main # TODO: Replace with latest released version
-      with:
-        boil-version: ${{ inputs.boil-version }}
+      env:
+        BOIL_VERSION: ${{ inputs.boil-version }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_boil.sh"
 
     - name: Building ${{ inputs.product-name }} Container Image using boil
       env:

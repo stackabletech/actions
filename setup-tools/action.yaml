@@ -19,19 +19,7 @@ runs:
         BOIL_VERSION: ${{ inputs.boil-version }}
         GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
-      run: |
-        set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
-
-        ARCH=$(uname -m)
-
-        if [ "$BOIL_VERSION" == "latest" ]; then
-          curl -fsSL -o /tmp/boil "https://github.com/stackabletech/docker-images/releases/latest/download/boil-${ARCH}-unknown-linux-gnu"
-        else
-          curl -fsSL -o /tmp/boil "https://github.com/stackabletech/docker-images/releases/download/boil-${BOIL_VERSION}/boil-${ARCH}-unknown-linux-gnu"
-        fi
-
-        sudo install -m 755 -t /usr/local/bin /tmp/boil
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_boil.sh"
 
     - name: Install stackablectl
       if: inputs.stackablectl-version
@@ -39,19 +27,7 @@ runs:
         STACKABLECTL_VERSION: ${{ inputs.stackablectl-version }}
         GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
-      run: |
-        set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
-
-        ARCH=$(uname -m)
-
-        if [ "$STACKABLECTL_VERSION" == "latest" ]; then
-          curl -fsSL -o /tmp/stackablectl "https://github.com/stackabletech/stackable-cockpit/releases/latest/download/stackablectl-${ARCH}-unknown-linux-gnu"
-        else
-          curl -fsSL -o /tmp/stackablectl "https://github.com/stackabletech/stackable-cockpit/releases/download/stackablectl-${STACKABLECTL_VERSION}/stackablectl-${ARCH}-unknown-linux-gnu"
-        fi
-
-        sudo install -m 755 -t /usr/local/bin /tmp/stackablectl
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_stackablectl.sh"
 
     - name: Install interu
       if: inputs.interu-version
@@ -59,19 +35,7 @@ runs:
         INTERU_VERSION: ${{ inputs.interu-version }}
         GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
-      run: |
-        set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
-
-        ARCH=$(uname -m)
-
-        if [ "$INTERU_VERSION" == "latest" ]; then
-          curl -fsSL -o /tmp/interu "https://github.com/stackabletech/actions/releases/latest/download/interu-${ARCH}-unknown-linux-gnu"
-        else
-          curl -fsSL -o /tmp/interu "https://github.com/stackabletech/actions/releases/download/interu-${INTERU_VERSION}/interu-${ARCH}-unknown-linux-gnu"
-        fi
-
-        sudo install -m 755 -t /usr/local/bin /tmp/interu
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_interu.sh"
 
     - name: Install beku
       if: inputs.beku-version

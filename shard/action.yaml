@@ -15,11 +15,12 @@ outputs:
 runs:
   using: composite
   steps:
-    # Using other "local" actions is super painful. As such, a follow-up PR will make this way
-    # more comfortable again.
-    - uses: stackabletech/actions/setup-tools@main # TODO: Replace with latest released version
-      with:
-        boil-version: ${{ inputs.boil-version }}
+    - name: Setup boil (${{ inputs.boil-version }})
+      env:
+        BOIL_VERSION: ${{ inputs.boil-version }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_boil.sh"
 
     - name: Generate Shards
       id: generate_shards
