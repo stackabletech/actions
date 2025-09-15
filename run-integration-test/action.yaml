@@ -60,11 +60,12 @@ runs:
   using: composite
   steps:
     - name: Install interu
-      # Using other "local" actions is super painful. As such, a follow-up PR will make this way
-      # more comfortable again.
-      uses: stackabletech/actions/setup-tools@main # TODO: Replace with latest released version
-      with:
-        interu-version: ${{ inputs.interu-version }}
+      env:
+        INTERU_VERSION: ${{ inputs.interu-version }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_interu.sh"
+
     - name: Extract Test and Instance Configuration
       env:
         TEST_MODE_INPUT: ${{ inputs.test-mode-input }}
@@ -99,13 +100,16 @@ runs:
     # and are therefore not available, there is no need to create the cluster or run the tests,
     # because the tests can never run in the first place.
     - name: Install kubectl, kubectl-kuttl, and helm
-      # Using other "local" actions is super painful. As such, a follow-up PR will make this way
-      # more comfortable again.
-      uses: stackablectl/actions/setup-k8s-tools@main # TODO: Replace with latest released version
-      with:
-        kubectl-version: ${{ inputs.kubectl-version }}
-        kuttl-version: ${{ inputs.kuttl-version }}
-        helm-version: ${{ inputs.helm-version }}
+      env:
+        KUBECTL_VERSION: ${{ inputs.kubectl-version }}
+        KUTTL_VERSION: ${{ inputs.kuttl-version }}
+        HELM_VERSION: ${{ inputs.helm-version }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: |
+        "$GITHUB_ACTION_PATH/../.scripts/actions/install_kubectl.sh"
+        "$GITHUB_ACTION_PATH/../.scripts/actions/install_kubectl_kuttl.sh"
+        "$GITHUB_ACTION_PATH/../.scripts/actions/install_helm.sh"
 
     # Python3 is already installed, if we ever need to specify the version, we can use the
     # setup-python action.
@@ -113,13 +117,24 @@ runs:
     #
     # mikefarah/yq is already installed on the runner
     # See https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-yq.sh
-    - name: Install stackablectl and beku
-      # Using other "local" actions is super painful. As such, a follow-up PR will make this way
-      # more comfortable again.
-      uses: stackabletech/actions/setup-tools@main # TODO: Replace with latest released version
-      with:
-        stackablectl-version: ${{ inputs.stackablectl-version }}
-        beku-version: ${{ inputs.beku-version }}
+    - name: Install stackablectl
+      env:
+        STACKABLECTL_VERSION: ${{ inputs.stackablectl-version }}
+        BEKU_VERSION: ${{ inputs.beku-version }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_stackablectl.sh"
+
+    - name: Install beku
+      env:
+        BEKU_VERSION: ${{ inputs.beku-version }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
+        pip install "beku-stackabletech==$BEKU_VERSION"
 
     - name: Install apt packages
       shell: bash
