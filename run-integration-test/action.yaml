@@ -272,7 +272,7 @@ runs:
       run: |
         # Only look at the last 200 lines of test output which should be more than enough to capture all test results
         FAILED_TESTS=$(tail --lines 200 test-output.log | grep -E '\s{8}--- FAIL:' | sed -e 's|^.*kuttl/harness/||')
-        echo "FAILED_TESTS=$FAILED_TESTS" | tee -a "$GITHUB_OUTPUT"
+        echo "FAILED_TESTS<<EOF\n$FAILED_TESTS\nEOF" | tee -a "$GITHUB_OUTPUT"
 
     - name: Calculate Health
       if: always()
