@@ -42,6 +42,15 @@ inputs:
       The source image uri, which gets re-tagged by this action to be pushed to
       the appropriate registry.
     required: true
+  cosign-retries:
+    description: The number of times cosign operations should be retried
+    default: "3"
+  cosign-retry-timeout:
+    description: |
+      Duration to wait before a new cosign operation is retried, format: `NUMBER[SUFFIX]`.
+      SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours or 'd' for days.
+      See `sleep --help` for the full details.
+    default: "30s"
 runs:
   using: composite
   steps:
@@ -90,17 +99,22 @@ runs:
 
     - name: Sign the container image (${{ env.IMAGE_REPO_DIGEST }})
       shell: bash
+      env:
+        CMD_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
+        CMD_RETRIES: ${{ inputs.cosign-retries }}
       run: |
         set -euo pipefail
 
         # This generates a signature and publishes it to the registry, next to
         # the image. This step uses the keyless signing flow with Github Actions
         # as the identity provider.
-        cosign sign --yes "${IMAGE_REPO_DIGEST}"
+        "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign sign --yes "${IMAGE_REPO_DIGEST}"
 
     - name: Generate SBOM for the container image (${{ env.IMAGE_REPO_DIGEST }})
       shell: bash
       env:
+        CMD_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
+        CMD_RETRIES: ${{ inputs.cosign-retries }}
         IMAGE_MANIFEST_TAG: ${{ inputs.image-manifest-tag }}
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         REGISTRY_URI: ${{ inputs.image-registry-uri }}
@@ -141,8 +155,15 @@ runs:
         # Merge SBOM components using https://github.com/stackabletech/mergebom
         curl --fail -L -o mergebom https://repo.stackable.tech/repository/packages/mergebom/stable-$(uname -m)
         curl --fail -L -o mergebom_signature.bundle https://repo.stackable.tech/repository/packages/mergebom/stable-$(arch)_signature.bundle
+
         # Verify signature
-        cosign verify-blob --certificate-identity 'https://github.com/stackabletech/mergebom/.github/workflows/build_binary.yaml@refs/heads/main' --certificate-oidc-issuer https://token.actions.githubusercontent.com --bundle mergebom_signature.bundle mergebom
+        "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign verify-blob \
+          --certificate-identity 'https://github.com/stackabletech/mergebom/.github/workflows/build_binary.yaml@refs/heads/main' \
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+          --bundle mergebom_signature.bundle \
+          mergebom
+
+        # Run mergebom
         chmod +x ./mergebom
         ./mergebom sbom_raw.json sbom.json
 
@@ -167,7 +188,8 @@ runs:
           } * .[0]' sbom.json > sbom.merged.json
 
         # Attest the SBOM to the image
-        cosign attest \
-          --yes \
-          --predicate sbom.merged.json \
-          --type cyclonedx "${IMAGE_REPO_DIGEST}"
+        "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign attest \
+            --yes \
+            --predicate sbom.merged.json \
+            --type cyclonedx \
+            "${IMAGE_REPO_DIGEST}"
