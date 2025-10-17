@@ -26,12 +26,16 @@ following work:
 
 ### Inputs
 
-- `image-registry-uri` (eg: `oci.stackable.tech`)
-- `image-registry-username` (required)
-- `image-registry-password` (required)
-- `image-repository` (eg: `stackable/kafka`)
-- `image-manifest-tag` (eg: `3.4.1-stackable0.0.0-dev-amd64`)
-- `source-image-uri` (eg: `localhost/kafka:3.4.1-stackable0.0.0-dev-amd64`)
+| Input                     | Required (Default) | Description                                                                           |
+| ------------------------- | ------------------ | ------------------------------------------------------------------------------------- |
+| `image-registry-uri`      | Yes                | The image registry URI, eg `oci.stackable.tech`                                       |
+| `image-registry-username` | Yes                | The username used to access the image registry                                        |
+| `image-registry-password` | Yes                | The password used to access the image registry                                        |
+| `image-repository`        | Yes                | The path to the image, eg `sdp/kafka`                                                 |
+| `image-manifest-tag`      | Yes                | Human-readable tag with architecture information, eg `3.4.1-stackable0.0.0-dev-amd64` |
+| `source-image-uri`        | Yes                | The source image uri, which gets re-tagged by this action, eg `localhost/kafka:...`   |
+| `cosign-retries`          | No (3)             | The number of times cosign operations should be retried                               |
+| `cosign-retry-timeout`    | No (30s)           | Duration to wait before a new cosign operation is retried, format: `NUMBER[SUFFIX]`   |
 
 ### Outputs
 
