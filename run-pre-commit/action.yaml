@@ -8,9 +8,10 @@ inputs:
   python-version:
     description: Python version to install
     default: "3.12"
+  # See https://github.com/pre-commit/pre-commit/releases for latest version
   pre-commit-version:
     description: Pre-commit version to install
-    default: 4.2.0
+    default: 4.3.0
   rust:
     description: Whether to install the Rust toolchain (and which version to use)
   rust-components:
