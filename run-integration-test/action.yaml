@@ -30,7 +30,7 @@ inputs:
   kubectl-version:
     description: Version of kubectl
     # See https://dl.k8s.io/release/stable.txt for latest version
-    default: v1.33.4
+    default: v1.34.1
   kuttl-version:
     description: Version of kubectl-kuttl
     # See https://github.com/kudobuilder/kuttl/releases for latest version
@@ -38,7 +38,7 @@ inputs:
   helm-version:
     description: Version of helm
     # See https://github.com/helm/helm/releases for latest version
-    default: v3.18.6
+    default: v3.19.0
   stackablectl-version:
     description: Version of stackablectl
     # See https://github.com/stackabletech/stackable-cockpit/releases for latest version
@@ -120,7 +120,6 @@ runs:
     - name: Install stackablectl
       env:
         STACKABLECTL_VERSION: ${{ inputs.stackablectl-version }}
-        BEKU_VERSION: ${{ inputs.beku-version }}
         GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_stackablectl.sh"

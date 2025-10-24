@@ -20,7 +20,7 @@ jobs:
     name: Generate Version List
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
 
@@ -43,12 +43,12 @@ jobs:
         runner:
           # Github's ubuntu-latest runners use 24.04. By default Ubicloud's runners use 22.04.
           # We therefore explicitly request 24.04 for them as well.
-          - {name: "ubuntu-latest", arch: "amd64"}
-          - {name: "ubicloud-standard-8-arm-ubuntu-2404", arch: "arm64"}
+          - { name: "ubuntu-latest", arch: "amd64" }
+          - { name: "ubicloud-standard-8-arm-ubuntu-2404", arch: "arm64" }
         versions: ${{ fromJson(needs.generate_matrix.outputs.versions) }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
 
@@ -61,7 +61,7 @@ jobs:
         with:
           product-version: ${{ matrix.versions }}
           boil-config-file: smoke/boil.toml
-          boil-version: 0.1.0
+          boil-version: latest
           registry-namespace: stackable
           extra-tag-data: pr-321
           product-name: smoke
@@ -87,7 +87,7 @@ jobs:
         versions: ${{ fromJson(needs.generate_matrix.outputs.versions) }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
 
@@ -107,7 +107,7 @@ jobs:
     if: failure() || github.run_attempt > 1
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
 
