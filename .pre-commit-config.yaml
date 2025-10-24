@@ -4,7 +4,7 @@ default_language_version:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b # 5.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # 6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -13,23 +13,23 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/adrienverge/yamllint
-    rev: 81e9f98ffd059efe8aa9c1b1a42e5cce61b640c6 # 1.35.1
+    rev: 79a6b2b1392eaf49cdd32ac4f14be1a809bbd8f7 # 1.37.1
     hooks:
       - id: yamllint
         args: ["--strict"]
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: 0d9fcb51a54f3b750b911c054b4bd1a590f1b592 # 0.43.0
+    rev: 192ad822316c3a22fb3d3cc8aa6eafa0b8488360 # 0.45.0
     hooks:
       - id: markdownlint
   - repo: https://github.com/koalaman/shellcheck-precommit
-    rev: 2491238703a5d3415bb2b7ff11388bf775372f29 # 0.10.0
+    rev: 99470f5e12208ff0fb17ab81c3c494f7620a1d8d # 0.11.0
     hooks:
       - id: shellcheck
         args: ["--severity=info"]
 
   - repo: https://github.com/rhysd/actionlint
-    rev: 5db9d9cde2f3deb5035dea3e45f0a9fff2f29448 # 1.7.4
+    rev: e7d448ef7507c20fc4c88a95d0c448b848cd6127 # 1.7.8
     hooks:
       - id: actionlint
 
