@@ -63,7 +63,7 @@ runs:
     - name: Retrieve Slack Thread ID
       id: retrieve-slack-thread-id
       continue-on-error: true
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      uses: actions/download-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: slack-thread-id-${{ github.run_id }}
 
@@ -116,7 +116,7 @@ runs:
 
     - name: Send Notification
       id: send-notification
-      uses: slackapi/slack-github-action@b0fa283ad8fea605de13dc3f449259339835fc52 # 2.1.0
+      uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a # 2.1.1
       env:
         SLACK_THREAD_YAML: |
           ${{ steps.retrieve-slack-thread-id.outcome == 'success' && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}

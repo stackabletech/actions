@@ -120,7 +120,6 @@ runs:
     - name: Install stackablectl
       env:
         STACKABLECTL_VERSION: ${{ inputs.stackablectl-version }}
-        BEKU_VERSION: ${{ inputs.beku-version }}
         GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_stackablectl.sh"
