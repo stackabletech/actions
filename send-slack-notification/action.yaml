@@ -80,52 +80,49 @@ runs:
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_WORKFLOW: ${{ github.workflow }}
         GITHUB_RUN_ID: ${{ github.run_id }}
+        SLACK_THREAD_YAML: |
+          ${{ steps.retrieve-slack-thread-id.outcome == 'success' && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
+        CHANNEL_ID: ${{ inputs.channel-id }}
       shell: bash
       run: |
-        WORKFLOW_RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}"
-        echo "WORKFLOW_RUN_URL=$WORKFLOW_RUN_URL" | tee -a "$GITHUB_ENV"
+        export WORKFLOW_RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}"
 
         if [ "$NOTIFICATION_TYPE" == "container-image-build" ]; then
           # TODO (@Techassi): Also add success template
           if [ "$PUBLISH_MANIFESTS_RESULT" = "failure" ] || [ "$BUILD_RESULT" = "failure" ]; then
-            MESSAGE_VERB=failed
-            echo "MESSAGE_VERB=$MESSAGE_VERB" | tee -a "$GITHUB_ENV"
-
-            echo "MESSAGE_COLOR=aa0000" | tee -a "$GITHUB_ENV"
+            export MESSAGE_VERB=failed
+            export MESSAGE_COLOR=aa0000
           else
-            MESSAGE_VERB=succeeded
-            echo "MESSAGE_VERB=$MESSAGE_VERB" | tee -a "$GITHUB_ENV"
-
-            echo "MESSAGE_COLOR=10c400" | tee -a "$GITHUB_ENV"
+            export MESSAGE_VERB=succeeded
+            export MESSAGE_COLOR=10c400
           fi
 
-          echo "MESSAGE_TEXT=*$GITHUB_WORKFLOW* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)" | tee -a "$GITHUB_ENV"
-          echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/container-image-build/failure.tpl)\nEOF" | tee -a "$GITHUB_ENV"
+          export MESSAGE_TEXT="*$GITHUB_WORKFLOW* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)"
+          PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/container-image-build/failure.tpl")
+          echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_ENV"
         elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
-          echo "HEALTH_SLACK_EMOJI=$(echo "$TEST_HEALTH" | cut -d ',' -f 1)" | tee -a "$GITHUB_ENV"
-          echo "HEALTH_RATE=$(echo "$TEST_HEALTH" | cut -d ',' -f 3)" | tee -a "$GITHUB_ENV"
+          export HEALTH_SLACK_EMOJI=$(echo "$TEST_HEALTH" | cut -d ',' -f 1)
+          export HEALTH_RATE=$(echo "$TEST_HEALTH" | cut -d ',' -f 3)
 
           if [ "$TEST_RESULT" == "failure" ]; then
-            echo "MESSAGE_TEXT=The integration test for *`$GITHUB_REPOSITORY`* failed." | tee -a "$GITHUB_ENV"
-            echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/integration-test/failure.tpl)\nEOF" | tee -a "$GITHUB_ENV"
+            export MESSAGE_TEXT="The integration test for *`$GITHUB_REPOSITORY`* failed."
+            PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/failure.tpl")
+            echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_ENV"
           else
-            echo "MESSAGE_TEXT=The integration test for *`$GITHUB_REPOSITORY`* succeeded." | tee -a "$GITHUB_ENV"
-            echo -e "MESSAGE_TEMPLATE<<EOF\n$(cat ${GITHUB_ACTION_PATH}/templates/integration-test/success.tpl)\nEOF" | tee -a "$GITHUB_ENV"
+            export MESSAGE_TEXT="The integration test for *`$GITHUB_REPOSITORY`* succeeded."
+            PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/success.tpl")
+            echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_ENV"
           fi
         fi
 
     - name: Send Notification
       id: send-notification
       uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a # 2.1.1
-      env:
-        SLACK_THREAD_YAML: |
-          ${{ steps.retrieve-slack-thread-id.outcome == 'success' && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
-        CHANNEL_ID: ${{ inputs.channel-id }}
       with:
         method: chat.postMessage
         token: ${{ inputs.slack-token }}
-        payload: ${{ env.MESSAGE_TEMPLATE }}
-        payload-templated: true
+        payload: ${{ env.PAYLOAD }}
+        payload-templated: false
 
     - name: Save Slack Thread ID to File
       if: steps.retrieve-slack-thread-id.outcome == 'failure'
