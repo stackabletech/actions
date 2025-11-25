@@ -14,5 +14,3 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - uses: ./run-pre-commit
-        with:
-          jinja2-cli: 0.8.2
