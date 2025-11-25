@@ -27,7 +27,7 @@ jobs:
       - id: shard
         uses: ./shard
         with:
-          product-name: smoke
+          product-name: smoke/container-image
           boil-version: 0.1.0
     outputs:
       versions: ${{ steps.shard.outputs.versions }}
