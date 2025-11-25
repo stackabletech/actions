@@ -60,11 +60,11 @@ jobs:
         uses: ./build-product-image
         with:
           product-version: ${{ matrix.versions }}
-          boil-config-file: smoke/boil.toml
+          boil-config-file: smoke/container-image/boil.toml
           boil-version: latest
           registry-namespace: stackable
           extra-tag-data: pr-321
-          product-name: smoke
+          product-name: smoke/container-image
 
       - name: Publish Container Image on oci.stackable.tech
         uses: ./publish-image
@@ -74,7 +74,7 @@ jobs:
           image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
           image-repository: stackable/smoke
           image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
-          source-image-uri: localhost/stackable/smoke:${{ steps.build.outputs.image-manifest-tag }}
+          source-image-uri: localhost/stackable/smoke/container-image:${{ steps.build.outputs.image-manifest-tag }}
 
   publish_manifests:
     name: Build/Publish ${{ matrix.versions }} Index Manifest
