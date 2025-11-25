@@ -127,6 +127,7 @@ runs:
 
     - name: Install Install jinja2-cli
       if: ${{ inputs.jinja2-cli }}
+      shell: bash
       env:
         JINJA2_CLI_VERSION: ${{ inputs.jinja2-cli }}
       run: pip install jinja2-cli==${JINJA2_CLI_VERSION}
