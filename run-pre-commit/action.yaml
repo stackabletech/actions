@@ -125,7 +125,7 @@ runs:
 
         echo "$LOCATION_DIR" | tee -a "$GITHUB_PATH"
 
-    - name: Install Install jinja2-cli
+    - name: Install jinja2-cli
       if: ${{ inputs.jinja2-cli }}
       shell: bash
       env:
