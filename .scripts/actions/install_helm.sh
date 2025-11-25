@@ -7,14 +7,17 @@ PLATFORM=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_platform.sh")
 ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
 
 FILENAME="helm-${HELM_VERSION}-${PLATFORM}-${ARCH}.tar.gz"
+VERIFY_SIGNATURE="${VERIFY_SIGNATURE:-true}"
 
 echo "::group::Install helm"
 mkdir /tmp/helm
 curl -fsSL -o /tmp/helm/helm.tar.gz "https://get.helm.sh/${FILENAME}"
-curl -fsSL -o /tmp/helm/helm.tar.gz.asc "https://github.com/helm/helm/releases/download/${HELM_VERSION}/${FILENAME}.asc"
 
-curl https://keybase.io/mattfarina/pgp_keys.asc | gpg --import
-gpg --verify /tmp/helm/helm.tar.gz.asc /tmp/helm/helm.tar.gz
+if [[ "$VERIFY_SIGNATURE" == "true" ]]; then
+  curl -fsSL -o /tmp/helm/helm.tar.gz.asc "https://github.com/helm/helm/releases/download/${HELM_VERSION}/${FILENAME}.asc"
+  curl https://keybase.io/mattfarina/pgp_keys.asc | gpg --import
+  gpg --verify /tmp/helm/helm.tar.gz.asc /tmp/helm/helm.tar.gz
+fi
 
 tar --directory="/tmp/helm" --strip-components=1 -zxvf /tmp/helm/helm.tar.gz "${PLATFORM}-${ARCH}"
 # Overwrite the existing binary
