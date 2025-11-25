@@ -7,8 +7,7 @@ PLATFORM=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_platform.sh")
 ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
 
 FILENAME="helm-${HELM_VERSION}-${PLATFORM}-${ARCH}.tar.gz"
-# The signature is expired since a couple of years...
-VERIFY_SIGNATURE="false"
+VERIFY_SIGNATURE="${VERIFY_SIGNATURE:-true}"
 
 echo "::group::Install helm"
 mkdir /tmp/helm
