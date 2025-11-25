@@ -35,5 +35,6 @@ runs:
       env:
         HELM_VERSION: ${{ inputs.helm-version }}
         GITHUB_DEBUG: ${{ runner.debug }}
+        VERIFY_SIGNATURE: "false"
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_helm.sh"
