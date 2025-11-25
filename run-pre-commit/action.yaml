@@ -27,6 +27,8 @@ inputs:
     description: |
       The GitHub token is used by Nix to pull from GitHub with higher rate-limits. Required when
       the 'nix' input is used.
+  jinja2-cli:
+    description: Whether to install jinja2-cli (and which version to use)
 runs:
   using: composite
   steps:
@@ -122,6 +124,13 @@ runs:
         chmod 700 "$LOCATION_BIN"
 
         echo "$LOCATION_DIR" | tee -a "$GITHUB_PATH"
+
+    - name: Install jinja2-cli
+      if: ${{ inputs.jinja2-cli }}
+      shell: bash
+      env:
+        JINJA2_CLI_VERSION: ${{ inputs.jinja2-cli }}
+      run: pip install jinja2-cli==${JINJA2_CLI_VERSION}
 
     - name: Run pre-commit
       shell: bash
