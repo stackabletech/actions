@@ -126,22 +126,22 @@ jobs:
           chart-version: ${{ matrix.versions }}
           app-version: ${{ matrix.versions }}
 
-  # notify:
-  #   name: Failure Notification
-  #   needs: [generate-matrix, build-container-image, publish-manifests]
-  #   runs-on: ubuntu-latest
-  #   if: failure() || github.run_attempt > 1
-  #   steps:
-  #     - name: Checkout Repository
-  #       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-  #       with:
-  #         persist-credentials: false
+  notify:
+    name: Failure Notification
+    needs: [generate-matrix, build-container-image, publish-manifests]
+    runs-on: ubuntu-latest
+    if: failure() || github.run_attempt > 1
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
-  #     - name: Send Notification
-  #       uses: ./send-slack-notification
-  #       with:
-  #         publish-manifests-result: ${{ needs.publish-manifests.result }}
-  #         build-result: ${{ needs.build-container-image.result }}
-  #         slack-token: ${{ secrets.SLACK_CONTAINER_IMAGE_TOKEN }}
-  #         channel-id: C07UG6JH44F # notifications-container-images
-  #         type: container-image-build
+      - name: Send Notification
+        uses: ./send-slack-notification
+        with:
+          publish-manifests-result: ${{ needs.publish-manifests.result }}
+          build-result: ${{ needs.build-container-image.result }}
+          slack-token: ${{ secrets.SLACK_CONTAINER_IMAGE_TOKEN }}
+          channel-id: C07UG6JH44F # notifications-container-images
+          type: container-image-build
