@@ -61,7 +61,7 @@ jobs:
           product-version: ${{ matrix.versions }}
           boil-config-file: smoke/container-image/boil.toml
           boil-version: latest
-          registry-namespace: stackable
+          registry-namespace: smoke
           extra-tag-data: pr-321
           product-name: smoke/container-image
 
@@ -69,11 +69,11 @@ jobs:
         uses: ./publish-image
         with:
           image-registry-uri: oci.stackable.tech
-          image-registry-username: robot$stackable+github-action-build
-          image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
-          image-repository: stackable/smoke
+          image-registry-username: robot$smoke+github-action-build
+          image-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
+          image-repository: smoke/container-image
           image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
-          source-image-uri: localhost/stackable/smoke/container-image:${{ steps.build.outputs.image-manifest-tag }}
+          source-image-uri: localhost/smoke/container-image:${{ steps.build.outputs.image-manifest-tag }}
 
   publish-manifests:
     name: Build/Publish ${{ matrix.versions }} Index Manifest
@@ -94,9 +94,9 @@ jobs:
         uses: ./publish-image-index-manifest
         with:
           image-registry-uri: oci.stackable.tech
-          image-registry-username: robot$stackable+github-action-build
-          image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
-          image-repository: stackable/smoke
+          image-registry-username: robot$smoke+github-action-build
+          image-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
+          image-repository: smoke/container-image
           image-index-manifest-tag: ${{ matrix.versions }}-stackable0.0.0-dev
 
   publish-helm-chart:
