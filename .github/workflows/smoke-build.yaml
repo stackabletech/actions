@@ -128,7 +128,11 @@ jobs:
 
   notify:
     name: Failure Notification
-    needs: [generate-matrix, build-container-image, publish-manifests]
+    needs:
+      - generate-matrix
+      - build-container-image
+      - publish-helm-chart
+      - publish-manifests
     runs-on: ubuntu-latest
     if: failure() || github.run_attempt > 1
     steps:
@@ -140,6 +144,7 @@ jobs:
       - name: Send Notification
         uses: ./send-slack-notification
         with:
+          publish-helm-chart-result: ${{ needs.publish-helm-chart.result }}
           publish-manifests-result: ${{ needs.publish-manifests.result }}
           build-result: ${{ needs.build-container-image.result }}
           slack-token: ${{ secrets.SLACK_CONTAINER_IMAGE_TOKEN }}
