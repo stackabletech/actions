@@ -12,6 +12,9 @@ inputs:
     description: The result of the build job
   publish-manifests-result:
     description: The result of the publish manifests job
+  publish-helm-chart-result:
+    description: The result of the publish helm chart job (if any)
+    default: "N/A"
   test-result:
     description: The result of an integration test
   test-health:
@@ -28,6 +31,7 @@ runs:
         NOTIFICATION_TYPE: ${{ inputs.type }}
 
         PUBLISH_MANIFESTS_RESULT: ${{ inputs.publish-manifests-result }}
+        PUBLISH_HELM_CHART_RESULT: ${{ inputs.publish-helm-chart-result }}
         BUILD_RESULT: ${{ inputs.build-result }}
 
         FAILED_TESTS: ${{ inputs.failed-tests }}
@@ -45,6 +49,7 @@ runs:
           [ -z "${BUILD_RESULT:-}" ] && echo "The build-result input must be provided" && exit 1
 
           echo "PUBLISH_MANIFESTS_RESULT=$PUBLISH_MANIFESTS_RESULT" | tee -a "$GITHUB_ENV"
+          echo "PUBLISH_HELM_CHART_RESULT=$PUBLISH_HELM_CHART_RESULT" | tee -a "$GITHUB_ENV"
           echo "BUILD_RESULT=$BUILD_RESULT" | tee -a "$GITHUB_ENV"
         elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
           [ -z "${TEST_RESULT:-}" ] && echo "The test-result input must be provided" && exit 1
@@ -89,7 +94,7 @@ runs:
 
         if [ "$NOTIFICATION_TYPE" == "container-image-build" ]; then
           # TODO (@Techassi): Also add success template
-          if [ "$PUBLISH_MANIFESTS_RESULT" = "failure" ] || [ "$BUILD_RESULT" = "failure" ]; then
+          if [ "$PUBLISH_MANIFESTS_RESULT" = "failure" ] || [ "$PUBLISH_HELM_CHART_RESULT" = "failure" ] || [ "$BUILD_RESULT" = "failure" ]; then
             export MESSAGE_VERB=failed
             export MESSAGE_COLOR=aa0000
           else
