@@ -16,7 +16,7 @@ Currently, two types of notifications are supported.
 jobs:
   notify:
     name: Failure Notification
-    needs: [job_1, job_2]
+    needs: [job_1, job_2, job_3]
     runs-on: ubuntu-latest
     if: failure() || github.run_attempt > 1
     steps:
@@ -26,6 +26,7 @@ jobs:
           type: container-image-build
           channel-id: DEADBEEF
           build-result: ${{ needs.job_1.result }}
+          publish-helm-chart-result: ${{ needs.job_3.result }}
           publish-manifests-result: ${{ needs.job_2.result }}
           slack-token: ${{ secrets.MY_SECRET }}
 ```
@@ -63,6 +64,7 @@ jobs:
 - `slack-token` (required)
 - `build-result` (optional, e.g. `success`)
 - `publish-manifests-result` (optional, e.g. `failure`)
+- `publish-helm-chart-result` (optional, e.g. `failure`)
 
 ### Outputs
 
