@@ -121,7 +121,7 @@ jobs:
           chart-registry-uri: oci.stackable.tech
           chart-registry-username: robot$smoke+github-action-build
           chart-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
-          chart-repository: smoke/helm-chart
+          chart-repository: smoke
           chart-directory: smoke/helm-chart
           chart-version: ${{ matrix.versions }}
           app-version: ${{ matrix.versions }}

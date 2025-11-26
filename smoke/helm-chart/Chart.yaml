@@ -1,4 +1,4 @@
 ---
 apiVersion: v2
-name: smoke
+name: helm-chart
 version: "0.0.0-dev"
