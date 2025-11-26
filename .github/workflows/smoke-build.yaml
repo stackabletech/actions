@@ -16,7 +16,7 @@ on:
       - smoke/*
 
 jobs:
-  generate_matrix:
+  generate-matrix:
     name: Generate Version List
     runs-on: ubuntu-latest
     steps:
@@ -27,14 +27,13 @@ jobs:
       - id: shard
         uses: ./shard
         with:
-          product-name: smoke
-          boil-version: 0.1.0
+          product-name: smoke/container-image
     outputs:
       versions: ${{ steps.shard.outputs.versions }}
 
-  build:
+  build-container-image:
     name: Build/Publish Smoke Test (${{ matrix.versions }}-${{ matrix.runner.arch }}) Image
-    needs: [generate_matrix]
+    needs: [generate-matrix]
     permissions:
       id-token: write
     runs-on: ${{ matrix.runner.name }}
@@ -45,7 +44,7 @@ jobs:
           # We therefore explicitly request 24.04 for them as well.
           - { name: "ubuntu-latest", arch: "amd64" }
           - { name: "ubicloud-standard-8-arm-ubuntu-2404", arch: "arm64" }
-        versions: ${{ fromJson(needs.generate_matrix.outputs.versions) }}
+        versions: ${{ fromJson(needs.generate-matrix.outputs.versions) }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -60,31 +59,31 @@ jobs:
         uses: ./build-product-image
         with:
           product-version: ${{ matrix.versions }}
-          boil-config-file: smoke/boil.toml
+          boil-config-file: smoke/container-image/boil.toml
           boil-version: latest
-          registry-namespace: stackable
+          registry-namespace: smoke
           extra-tag-data: pr-321
-          product-name: smoke
+          product-name: smoke/container-image
 
       - name: Publish Container Image on oci.stackable.tech
         uses: ./publish-image
         with:
           image-registry-uri: oci.stackable.tech
-          image-registry-username: robot$stackable+github-action-build
-          image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
-          image-repository: stackable/smoke
+          image-registry-username: robot$smoke+github-action-build
+          image-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
+          image-repository: smoke/container-image
           image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
-          source-image-uri: localhost/stackable/smoke:${{ steps.build.outputs.image-manifest-tag }}
+          source-image-uri: localhost/smoke/smoke/container-image:${{ steps.build.outputs.image-manifest-tag }}
 
-  publish_manifests:
+  publish-manifests:
     name: Build/Publish ${{ matrix.versions }} Index Manifest
-    needs: [generate_matrix, build]
+    needs: [generate-matrix, build-container-image]
     permissions:
       id-token: write
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        versions: ${{ fromJson(needs.generate_matrix.outputs.versions) }}
+        versions: ${{ fromJson(needs.generate-matrix.outputs.versions) }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -95,14 +94,45 @@ jobs:
         uses: ./publish-image-index-manifest
         with:
           image-registry-uri: oci.stackable.tech
-          image-registry-username: robot$stackable+github-action-build
-          image-registry-password: ${{ secrets.HARBOR_ROBOT_STACKABLE_GITHUB_ACTION_BUILD_SECRET }}
-          image-repository: stackable/smoke
-          image-index-manifest-tag: ${{ matrix.versions }}-stackable0.0.0-dev
+          image-registry-username: robot$smoke+github-action-build
+          image-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
+          image-repository: smoke/container-image
+          image-index-manifest-tag: ${{ matrix.versions }}-stackable0.0.0-dev-pr-321
+
+  publish-helm-chart:
+    name: Package/Publish ${{ matrix.versions }} Helm Chart
+    needs: [generate-matrix, build-container-image]
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        versions: ${{ fromJson(needs.generate-matrix.outputs.versions) }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Package, Publish, and Sign Helm Chart
+        uses: ./publish-helm-chart
+        with:
+          chart-registry-uri: oci.stackable.tech
+          chart-registry-username: robot$smoke+github-action-build
+          chart-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
+          chart-repository: smoke
+          chart-directory: smoke/helm-chart
+          chart-version: ${{ matrix.versions }}
+          app-version: ${{ matrix.versions }}
 
   notify:
     name: Failure Notification
-    needs: [generate_matrix, build, publish_manifests]
+    needs:
+      - generate-matrix
+      - build-container-image
+      - publish-helm-chart
+      - publish-manifests
     runs-on: ubuntu-latest
     if: failure() || github.run_attempt > 1
     steps:
@@ -114,8 +144,9 @@ jobs:
       - name: Send Notification
         uses: ./send-slack-notification
         with:
-          publish-manifests-result: ${{ needs.publish_manifests.result }}
-          build-result: ${{ needs.build.result }}
+          publish-helm-chart-result: ${{ needs.publish-helm-chart.result }}
+          publish-manifests-result: ${{ needs.publish-manifests.result }}
+          build-result: ${{ needs.build-container-image.result }}
           slack-token: ${{ secrets.SLACK_CONTAINER_IMAGE_TOKEN }}
           channel-id: C07UG6JH44F # notifications-container-images
           type: container-image-build
