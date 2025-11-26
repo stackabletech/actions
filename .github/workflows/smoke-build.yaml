@@ -73,7 +73,7 @@ jobs:
           image-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
           image-repository: smoke/container-image
           image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
-          source-image-uri: localhost/smoke/container-image:${{ steps.build.outputs.image-manifest-tag }}
+          source-image-uri: localhost/smoke/smoke/container-image:${{ steps.build.outputs.image-manifest-tag }}
 
   publish-manifests:
     name: Build/Publish ${{ matrix.versions }} Index Manifest
