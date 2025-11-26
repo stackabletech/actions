@@ -14,7 +14,7 @@ inputs:
     description: The result of the publish manifests job
   publish-helm-chart-result:
     description: The result of the publish helm chart job (if any)
-    default: "Not Applicable"
+    default: "N/A"
   test-result:
     description: The result of an integration test
   test-health:
