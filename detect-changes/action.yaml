@@ -27,7 +27,7 @@ runs:
           # It saves having to make the job conditions even more complicated.
           echo "Not running on a PR. Hard-coding result:"
           echo "DETECTED=true" | tee -a "$GITHUB_OUTPUT"
-          return 0
+          exit 0
         fi
 
         # This is cursed... we use `.[] | .` to remove quotes and any yaml formatting.
