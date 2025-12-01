@@ -30,6 +30,8 @@ runs:
           exit 0
         fi
 
+        # TODO (@NickLarsenNZ): validate the YAML list. mikefarah-yq doesn't do this.
+
         # This is cursed... we use `.[] | .` to remove quotes and any yaml formatting.
         readarray -t GLOBS < <(echo -n "$PATTERNS" | yq '.[] | .')
 
