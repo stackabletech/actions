@@ -8,7 +8,7 @@ inputs:
 outputs:
   detected:
     description: Returns if any changed files were matched by the provided glob patterns.
-    value: ${{ steps.check.outputs.MATCHED }}
+    value: ${{ steps.check.outputs.DETECTED }}
 runs:
   using: composite
   steps:
@@ -16,20 +16,32 @@ runs:
       id: check
       env:
         PATTERNS: ${{ inputs.patterns }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
       shell: bash
       run: |
         set -euo pipefail
 
+        if [ "$GITHUB_EVENT_NAME" != 'pull_request' ]; then
+          # This is a short-circuit for when not run on a PR.
+          # It saves having to make the job conditions even more complicated.
+          echo "Not running on a PR. Hard-coding result:"
+          echo "DETECTED=true" | tee -a "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        # TODO (@NickLarsenNZ): validate the YAML list. mikefarah-yq doesn't do this.
+
         # This is cursed... we use `.[] | .` to remove quotes and any yaml formatting.
         readarray -t GLOBS < <(echo -n "$PATTERNS" | yq '.[] | .')
 
-        MATCHED="false"
+        DETECTED="false"
         for GLOB in "${GLOBS[@]}"; do
             if ! git diff --exit-code --name-only "${BASE_SHA}.." -- "$GLOB"; then
               # When git diff exist with an error, that means there was a diff
               # for the glob.
-              MATCHED="true"
+              DETECTED="true"
             fi
         done
 
-        echo "MATCHED=$MATCHED" | tee -a "$GITHUB_OUTPUT"
+        echo "DETECTED=$DETECTED" | tee -a "$GITHUB_OUTPUT"
