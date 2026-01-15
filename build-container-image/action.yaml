@@ -88,3 +88,14 @@ runs:
         echo "::group::docker images"
         docker images
         echo "::endgroup::"
+
+    - name: Print out Disk Usage
+      if: always()
+      shell: bash
+      run: |
+        echo "::group::Disk usage after build"
+        echo "In GiB:"
+        df -h -BGiB /
+        echo "In MiB:"
+        df -h -BMiB /
+        echo "::endgroup::"
