@@ -84,7 +84,10 @@ runs:
         }
 
         echo "::group::Disk usage before"
-        df -h /
+        echo "In GiB:"
+        df -h -BGiB /
+        echo "In MiB:"
+        df -h -BMiB /
         echo "::endgroup::"
 
         echo "::group::Parallel cleanup"
@@ -105,5 +108,8 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Disk usage after"
-        df -h /
+        echo "In GiB:"
+        df -h -BGiB /
+        echo "In MiB:"
+        df -h -BMiB /
         echo "::endgroup::"
