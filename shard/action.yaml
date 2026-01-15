@@ -38,9 +38,10 @@ runs:
     - name: Print Shards
       env:
         GITHUB_DEBUG: ${{ runner.debug }}
+        VERSIONS: ${{ steps.generate_shards.outputs.VERSIONS }}
       shell: bash
       run: |
         set -euo pipefail
         [ -n "$GITHUB_DEBUG" ] && set -x
 
-        echo versions=${{ steps.generate_shards.outputs.VERSIONS }}
+        echo "versions=$VERSIONS"
