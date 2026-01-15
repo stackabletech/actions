@@ -102,3 +102,14 @@ runs:
         # can be used as action outputs
         echo "IMAGE_MANIFEST_TAG=$IMAGE_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
         echo "IMAGE_INDEX_MANIFEST_TAG=$IMAGE_INDEX_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
+
+    - name: Print out Disk Usage
+      if: always()
+      shell: bash
+      run: |
+        echo "::group::Disk usage after build"
+        echo "In GiB:"
+        df -h -BGiB /
+        echo "In MiB:"
+        df -h -BMiB /
+        echo "::endgroup::"
