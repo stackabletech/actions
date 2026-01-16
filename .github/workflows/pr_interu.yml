@@ -11,6 +11,8 @@ on:
       - tools/interu/**
       - Cargo.toml
 
+permissions: {}
+
 jobs:
   build:
     uses: ./.github/workflows/build_interu.yml
