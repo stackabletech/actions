@@ -1,5 +1,5 @@
 ---
-name: pre-commit
+name: prek
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
 permissions: {}
 
 jobs:
-  pre-commit:
+  prek:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -15,4 +15,4 @@ jobs:
           persist-credentials: false
           submodules: recursive
           fetch-depth: 0
-      - uses: ./run-pre-commit
+      - uses: ./run-prek
