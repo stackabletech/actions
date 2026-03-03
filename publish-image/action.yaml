@@ -100,8 +100,9 @@ runs:
     - name: Sign the container image (${{ env.IMAGE_REPO_DIGEST }})
       shell: bash
       env:
-        CMD_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
-        CMD_RETRIES: ${{ inputs.cosign-retries }}
+        RETRY_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
+        RETRY_COUNT: ${{ inputs.cosign-retries }}
+        RETRY_ARGS: --verbose
       run: |
         set -euo pipefail
 
@@ -113,8 +114,9 @@ runs:
     - name: Generate SBOM for the container image (${{ env.IMAGE_REPO_DIGEST }})
       shell: bash
       env:
-        CMD_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
-        CMD_RETRIES: ${{ inputs.cosign-retries }}
+        RETRY_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
+        RETRY_COUNT: ${{ inputs.cosign-retries }}
+        RETRY_ARGS: --verbose
         IMAGE_MANIFEST_TAG: ${{ inputs.image-manifest-tag }}
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         REGISTRY_URI: ${{ inputs.image-registry-uri }}
