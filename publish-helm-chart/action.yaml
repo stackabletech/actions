@@ -27,6 +27,15 @@ inputs:
   app-version:
     description: The app version to set in the Helm Chart
     required: true
+  cosign-retries:
+    description: The number of times cosign operations should be retried
+    default: "3"
+  cosign-retry-timeout:
+    description: |
+      Duration to wait before a new cosign operation is retried, format: `NUMBER[SUFFIX]`.
+      SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours or 'd' for days.
+      See `sleep --help` for the full details.
+    default: "30s"
 runs:
   using: composite
   steps:
@@ -120,6 +129,9 @@ runs:
 
     - name: Sign Helm Chart
       env:
+        RETRY_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
+        RETRY_COUNT: ${{ inputs.cosign-retries }}
+        RETRY_ARGS: --verbose
         CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
         CHART_REPOSITORY: ${{ inputs.chart-repository }}
         GITHUB_DEBUG: ${{ runner.debug }}

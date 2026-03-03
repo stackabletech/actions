@@ -106,8 +106,9 @@ runs:
     - name: Sign Image Index Manifest
       shell: bash
       env:
-        CMD_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
-        CMD_RETRIES: ${{ inputs.cosign-retries }}
+        RETRY_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
+        RETRY_COUNT: ${{ inputs.cosign-retries }}
+        RETRY_ARGS: --verbose
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         REGISTRY_URI: ${{ inputs.image-registry-uri }}
       run: |
