@@ -1,0 +1,131 @@
+---
+name: Run prek
+description: |
+  This action sets up the prek tool, and additional tools required for various
+  hooks. It then runs prek against the changed files. This actions expects
+  checkouts with depth 0.
+
+inputs:
+  # See https://github.com/j178/prek/releases for latest version
+  prek-version:
+    description: prek version to install
+    default: latest
+  rust:
+    description: Whether to install the Rust toolchain (and which version to use)
+  rust-components:
+    description: |
+      Override which Rust components are installed. Only takes effect when Rust
+      is installed.
+    default: rustfmt,clippy
+  hadolint:
+    description: Whether to install hadolint (and which version to use)
+  nix:
+    description: Whether to install nix (and which version to use)
+  nix-github-token:
+    description: |
+      The GitHub token is used by Nix to pull from GitHub with higher rate-limits. Required when
+      the 'nix' input is used.
+  jinja2-cli:
+    description: Whether to install jinja2-cli (and which version to use)
+
+runs:
+  using: composite
+  steps:
+    # Immediately abort without setting up any other tooling to avoid unnecessary workflow runtime.
+    - name: Abort if nix-github-token input is not set
+      if: inputs.nix && !inputs.nix-github-token
+      shell: bash
+      run: |
+        echo "nix-github-token input must be set when nix input is set"
+        exit 1
+
+    - name: Setup nix
+      if: inputs.nix
+      uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15 # v31.9.0
+      with:
+        github_access_token: ${{ inputs.nix-github-token }}
+        install_url: https://releases.nixos.org/nix/nix-${{ inputs.nix }}/install
+
+    - name: Install prek (${{ env.PRE_COMMIT_VERSION }})
+      shell: bash
+      env:
+        PREK_VERSION: ${{ inputs.prek-version }}
+        GITHUB_DEBUG: ${{ runner.debug }}
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_prek.sh"
+
+      # This caches downloaded prek hook artifacts and results in faster
+      # workflow runs after an initial hydration run with the exact same hooks
+    - name: Setup prek Cache
+      uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+      with:
+        path: ~/.cache/prek
+        key: prek-${{ inputs.prek-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+    - name: Format Rust Toolchain Cache Key
+      if: ${{ inputs.rust }}
+      shell: bash
+      env:
+        RUST_COMPONENTS: ${{ inputs.rust-components }}
+      run: |
+        RUST_COMPONENTS=${RUST_COMPONENTS//,/_}
+        echo "RUST_COMPONENTS=$RUST_COMPONENTS" | tee -a "$GITHUB_ENV"
+
+    - name: Setup Rust Toolchain Cache
+      id: rust-toolchain-cache
+      if: ${{ inputs.rust }}
+      uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+      with:
+        path: ~/.rustup/toolchains
+        key: rust-toolchains-${{ inputs.rust }}-components-${{ env.RUST_COMPONENTS }}
+
+    - name: Setup Rust Toolchain
+      uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+      if: ${{ inputs.rust && steps.rust-toolchain-cache.outputs.cache-hit != 'true' }}
+      with:
+        toolchain: ${{ inputs.rust }}
+        components: ${{ inputs.rust-components }}
+
+    - name: Setup Rust Cache
+      if: ${{ inputs.rust }}
+      uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+
+    # TODO (@Techassi): Move this into a script
+    - name: Install Hadolint
+      if: ${{ inputs.hadolint }}
+      shell: bash
+      env:
+        HADOLINT_VERSION: ${{ inputs.hadolint }}
+      run: |
+        set -euo pipefail
+
+        LOCATION_DIR="$HOME/.local/bin"
+        LOCATION_BIN="$LOCATION_DIR/hadolint"
+
+        SYSTEM=$(uname -s)
+        ARCH=$(uname -m)
+
+        mkdir -p "$LOCATION_DIR"
+        curl -sL -o "$LOCATION_BIN" "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-$SYSTEM-$ARCH"
+        chmod 700 "$LOCATION_BIN"
+
+        echo "$LOCATION_DIR" | tee -a "$GITHUB_PATH"
+
+    - name: Install jinja2-cli
+      if: ${{ inputs.jinja2-cli }}
+      shell: bash
+      env:
+        JINJA2_CLI_VERSION: ${{ inputs.jinja2-cli }}
+      run: pip install jinja2-cli==${JINJA2_CLI_VERSION}
+
+    - name: Run prek
+      shell: bash
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        prek run \
+          --verbose \
+          --show-diff-on-failure \
+          --color always \
+          --from-ref "$BASE_SHA" \
+          --to-ref "$HEAD_SHA"
