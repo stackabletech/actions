@@ -150,5 +150,8 @@ jobs:
           publish-manifests-result: ${{ needs.publish-manifests.result }}
           build-result: ${{ needs.build-container-image.result }}
           slack-token: ${{ secrets.SLACK_CONTAINER_IMAGE_TOKEN }}
-          channel-id: C07UG6JH44F # notifications-container-images
+          # This tests that the subject is correctly overwritten
+          message-subject: Build actions/smoke container image
+          # notifications-container-images
+          channel-id: C07UG6JH44F
           type: container-image-build

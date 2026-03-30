@@ -23,6 +23,10 @@ inputs:
     description: The list (plain text) of failed tests
   slack-token:
     description: The Slack token
+  message-subject:
+    description: |
+      The main message subject of the notification message. This defaults to github.workflow for
+      build notifications and github.repository for integration test notifications.
 runs:
   using: composite
   steps:
@@ -88,11 +92,17 @@ runs:
         SLACK_THREAD_YAML: |
           ${{ steps.retrieve-slack-thread-id.outcome == 'success' && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
         CHANNEL_ID: ${{ inputs.channel-id }}
+        MESSAGE_SUBJECT: ${{ inputs.message-subject }}
       shell: bash
       run: |
         export WORKFLOW_RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}"
 
         if [ "$NOTIFICATION_TYPE" == "container-image-build" ]; then
+          # Only override the message subject with the default value if it is empty
+          if [ -z "${MESSAGE_SUBJECT:-}" ]; then
+            export MESSAGE_SUBJECT="$GITHUB_WORKFLOW"
+          fi
+
           # TODO (@Techassi): Also add success template
           if [ "$PUBLISH_MANIFESTS_RESULT" = "failure" ] || [ "$PUBLISH_HELM_CHART_RESULT" = "failure" ] || [ "$BUILD_RESULT" = "failure" ]; then
             export MESSAGE_VERB=failed
@@ -102,19 +112,24 @@ runs:
             export MESSAGE_COLOR=10c400
           fi
 
-          export MESSAGE_TEXT="*$GITHUB_WORKFLOW* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)"
+          export MESSAGE_TEXT="*$MESSAGE_SUBJECT* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)"
           PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/container-image-build/failure.tpl")
           echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_ENV"
         elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
+          # Only override the message subject with the default value if it is empty
+          if [ -z "${MESSAGE_SUBJECT:-}" ]; then
+            export MESSAGE_SUBJECT="$GITHUB_REPOSITORY"
+          fi
+
           export HEALTH_SLACK_EMOJI=$(echo "$TEST_HEALTH" | cut -d ',' -f 1)
           export HEALTH_RATE=$(echo "$TEST_HEALTH" | cut -d ',' -f 3)
 
           if [ "$TEST_RESULT" == "failure" ]; then
-            export MESSAGE_TEXT="The integration test for *`$GITHUB_REPOSITORY`* failed."
+            export MESSAGE_TEXT="The integration test for *`$MESSAGE_SUBJECT`* failed."
             PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/failure.tpl")
             echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_ENV"
           else
-            export MESSAGE_TEXT="The integration test for *`$GITHUB_REPOSITORY`* succeeded."
+            export MESSAGE_TEXT="The integration test for *`$MESSAGE_SUBJECT`* succeeded."
             PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/success.tpl")
             echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_ENV"
           fi
