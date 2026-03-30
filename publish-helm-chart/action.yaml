@@ -36,6 +36,9 @@ inputs:
       SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours or 'd' for days.
       See `sleep --help` for the full details.
     default: "30s"
+  publish-and-sign:
+    description: Whether to publish and sign the packaged Helm Chart. Can be "true" or "false"
+    default: "true"
 runs:
   using: composite
   steps:
@@ -51,6 +54,7 @@ runs:
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_helm.sh"
 
     - name: Log into Container Registry (${{ inputs.chart-registry-uri }}) using Helm
+      if: inputs.publish-and-sign == 'true'
       env:
         CHART_REGISTRY_USERNAME: ${{ inputs.chart-registry-username }}
         CHART_REGISTRY_PASSWORD: ${{ inputs.chart-registry-password }}
@@ -64,6 +68,7 @@ runs:
         helm registry login --username "$CHART_REGISTRY_USERNAME" --password "$CHART_REGISTRY_PASSWORD" "$CHART_REGISTRY_URI"
 
     - name: Log into Container Registry (${{ inputs.chart-registry-uri }}) using Docker
+      if: inputs.publish-and-sign == 'true'
       uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
       with:
         registry: ${{ inputs.chart-registry-uri }}
@@ -97,6 +102,7 @@ runs:
           "$CHART_DIRECTORY"
 
     - name: Publish Helm Chart
+      if: inputs.publish-and-sign == 'true'
       env:
         CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
         CHART_REPOSITORY: ${{ inputs.chart-repository }}
@@ -128,6 +134,7 @@ runs:
         echo "CHART_DIGEST=$CHART_DIGEST" | tee -a "$GITHUB_ENV"
 
     - name: Sign Helm Chart
+      if: inputs.publish-and-sign == 'true'
       env:
         RETRY_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
         RETRY_COUNT: ${{ inputs.cosign-retries }}
