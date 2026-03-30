@@ -65,6 +65,8 @@ jobs:
 - `build-result` (optional, e.g. `success`)
 - `publish-manifests-result` (optional, e.g. `failure`)
 - `publish-helm-chart-result` (optional, e.g. `failure`)
+- `message-subject` (optional, defaults to `github.workflow` for `container-image-build` and
+  `github.repository` for `integration-test`)
 
 ### Outputs
 
