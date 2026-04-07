@@ -86,6 +86,7 @@ runs:
       env:
         CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
         CHART_DIRECTORY: ${{ inputs.chart-directory }}
+        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
