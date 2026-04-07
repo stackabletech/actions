@@ -82,7 +82,7 @@ runs:
         password: ${{ inputs.chart-registry-password }}
 
     - name: Merge publish target specific values.yaml files
-      if: inputs.merge-publish-target-values == 'true'
+      if: inputs.merge-registry-values == 'true'
       env:
         CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
         CHART_DIRECTORY: ${{ inputs.chart-directory }}
