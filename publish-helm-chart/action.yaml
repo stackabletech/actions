@@ -39,6 +39,12 @@ inputs:
   publish-and-sign:
     description: Whether to publish and sign the packaged Helm Chart. Can be "true" or "false"
     default: "true"
+  merge-registry-values:
+    description: |
+      Whether to merge a registry specific values.yaml file with the common one. Can be "true" or
+      "false". The naming convention is as follows: `{chart-directory}/values.{chart-registry-uri}.yaml`
+    default: "true"
+
 runs:
   using: composite
   steps:
@@ -75,6 +81,25 @@ runs:
         username: ${{ inputs.chart-registry-username }}
         password: ${{ inputs.chart-registry-password }}
 
+    - name: Merge publish target specific values.yaml files
+      if: inputs.merge-publish-target-values == 'true'
+      env:
+        CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
+        CHART_DIRECTORY: ${{ inputs.chart-directory }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "$GITHUB_DEBUG" ] && set -x
+
+        # This is directly taken from the official yq examples and merges all
+        # listed files
+        yq eval-all '. as $item ireduce ({}; . * $item )' \
+          "$CHART_DIRECTORY/values.${CHART_REGISTRY_URI}.yaml" \
+          "$CHART_DIRECTORY/values.yaml" \
+          > "$CHART_DIRECTORY/values.merged.yaml"
+
+        mv "$CHART_DIRECTORY/values.merged.yaml" "$CHART_DIRECTORY/values.yaml"
+
     - name: Package Helm Chart
       env:
         CHART_DIRECTORY: ${{ inputs.chart-directory }}
@@ -85,10 +110,6 @@ runs:
       run: |
         set -euo pipefail
         [ -n "$GITHUB_DEBUG" ] && set -x
-
-        # Set the Helm Chart version
-        # yq ".version = \"$CHART_VERSION\"" < "$CHART_DIRECTORY/Chart.yaml" > "$CHART_DIRECTORY/Chart.new.yaml"
-        # mv "$CHART_DIRECTORY/Chart.new.yaml" "$CHART_DIRECTORY/Chart.yaml"
 
         # Create temporary directory to store the Helm Chart
         TEMP_CHART_DIR=$(mktemp -d)
