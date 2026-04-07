@@ -9,6 +9,7 @@ on:
       - build-container-image/action.yaml
       - build-product-image/action.yaml
       - free-disk-space/action.yaml
+      - publish-helm-chart/action.yaml
       - publish-image/action.yaml
       - publish-index-manifest/action.yaml
       - send-slack-notification/action.yaml
