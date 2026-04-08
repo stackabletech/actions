@@ -42,7 +42,7 @@ inputs:
   merge-registry-values:
     description: |
       Whether to merge a registry specific values.yaml file with the common one. Can be "true" or
-      "false". The naming convention is as follows: `{chart-directory}/values.{chart-registry-uri}.yaml`
+      "false". The naming convention is as follows: `{chart-directory}/values/{chart-registry-uri}.yaml`
     default: "true"
 
 runs:
@@ -95,7 +95,7 @@ runs:
         # This is directly taken from the official yq examples and merges all
         # listed files
         yq eval-all '. as $item ireduce ({}; . * $item )' \
-          "$CHART_DIRECTORY/values.${CHART_REGISTRY_URI}.yaml" \
+          "$CHART_DIRECTORY/values/${CHART_REGISTRY_URI}.yaml" \
           "$CHART_DIRECTORY/values.yaml" \
           > "$CHART_DIRECTORY/values.merged.yaml"
 
