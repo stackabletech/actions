@@ -29,12 +29,12 @@ outputs:
     description: |
       Human-readable tag (usually the version) with architecture information,
       for example: `3.4.1-stackable0.0.0-dev-amd64`
-    value: ${{ steps.image_info.outputs.IMAGE_MANIFEST_TAG }}
+    value: ${{ steps.build.outputs.IMAGE_MANIFEST_TAG }}
   suggested-image-index-manifest-tag:
     description: |
       Human-readable tag (usually the version) without architecture information,
       for example: `3.4.1-stackable0.0.0-dev`
-    value: ${{ steps.image_info.outputs.IMAGE_INDEX_MANIFEST_TAG }}
+    value: ${{ steps.build.outputs.IMAGE_INDEX_MANIFEST_TAG }}
 runs:
   using: composite
   steps:
@@ -49,6 +49,7 @@ runs:
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_boil.sh"
 
     - name: Building ${{ inputs.product-name }} Container Image using boil
+      id: build
       env:
         REGISTRY_NAMESPACE: ${{ inputs.registry-namespace }}
         BOIL_PRODUCT_VERSION: ${{ inputs.product-version }}
@@ -59,13 +60,14 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+
         IMAGE_ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
 
         # Will be either:
         # - 3.9.2-stackable0.0.0-dev or
         # - 3.9.2-stackable0.0.0-dev-pr321
         IMAGE_INDEX_MANIFEST_TAG="${SDP_VERSION}${EXTRA_TAG_DATA:+-$EXTRA_TAG_DATA}"
-        echo "IMAGE_INDEX_MANIFEST_TAG=$IMAGE_INDEX_MANIFEST_TAG" | tee -a "$GITHUB_ENV"
+        echo "IMAGE_INDEX_MANIFEST_TAG=$IMAGE_INDEX_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
 
         # Validate that final tag is valid according to
         # https://github.com/distribution/reference/blob/8c942b0459dfdcc5b6685581dd0a5a470f615bff/regexp.go#L68
@@ -82,26 +84,16 @@ runs:
           --configuration "$BOIL_CONFIG_FILE" \
           --write-image-manifest-uris \
           --use-localhost-registry \
-          --load \
-          "$IMAGE_REPOSITORY=$BOIL_PRODUCT_VERSION"
+          "$IMAGE_REPOSITORY=$BOIL_PRODUCT_VERSION" \
+          -- --load
         echo "::endgroup::"
 
-    - name: Extract Environment Variables
-      id: image_info
-      shell: bash
-      run: |
-        set -euo pipefail
         echo "boil-target-tags: "$(< boil-target-tags)
 
         # Extract the image manifest tag from the boil-target-tags file
         IMAGE_MANIFEST_TAG=$(cut -d : -f 2 < boil-target-tags)
         [[ -n "$IMAGE_MANIFEST_TAG" ]]
-        [[ -n "$IMAGE_INDEX_MANIFEST_TAG" ]]
-
-        # Add the contents of the env variables to the GitHub output, so that it
-        # can be used as action outputs
         echo "IMAGE_MANIFEST_TAG=$IMAGE_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
-        echo "IMAGE_INDEX_MANIFEST_TAG=$IMAGE_INDEX_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
 
     - name: Print out Disk Usage
       if: always()
