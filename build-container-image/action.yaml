@@ -63,7 +63,6 @@ runs:
         DOCKER_BUILD_ARGUMENTS=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_build_arguments.sh" "$BUILD_ARGUMENTS")
 
         IMAGE_ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
-        echo "IMAGE_ARCH=${IMAGE_ARCH}" | tee -a "$GITHUB_ENV"
 
         IMAGE_MANIFEST_TAG="${IMAGE_INDEX_MANIFEST_TAG}-${IMAGE_ARCH}"
         echo "IMAGE_MANIFEST_TAG=${IMAGE_MANIFEST_TAG}" | tee -a "$GITHUB_OUTPUT"
