@@ -103,7 +103,6 @@ runs:
         IMAGE_INDEX_URI: ${{ steps.create-index.outputs.IMAGE_INDEX_URI }}
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         REGISTRY_URI: ${{ inputs.image-registry-uri }}
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
       run: |
         set -euo pipefail
 

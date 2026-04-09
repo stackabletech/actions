@@ -85,7 +85,6 @@ runs:
       shell: bash
       env:
         IMAGE_MANIFEST_URI: ${{ steps.re-tag.outputs.IMAGE_MANIFEST_URI }}
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
       run: |
         set -euo pipefail
         docker image push "$IMAGE_MANIFEST_URI"
@@ -101,7 +100,6 @@ runs:
         RETRY_COUNT: ${{ inputs.cosign-retries }}
         RETRY_ARGS: --verbose
         IMAGE_REPOSITORY_DIGEST: ${{ steps.push.outputs.IMAGE_REPOSITORY_DIGEST }}
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
       run: |
         set -euo pipefail
 
@@ -120,7 +118,6 @@ runs:
         IMAGE_MANIFEST_TAG: ${{ inputs.image-manifest-tag }}
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         REGISTRY_URI: ${{ inputs.image-registry-uri }}
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
       run: |
         set -euo pipefail
 
