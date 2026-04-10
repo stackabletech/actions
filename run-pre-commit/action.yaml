@@ -78,13 +78,14 @@ runs:
         key: pre-commit-${{ inputs.pre-commit-version }}-python${{ inputs.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
     - name: Format Rust Toolchain Cache Key
+      id: rust-toolchain-cache-key
       if: ${{ inputs.rust }}
       shell: bash
       env:
         RUST_COMPONENTS: ${{ inputs.rust-components }}
       run: |
         RUST_COMPONENTS=${RUST_COMPONENTS//,/_}
-        echo "RUST_COMPONENTS=$RUST_COMPONENTS" | tee -a "$GITHUB_ENV"
+        echo "RUST_COMPONENTS=$RUST_COMPONENTS" | tee -a "$GITHUB_OUTPUT"
 
     - name: Setup Rust Toolchain Cache
       id: rust-toolchain-cache
@@ -92,7 +93,7 @@ runs:
       uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
       with:
         path: ~/.rustup/toolchains
-        key: rust-toolchains-${{ inputs.rust }}-components-${{ env.RUST_COMPONENTS }}
+        key: rust-toolchains-${{ inputs.rust }}-components-${{ steps.rust-toolchain-cache-key.outputs.RUST_COMPONENTS }}
 
     - name: Setup Rust Toolchain
       uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
@@ -110,7 +111,7 @@ runs:
       shell: bash
       env:
         HADOLINT_VERSION: ${{ inputs.hadolint }}
-      run: |
+      run: | # zizmor: ignore[github-env] Using GITHUB_PATH is fine here, because we set it to a known static path.
         set -euo pipefail
 
         LOCATION_DIR="$HOME/.local/bin"

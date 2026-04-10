@@ -67,15 +67,8 @@ runs:
         username: ${{ inputs.image-registry-username }}
         password: ${{ inputs.image-registry-password }}
 
-    - name: Extract Action Path
-      shell: bash
-      env:
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
-      run: |
-        set -euo pipefail
-        echo "GITHUB_ACTION_PATH=$GITHUB_ACTION_PATH" | tee -a "$GITHUB_ENV"
-
     - name: Re-tag container image
+      id: re-tag
       shell: bash
       env:
         TARGET_IMAGE_URI: ${{ inputs.image-registry-uri }}/${{ inputs.image-repository }}:${{ inputs.image-manifest-tag }}
@@ -85,38 +78,43 @@ runs:
         docker tag "$SOURCE_IMAGE_URI" "$TARGET_IMAGE_URI"
 
         # Output for the next step
-        echo "IMAGE_MANIFEST_URI=$TARGET_IMAGE_URI" | tee -a "$GITHUB_ENV"
+        echo "IMAGE_MANIFEST_URI=$TARGET_IMAGE_URI" | tee -a "$GITHUB_OUTPUT"
 
     - name: Push the container image to ${{ inputs.image-registry-uri }}
+      id: push
       shell: bash
+      env:
+        IMAGE_MANIFEST_URI: ${{ steps.re-tag.outputs.IMAGE_MANIFEST_URI }}
       run: |
         set -euo pipefail
         docker image push "$IMAGE_MANIFEST_URI"
 
         # Output for the next step
-        IMAGE_REPO_DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_repo_digest.sh" "$IMAGE_MANIFEST_URI")
-        echo "IMAGE_REPO_DIGEST=$IMAGE_REPO_DIGEST" | tee -a "$GITHUB_ENV"
+        IMAGE_REPOSITORY_DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_repo_digest.sh" "$IMAGE_MANIFEST_URI")
+        echo "IMAGE_REPOSITORY_DIGEST=$IMAGE_REPOSITORY_DIGEST" | tee -a "$GITHUB_OUTPUT"
 
-    - name: Sign the container image (${{ env.IMAGE_REPO_DIGEST }})
+    - name: Sign the container image (${{ env.IMAGE_REPOSITORY_DIGEST }})
       shell: bash
       env:
         RETRY_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
         RETRY_COUNT: ${{ inputs.cosign-retries }}
         RETRY_ARGS: --verbose
+        IMAGE_REPOSITORY_DIGEST: ${{ steps.push.outputs.IMAGE_REPOSITORY_DIGEST }}
       run: |
         set -euo pipefail
 
         # This generates a signature and publishes it to the registry, next to
         # the image. This step uses the keyless signing flow with Github Actions
         # as the identity provider.
-        "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign sign --yes "${IMAGE_REPO_DIGEST}"
+        "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign sign --yes "${IMAGE_REPOSITORY_DIGEST}"
 
-    - name: Generate SBOM for the container image (${{ env.IMAGE_REPO_DIGEST }})
+    - name: Generate SBOM for the container image (${{ env.IMAGE_REPOSITORY_DIGEST }})
       shell: bash
       env:
         RETRY_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
         RETRY_COUNT: ${{ inputs.cosign-retries }}
         RETRY_ARGS: --verbose
+        IMAGE_REPOSITORY_DIGEST: ${{ steps.push.outputs.IMAGE_REPOSITORY_DIGEST }}
         IMAGE_MANIFEST_TAG: ${{ inputs.image-manifest-tag }}
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         REGISTRY_URI: ${{ inputs.image-registry-uri }}
@@ -124,7 +122,7 @@ runs:
         set -euo pipefail
 
         # Extract the digest from the image repo digest (right side of '@')
-        DIGEST=${IMAGE_REPO_DIGEST#*@}
+        DIGEST=${IMAGE_REPOSITORY_DIGEST#*@}
 
         # URL encode the digest and image repository, needed for the purl
         URLENCODED_DIGEST=$(jq -rn --arg input "$DIGEST" '$input | @uri')
@@ -143,8 +141,8 @@ runs:
 
         # Get metadata from the image
         # NOTE (@Techassi): Maybe we should run this command only once
-        IMAGE_METADATA_DESCRIPTION=$(docker inspect --format='{{.Config.Labels.description}}' "$IMAGE_REPO_DIGEST")
-        IMAGE_METADATA_NAME=$(docker inspect --format='{{.Config.Labels.name}}' "$IMAGE_REPO_DIGEST")
+        IMAGE_METADATA_DESCRIPTION=$(docker inspect --format='{{.Config.Labels.description}}' "$IMAGE_REPOSITORY_DIGEST")
+        IMAGE_METADATA_NAME=$(docker inspect --format='{{.Config.Labels.name}}' "$IMAGE_REPOSITORY_DIGEST")
 
         # Generate the SBOM
         syft scan \
@@ -152,7 +150,7 @@ runs:
           --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger" \
           --scope all-layers \
           --source-name "$SOURCE_NAME" \
-          --source-version "$IMAGE_MANIFEST_TAG" "$IMAGE_REPO_DIGEST"
+          --source-version "$IMAGE_MANIFEST_TAG" "$IMAGE_REPOSITORY_DIGEST"
 
         # Merge SBOM components using https://github.com/stackabletech/mergebom
         curl --fail -L -o mergebom https://repo.stackable.tech/repository/packages/mergebom/stable-$(uname -m)
@@ -194,4 +192,4 @@ runs:
             --yes \
             --predicate sbom.merged.json \
             --type cyclonedx \
-            "${IMAGE_REPO_DIGEST}"
+            "${IMAGE_REPOSITORY_DIGEST}"

@@ -54,14 +54,6 @@ runs:
         username: ${{ inputs.image-registry-username }}
         password: ${{ inputs.image-registry-password }}
 
-    - name: Extract Action Path
-      shell: bash
-      env:
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
-      run: |
-        set -euo pipefail
-        echo "GITHUB_ACTION_PATH=$GITHUB_ACTION_PATH" | tee -a "$GITHUB_ENV"
-
     - name: Create Image Index Manifest Manifest
       id: create-index
       shell: bash
@@ -76,7 +68,6 @@ runs:
         # Construct the image index uri, which for example contains:
         # oci.stackable.tech/sdp/kafka:3.4.1-stackable0.0.0-dev
         IMAGE_INDEX_URI="$REGISTRY_URI/$IMAGE_REPOSITORY:$IMAGE_INDEX_MANIFEST_TAG"
-        echo "IMAGE_INDEX_URI=$IMAGE_INDEX_URI" | tee -a "$GITHUB_ENV"
         echo "IMAGE_INDEX_URI=$IMAGE_INDEX_URI" | tee -a "$GITHUB_OUTPUT"
 
         AMEND_OPTIONS=$(
@@ -109,6 +100,7 @@ runs:
         RETRY_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
         RETRY_COUNT: ${{ inputs.cosign-retries }}
         RETRY_ARGS: --verbose
+        IMAGE_INDEX_URI: ${{ steps.create-index.outputs.IMAGE_INDEX_URI }}
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         REGISTRY_URI: ${{ inputs.image-registry-uri }}
       run: |

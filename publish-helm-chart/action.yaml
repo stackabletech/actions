@@ -102,6 +102,7 @@ runs:
         mv "$CHART_DIRECTORY/values.merged.yaml" "$CHART_DIRECTORY/values.yaml"
 
     - name: Package Helm Chart
+      id: package
       env:
         CHART_DIRECTORY: ${{ inputs.chart-directory }}
         CHART_VERSION: ${{ inputs.chart-version }}
@@ -114,7 +115,7 @@ runs:
 
         # Create temporary directory to store the Helm Chart
         TEMP_CHART_DIR=$(mktemp -d)
-        echo "TEMP_CHART_DIR=$TEMP_CHART_DIR" | tee -a "$GITHUB_ENV"
+        echo "TEMP_CHART_DIR=$TEMP_CHART_DIR" | tee -a "$GITHUB_OUTPUT"
 
         # Package the Helm Chart
         helm package \
@@ -124,8 +125,10 @@ runs:
           "$CHART_DIRECTORY"
 
     - name: Publish Helm Chart
+      id: publish
       if: inputs.publish-and-sign == 'true'
       env:
+        TEMP_CHART_DIR: ${{ steps.package.outputs.TEMP_CHART_DIR }}
         CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
         CHART_REPOSITORY: ${{ inputs.chart-repository }}
         CHART_DIRECTORY: ${{ inputs.chart-directory }}
@@ -138,7 +141,7 @@ runs:
 
         CHART_NAME=$(echo "$CHART_DIRECTORY" | awk -F/ '{print $NF}')
         CHART_ARTIFACT="${TEMP_CHART_DIR}/${CHART_NAME}-${CHART_VERSION}.tgz"
-        echo "CHART_NAME=$CHART_NAME" | tee -a "$GITHUB_ENV"
+        echo "CHART_NAME=$CHART_NAME" | tee -a "$GITHUB_OUTPUT"
 
         # Capture the stdout output to extract the digest. It is sad that Helm doesn't provide
         # structured output, eg. in JSON. There is a 2-year old open issue about it:
@@ -153,7 +156,7 @@ runs:
           exit 1
         fi
 
-        echo "CHART_DIGEST=$CHART_DIGEST" | tee -a "$GITHUB_ENV"
+        echo "CHART_DIGEST=$CHART_DIGEST" | tee -a "$GITHUB_OUTPUT"
 
     - name: Sign Helm Chart
       if: inputs.publish-and-sign == 'true'
@@ -161,7 +164,9 @@ runs:
         RETRY_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
         RETRY_COUNT: ${{ inputs.cosign-retries }}
         RETRY_ARGS: --verbose
+        CHART_DIGEST: ${{ steps.publish.outputs.CHART_DIGEST }}
         CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
+        CHART_NAME: ${{ steps.publish.outputs.CHART_NAME }}
         CHART_REPOSITORY: ${{ inputs.chart-repository }}
         GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
