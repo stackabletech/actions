@@ -12,3 +12,4 @@ else
 fi
 
 sudo install -m 755 -t /usr/local/bin /tmp/interu
+rm -rf /tmp/interu

@@ -22,6 +22,7 @@ fi
 tar --directory="/tmp/helm" --strip-components=1 -zxvf /tmp/helm/helm.tar.gz "${PLATFORM}-${ARCH}"
 # Overwrite the existing binary
 sudo install -m 755 -t /usr/local/bin /tmp/helm/helm
+rm -rf /tmp/helm
 
 helm version --short
 echo "::endgroup::"
