@@ -111,7 +111,7 @@ runs:
       shell: bash
       env:
         HADOLINT_VERSION: ${{ inputs.hadolint }}
-      run: | # zizmor: ignore[github-env] Using GITHUB_PATH is fine here, because the path is not user-controlled.
+      run: | # zizmor: ignore[github-env] Using GITHUB_PATH is fine here, because we set it to a known static path.
         set -euo pipefail
 
         LOCATION_DIR="$HOME/.local/bin"
