@@ -9,6 +9,7 @@ echo "::group::Install kubectl"
 curl -fsSL -o /tmp/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
 # Overwrite the existing binary
 sudo install -m 755 -t /usr/local/bin /tmp/kubectl
+rm -rf /tmp/kubectl
 
 kubectl version --client
 echo "::endgroup::"

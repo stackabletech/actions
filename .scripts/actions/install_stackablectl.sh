@@ -12,3 +12,4 @@ else
 fi
 
 sudo install -m 755 -t /usr/local/bin /tmp/stackablectl
+rm -rf /tmp/stackablectl

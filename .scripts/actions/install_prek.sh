@@ -17,6 +17,7 @@ fi
 
 tar --directory="/tmp/prek" --strip-components=1 -zxvf /tmp/prek/prek.tar.gz "prek-${ARCH}-unknown-linux-gnu/prek"
 sudo install -m 755 -t /usr/local/bin /tmp/prek/prek
+rm -rf /tmp/prek
 
 prek --version
 echo "::endgroup::"
