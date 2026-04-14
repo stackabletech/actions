@@ -12,6 +12,7 @@ outputs:
   versions:
     description: A list of product versions
     value: ${{ steps.generate_shards.outputs.VERSIONS }}
+
 runs:
   using: composite
   steps:
@@ -32,7 +33,7 @@ runs:
         set -euo pipefail
         [ -n "$GITHUB_DEBUG" ] && set -x
 
-        VERSIONS=$(boil show images "$PRODUCT_NAME" | jq --compact-output --arg product_name "$PRODUCT_NAME" '.[$product_name]')
+        VERSIONS=$(boil image list "$PRODUCT_NAME" | jq --compact-output --arg product_name "$PRODUCT_NAME" '.[$product_name]')
         echo "VERSIONS=$VERSIONS" | tee -a "$GITHUB_OUTPUT"
 
     - name: Print Shards
