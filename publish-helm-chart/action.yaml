@@ -93,10 +93,10 @@ runs:
         [ -n "$GITHUB_DEBUG" ] && set -x
 
         # This is directly taken from the official yq examples and merges all
-        # listed files
+        # listed files. ORDER MATTERS. Later files are merged into earlier files.
         yq eval-all '. as $item ireduce ({}; . * $item )' \
-          "$CHART_DIRECTORY/values/${CHART_REGISTRY_URI}.yaml" \
           "$CHART_DIRECTORY/values.yaml" \
+          "$CHART_DIRECTORY/values/${CHART_REGISTRY_URI}.yaml" \
           > "$CHART_DIRECTORY/values.merged.yaml"
 
         mv "$CHART_DIRECTORY/values.merged.yaml" "$CHART_DIRECTORY/values.yaml"
