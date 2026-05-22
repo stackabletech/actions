@@ -157,7 +157,7 @@ runs:
         fi
 
         # Yuck
-        CHART_DIGEST=$(cat helm.stdout | awk '/^Digest: sha256:[0-9a-f]{64}$/ { print $2 }')
+        CHART_DIGEST=$(cat "$HELM_OUTPUT" | awk '/^Digest: sha256:[0-9a-f]{64}$/ { print $2 }')
 
         if [ -z "$CHART_DIGEST" ]; then
           echo "Could not find digest of Helm Chart"
