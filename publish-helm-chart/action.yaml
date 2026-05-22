@@ -149,7 +149,9 @@ runs:
         # HELM_OUTPUT=$(helm push "$CHART_ARTIFACT" "oci://${CHART_REGISTRY_URI}/${CHART_REPOSITORY}" 2>&1)
         helm push "$CHART_ARTIFACT" "oci://${CHART_REGISTRY_URI}/${CHART_REPOSITORY}" 2> helm.stderr 1> helm.stdout
 
+        echo "stdout"
         cat helm.stdout
+        echo "stderr"
         cat helm.stderr
 
         if [ $? -ne 0 ]; then
