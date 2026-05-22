@@ -146,10 +146,17 @@ runs:
         # Capture the stdout output to extract the digest. It is sad that Helm doesn't provide
         # structured output, eg. in JSON. There is a 2-year old open issue about it:
         # https://github.com/helm/helm/issues/11735
-        HELM_OUTPUT=$(helm push "$CHART_ARTIFACT" "oci://${CHART_REGISTRY_URI}/${CHART_REPOSITORY}" 2>&1)
+        # HELM_OUTPUT=$(helm push "$CHART_ARTIFACT" "oci://${CHART_REGISTRY_URI}/${CHART_REPOSITORY}" 2>&1)
+        helm push "$CHART_ARTIFACT" "oci://${CHART_REGISTRY_URI}/${CHART_REPOSITORY}" 2> helm.stderr 1> helm.stdout
+
+        if [ $? -ne 0 ]; then
+          echo "helm push command failed"
+          cat helm.stderr
+          exit 1
+        fi
 
         # Yuck
-        CHART_DIGEST=$(echo "$HELM_OUTPUT" | awk '/^Digest: sha256:[0-9a-f]{64}$/ { print $2 }')
+        CHART_DIGEST=$(cat helm.stdout | awk '/^Digest: sha256:[0-9a-f]{64}$/ { print $2 }')
 
         if [ -z "$CHART_DIGEST" ]; then
           echo "Could not find digest of Helm Chart"
