@@ -148,13 +148,14 @@ runs:
         # https://github.com/helm/helm/issues/11735
         # Helm outputs the digest on STDERR, for whatever ridiculous reason. Like, who makes these
         # decisions?
+        set +e
         HELM_OUTPUT=$(helm push "$CHART_ARTIFACT" "oci://${CHART_REGISTRY_URI}/${CHART_REPOSITORY}" 2>&1)
-
         if [ $? -ne 0 ]; then
           echo "Helm push command failed"
           echo "$HELM_OUTPUT"
           exit 1
         fi
+        set -e
 
         # Yuck
         CHART_DIGEST=$(echo "$HELM_OUTPUT" | awk '/^Digest: sha256:[0-9a-f]{64}$/ { print $2 }')
