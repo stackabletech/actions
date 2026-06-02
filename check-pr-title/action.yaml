@@ -8,9 +8,9 @@ inputs:
     required: false
     default: ./committed.toml
   committed-version:
-    description: The version of committed, defaults to `latest`.
+    description: The version of committed, defaults to `v1.1.11`.
     required: false
-    default: latest
+    default: v1.1.11
 
 runs:
   using: composite
