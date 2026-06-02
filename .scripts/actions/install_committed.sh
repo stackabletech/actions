@@ -7,9 +7,9 @@ ARCH=$(uname -m)
 mkdir /tmp/committed
 
 if [ "$COMMITTED_VERSION" == "latest" ]; then
-  curl -fsSL -o /tmp/committed/committed.tar.gz "https://github.com/crate-ci/committed/releases/latest/download/committed-${ARCH}-unknown-linux-gnu.tar.gz"
+  curl -fsSL -o /tmp/committed/committed.tar.gz "https://github.com/crate-ci/committed/releases/latest/download/committed-${ARCH}-unknown-linux-musl.tar.gz"
 else
-  curl -fsSL -o /tmp/committed/committed.tar.gz "https://github.com/crate-ci/committed/releases/download/committed-${COMMITTED_VERSION}/committed-${ARCH}-unknown-linux-gnu.tar.gz"
+  curl -fsSL -o /tmp/committed/committed.tar.gz "https://github.com/crate-ci/committed/releases/download/committed-${COMMITTED_VERSION}/committed-${ARCH}-unknown-linux-musl.tar.gz"
 fi
 
 tar --directory="/tmp/committed" -zxvf /tmp/committed/committed.tar.gz ./committed
