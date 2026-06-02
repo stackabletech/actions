@@ -1,0 +1,30 @@
+---
+name: Check Pull Request Title
+description: This action checks that the PR title matches rules defined by the committed config file
+
+inputs:
+  config-file:
+    description: Patch to config file, defaults to `./committed.toml`
+    required: false
+    default: ./committed.toml
+  committed-version:
+    description: The version of committed, defaults to `v1.1.11`.
+    required: false
+    default: v1.1.11
+
+runs:
+  using: composite
+  steps:
+    - name: Set up committed
+      env:
+        COMMITTED_VERSION: ${{ inputs.committed-version }}
+      shell: bash
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_committed.sh"
+
+    - name: Check Pull Request Title
+      env:
+        PULL_REQUEST_TITLE: ${{ github.event.pull_request.title }}
+        CONFIG_FILE: ${{ inputs.config-file }}
+      shell: bash
+      run: |
+        echo "$PULL_REQUEST_TITLE" | committed --config "$CONFIG_FILE" --commit-file -
