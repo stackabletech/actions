@@ -17,7 +17,7 @@ inputs:
   helm-version:
     description: Version of helm
     # See https://github.com/helm/helm/releases for latest version
-    default: v3.19.0
+    default: v3.21.1
   chart-version:
     description: The Helm Chart version
     required: true
