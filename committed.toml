@@ -1,3 +1,4 @@
+subject_length = 65
 style = "conventional"
 allowed_types = ["refactor", "chore", "feat", "docs", "fix", "ci"]
 # Generated using `cargo boil image list --pretty never | jq 'keys'` + boil, patchable
