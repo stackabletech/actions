@@ -62,7 +62,7 @@ runs:
     - name: Install interu
       env:
         INTERU_VERSION: ${{ inputs.interu-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
+        RUNNER_DEBUG: ${{ runner.debug }}
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_interu.sh"
 
@@ -72,13 +72,13 @@ runs:
         TEST_SUITE: ${{ inputs.test-suite }}
         TEST_MODE: ${{ inputs.test-mode }}
         TEST: ${{ inputs.test }}
-        GITHUB_DEBUG: ${{ runner.debug }}
+        RUNNER_DEBUG: ${{ runner.debug }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_RUN_ID: ${{ github.run_id }}"
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         # Generate the cluster name
         echo "KUBERNETES_CLUSTER_NAME=integration-test-${GITHUB_REPOSITORY}-${GITHUB_RUN_ID}" | tee -a "$GITHUB_ENV"
@@ -104,7 +104,7 @@ runs:
         KUBECTL_VERSION: ${{ inputs.kubectl-version }}
         KUTTL_VERSION: ${{ inputs.kuttl-version }}
         HELM_VERSION: ${{ inputs.helm-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
+        RUNNER_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         "$GITHUB_ACTION_PATH/../.scripts/actions/install_kubectl.sh"
@@ -120,18 +120,16 @@ runs:
     - name: Install stackablectl
       env:
         STACKABLECTL_VERSION: ${{ inputs.stackablectl-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_stackablectl.sh"
 
     - name: Install beku
       env:
         BEKU_VERSION: ${{ inputs.beku-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         pip install "beku-stackabletech==$BEKU_VERSION"
 
@@ -170,6 +168,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+
         mkdir ~/.kube
         echo "$KUBECONFIG" > ~/.kube/config
 

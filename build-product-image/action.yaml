@@ -44,7 +44,6 @@ runs:
     - name: Setup boil (${{ inputs.boil-version }})
       env:
         BOIL_VERSION: ${{ inputs.boil-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_boil.sh"
 
@@ -60,6 +59,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         IMAGE_ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
 

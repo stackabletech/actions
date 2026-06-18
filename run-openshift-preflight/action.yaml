@@ -19,11 +19,10 @@ runs:
     - name: Download the OpenShift preflight tool
       env:
         PREFLIGHT_VERSION: ${{ inputs.preflight-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
         SYSTEM=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_platform.sh")
@@ -40,21 +39,18 @@ runs:
       env:
         IMAGE_ARCHITECTURE: ${{ inputs.image-architecture }}
         IMAGE_INDEX_URI: ${{ inputs.image-index-uri }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         openshift-preflight check container "$IMAGE_INDEX_URI" --platform "$IMAGE_ARCHITECTURE" > preflight.out
 
     - name: Report Result
-      env:
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         if [ "$(jq -r .passed < preflight.out)" == true ]; then
           echo "Checks Passed"

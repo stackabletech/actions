@@ -19,7 +19,6 @@ runs:
     - name: Setup boil (${{ inputs.boil-version }})
       env:
         BOIL_VERSION: ${{ inputs.boil-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_boil.sh"
 
@@ -27,22 +26,20 @@ runs:
       id: generate_shards
       env:
         PRODUCT_NAME: ${{ inputs.product-name }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         VERSIONS=$(boil image list "$PRODUCT_NAME" | jq --compact-output --arg product_name "$PRODUCT_NAME" '.[$product_name]')
         echo "VERSIONS=$VERSIONS" | tee -a "$GITHUB_OUTPUT"
 
     - name: Print Shards
       env:
-        GITHUB_DEBUG: ${{ runner.debug }}
         VERSIONS: ${{ steps.generate_shards.outputs.VERSIONS }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         echo "versions=$VERSIONS"
