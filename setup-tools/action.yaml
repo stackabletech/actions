@@ -17,7 +17,6 @@ runs:
       if: inputs.boil-version
       env:
         BOIL_VERSION: ${{ inputs.boil-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_boil.sh"
 
@@ -25,7 +24,6 @@ runs:
       if: inputs.stackablectl-version
       env:
         STACKABLECTL_VERSION: ${{ inputs.stackablectl-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_stackablectl.sh"
 
@@ -33,7 +31,6 @@ runs:
       if: inputs.interu-version
       env:
         INTERU_VERSION: ${{ inputs.interu-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_interu.sh"
 
@@ -41,10 +38,9 @@ runs:
       if: inputs.beku-version
       env:
         BEKU_VERSION: ${{ inputs.beku-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         pip install "beku-stackabletech==$BEKU_VERSION"

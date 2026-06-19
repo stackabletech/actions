@@ -50,7 +50,6 @@ runs:
       shell: bash
       env:
         PREK_VERSION: ${{ inputs.prek-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_prek.sh"
 
       # This caches downloaded prek hook artifacts and results in faster

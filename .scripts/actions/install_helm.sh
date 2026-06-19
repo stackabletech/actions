@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-[ -n "$GITHUB_DEBUG" ] && set -x
+[ -n "${RUNNER_DEBUG+set}" ] && set -x
 
 PLATFORM=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_platform.sh")
 ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")

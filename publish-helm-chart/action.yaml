@@ -54,7 +54,6 @@ runs:
     - name: Set up Helm
       env:
         HELM_VERSION: ${{ inputs.helm-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
         VERIFY_SIGNATURE: "false"
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_helm.sh"
@@ -65,11 +64,10 @@ runs:
         CHART_REGISTRY_USERNAME: ${{ inputs.chart-registry-username }}
         CHART_REGISTRY_PASSWORD: ${{ inputs.chart-registry-password }}
         CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         helm registry login --username "$CHART_REGISTRY_USERNAME" --password "$CHART_REGISTRY_PASSWORD" "$CHART_REGISTRY_URI"
 
@@ -86,11 +84,10 @@ runs:
       env:
         CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
         CHART_DIRECTORY: ${{ inputs.chart-directory }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         # This is directly taken from the official yq examples and merges all
         # listed files. ORDER MATTERS. Later files are merged into earlier files.
@@ -107,11 +104,10 @@ runs:
         CHART_DIRECTORY: ${{ inputs.chart-directory }}
         CHART_VERSION: ${{ inputs.chart-version }}
         APP_VERSION: ${{ inputs.app-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         # Create temporary directory to store the Helm Chart
         TEMP_CHART_DIR=$(mktemp -d)
@@ -133,11 +129,10 @@ runs:
         CHART_REPOSITORY: ${{ inputs.chart-repository }}
         CHART_DIRECTORY: ${{ inputs.chart-directory }}
         CHART_VERSION: ${{ inputs.chart-version }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         CHART_NAME=$(echo "$CHART_DIRECTORY" | awk -F/ '{print $NF}')
         CHART_ARTIFACT="${TEMP_CHART_DIR}/${CHART_NAME}-${CHART_VERSION}.tgz"
@@ -168,11 +163,10 @@ runs:
         CHART_REGISTRY_URI: ${{ inputs.chart-registry-uri }}
         CHART_NAME: ${{ steps.publish.outputs.CHART_NAME }}
         CHART_REPOSITORY: ${{ inputs.chart-repository }}
-        GITHUB_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         set -euo pipefail
-        [ -n "$GITHUB_DEBUG" ] && set -x
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         # This generates a signature and publishes it to the registry, next to the chart artifact
         # Uses the keyless signing flow with Github Actions as identity provider
