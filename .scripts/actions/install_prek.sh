@@ -4,15 +4,16 @@ set -euo pipefail
 [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
 ARCH=$(uname -m)
+cp "$GITHUB_ACTION_PATH/../configs/curlrc" "$XDG_CONFIG_HOME/curlrc"
 
 echo "::group::Install prek"
 mkdir /tmp/prek
 
 # TODO (@Techassi): Verify checksum
 if [ "$PREK_VERSION" == "latest" ]; then
-  curl -fsSL -o /tmp/prek/prek.tar.gz "https://github.com/j178/prek/releases/latest/download/prek-${ARCH}-unknown-linux-gnu.tar.gz"
+  curl -o /tmp/prek/prek.tar.gz "https://github.com/j178/prek/releases/latest/download/prek-${ARCH}-unknown-linux-gnu.tar.gz"
 else
-  curl -fsSL -o /tmp/prek/prek.tar.gz "https://github.com/j178/prek/releases/download/${PREK_VERSION}/prek-${ARCH}-unknown-linux-gnu"
+  curl -o /tmp/prek/prek.tar.gz "https://github.com/j178/prek/releases/download/${PREK_VERSION}/prek-${ARCH}-unknown-linux-gnu"
 fi
 
 tar --directory="/tmp/prek" --strip-components=1 -zxvf /tmp/prek/prek.tar.gz "prek-${ARCH}-unknown-linux-gnu/prek"
