@@ -7,9 +7,9 @@ ARCH=$(uname -m)
 cp "$GITHUB_ACTION_PATH/../configs/curlrc" "$XDG_CONFIG_HOME/curlrc"
 
 if [ "$BOIL_VERSION" == "latest" ]; then
-  curl -o /tmp/boil "https://github.com/stackabletech/docker-images/releases/latest/download/boil-${ARCH}-unknown-linux-gnu"
+  curl --config "$XDG_CONFIG_HOME/curlrc" -o /tmp/boil "https://github.com/stackabletech/docker-images/releases/latest/download/boil-${ARCH}-unknown-linux-gnu"
 else
-  curl -o /tmp/boil "https://github.com/stackabletech/docker-images/releases/download/boil-${BOIL_VERSION}/boil-${ARCH}-unknown-linux-gnu"
+  curl --config "$XDG_CONFIG_HOME/curlrc" -o /tmp/boil "https://github.com/stackabletech/docker-images/releases/download/boil-${BOIL_VERSION}/boil-${ARCH}-unknown-linux-gnu"
 fi
 
 sudo install -m 755 -t /usr/local/bin /tmp/boil

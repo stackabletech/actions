@@ -12,11 +12,11 @@ VERIFY_SIGNATURE="${VERIFY_SIGNATURE:-true}"
 
 echo "::group::Install helm"
 mkdir /tmp/helm
-curl -o /tmp/helm/helm.tar.gz "https://get.helm.sh/${FILENAME}"
+curl --config "$XDG_CONFIG_HOME/curlrc" -o /tmp/helm/helm.tar.gz "https://get.helm.sh/${FILENAME}"
 
 if [[ "$VERIFY_SIGNATURE" == "true" ]]; then
-  curl -o /tmp/helm/helm.tar.gz.asc "https://github.com/helm/helm/releases/download/${HELM_VERSION}/${FILENAME}.asc"
-  curl https://keybase.io/mattfarina/pgp_keys.asc | gpg --import
+  curl --config "$XDG_CONFIG_HOME/curlrc" -o /tmp/helm/helm.tar.gz.asc "https://github.com/helm/helm/releases/download/${HELM_VERSION}/${FILENAME}.asc"
+  curl --config "$XDG_CONFIG_HOME/curlrc" https://keybase.io/mattfarina/pgp_keys.asc | gpg --import
   gpg --verify /tmp/helm/helm.tar.gz.asc /tmp/helm/helm.tar.gz
 fi
 

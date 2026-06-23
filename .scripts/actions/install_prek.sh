@@ -11,9 +11,9 @@ mkdir /tmp/prek
 
 # TODO (@Techassi): Verify checksum
 if [ "$PREK_VERSION" == "latest" ]; then
-  curl --verbose -o /tmp/prek/prek.tar.gz "https://github.com/j178/prek/releases/latest/download/prek-${ARCH}-unknown-linux-gnu.tar.gz"
+  curl --config "$XDG_CONFIG_HOME/curlrc" -o /tmp/prek/prek.tar.gz "https://github.com/j178/prek/releases/latest/download/prek-${ARCH}-unknown-linux-gnu.tar.gz"
 else
-  curl --verbose -o /tmp/prek/prek.tar.gz "https://github.com/j178/prek/releases/download/${PREK_VERSION}/prek-${ARCH}-unknown-linux-gnu"
+  curl --config "$XDG_CONFIG_HOME/curlrc" -o /tmp/prek/prek.tar.gz "https://github.com/j178/prek/releases/download/${PREK_VERSION}/prek-${ARCH}-unknown-linux-gnu"
 fi
 
 tar --directory="/tmp/prek" --strip-components=1 -zxvf /tmp/prek/prek.tar.gz "prek-${ARCH}-unknown-linux-gnu/prek"
