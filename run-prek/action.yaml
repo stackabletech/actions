@@ -41,7 +41,7 @@ runs:
 
     - name: Setup nix
       if: inputs.nix
-      uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15 # v31.9.0
+      uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
       with:
         github_access_token: ${{ inputs.nix-github-token }}
         install_url: https://releases.nixos.org/nix/nix-${{ inputs.nix }}/install
@@ -55,7 +55,7 @@ runs:
       # This caches downloaded prek hook artifacts and results in faster
       # workflow runs after an initial hydration run with the exact same hooks
     - name: Setup prek Cache
-      uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
         path: ~/.cache/prek
         key: prek-${{ inputs.prek-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
@@ -73,13 +73,13 @@ runs:
     - name: Setup Rust Toolchain Cache
       id: rust-toolchain-cache
       if: ${{ inputs.rust }}
-      uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
         path: ~/.rustup/toolchains
         key: rust-toolchains-${{ inputs.rust }}-components-${{ steps.rust-toolchain-cache-key.outputs.RUST_COMPONENTS }}
 
     - name: Setup Rust Toolchain
-      uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+      uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
       if: ${{ inputs.rust && steps.rust-toolchain-cache.outputs.cache-hit != 'true' }}
       with:
         toolchain: ${{ inputs.rust }}
@@ -87,7 +87,7 @@ runs:
 
     - name: Setup Rust Cache
       if: ${{ inputs.rust }}
-      uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
+      uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
 
     # TODO (@Techassi): Move this into a script
     - name: Install Hadolint
