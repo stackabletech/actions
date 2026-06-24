@@ -5,17 +5,18 @@ set -euo pipefail
 
 PLATFORM=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_platform.sh")
 ARCH=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_architecture.sh")
+cp "$GITHUB_ACTION_PATH/../configs/curlrc" "$XDG_CONFIG_HOME/curlrc"
 
 FILENAME="helm-${HELM_VERSION}-${PLATFORM}-${ARCH}.tar.gz"
 VERIFY_SIGNATURE="${VERIFY_SIGNATURE:-true}"
 
 echo "::group::Install helm"
 mkdir /tmp/helm
-curl -fsSL -o /tmp/helm/helm.tar.gz "https://get.helm.sh/${FILENAME}"
+curl --config "$XDG_CONFIG_HOME/curlrc" -o /tmp/helm/helm.tar.gz "https://get.helm.sh/${FILENAME}"
 
 if [[ "$VERIFY_SIGNATURE" == "true" ]]; then
-  curl -fsSL -o /tmp/helm/helm.tar.gz.asc "https://github.com/helm/helm/releases/download/${HELM_VERSION}/${FILENAME}.asc"
-  curl https://keybase.io/mattfarina/pgp_keys.asc | gpg --import
+  curl --config "$XDG_CONFIG_HOME/curlrc" -o /tmp/helm/helm.tar.gz.asc "https://github.com/helm/helm/releases/download/${HELM_VERSION}/${FILENAME}.asc"
+  curl --config "$XDG_CONFIG_HOME/curlrc" https://keybase.io/mattfarina/pgp_keys.asc | gpg --import
   gpg --verify /tmp/helm/helm.tar.gz.asc /tmp/helm/helm.tar.gz
 fi
 
