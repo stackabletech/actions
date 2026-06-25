@@ -67,6 +67,7 @@ runs:
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_interu.sh"
 
     - name: Extract Test and Instance Configuration
+      id: extract
       env:
         TEST_MODE_INPUT: ${{ inputs.test-mode-input }}
         TEST_SUITE: ${{ inputs.test-suite }}
@@ -81,19 +82,19 @@ runs:
         [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         # Generate the cluster name
-        echo "KUBERNETES_CLUSTER_NAME=integration-test-${GITHUB_REPOSITORY}-${GITHUB_RUN_ID}" | tee -a "$GITHUB_ENV"
+        echo "KUBERNETES_CLUSTER_NAME=integration-test-${GITHUB_REPOSITORY}-${GITHUB_RUN_ID}" | tee -a "$GITHUB_OUTPUT"
 
-        # Run interu to expand parameters into GITHUB_ENV
+        # Run interu to expand parameters into GITHUB_OUTPUT for use as env vars in later steps.
         if [ "$TEST_MODE" == "profile" ]; then
           [ -n "${TEST_SUITE:-}" ] && echo "::warning::The test-suite input is ignored, because a profile is selected."
           [ -n "${TEST:-}" ] && echo "::warning::The test input is ignored, because a profile is selected."
 
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_ENV"
+          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_OUTPUT"
         else
           [ -n "${TEST_SUITE:-}" ] && ARGS+=" --test-suite $TEST_SUITE"
           [ -n "${TEST:-}" ] && ARGS+=" --test $TEST"
 
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" ${ARGS:-} --output "$GITHUB_ENV"
+          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" ${ARGS:-} --output "$GITHUB_OUTPUT"
         fi
 
     # Install all tools BEFORE creating the cluster, because if some of the tools fail to download
@@ -148,19 +149,19 @@ runs:
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
-        cluster-name: ${{ env.KUBERNETES_CLUSTER_NAME }}
-        kubernetes-distribution: ${{ env.INTERU_KUBERNETES_DISTRIBUTION }}
-        kubernetes-version: ${{ env.INTERU_KUBERNETES_VERSION }}
-        ttl: ${{ env.INTERU_CLUSTER_TTL }}
-        node-groups: ${{ env.INTERU_NODE_GROUPS }}
+        cluster-name: ${{ steps.extract.outputs.KUBERNETES_CLUSTER_NAME }}
+        kubernetes-distribution: ${{ steps.extract.outputs.INTERU_KUBERNETES_DISTRIBUTION }}
+        kubernetes-version: ${{ steps.extract.outputs.INTERU_KUBERNETES_VERSION }}
+        ttl: ${{ steps.extract.outputs.INTERU_CLUSTER_TTL }}
+        node-groups: ${{ steps.extract.outputs.INTERU_NODE_GROUPS }}
         # FIXME (@Techassi): Add test-suite and test here
         tags: |
           - key: kubernetes-distribution
-            value: ${{ env.INTERU_KUBERNETES_DISTRIBUTION }}
+            value: ${{ steps.extract.outputs.INTERU_KUBERNETES_DISTRIBUTION }}
           - key: triggered-by
             value: ${{ github.triggering_actor }}
           - key: test-parallelism
-            value: "${{ env.BEKU_TEST_PARALLELISM }}"
+            value: "${{ steps.extract.outputs.BEKU_TEST_PARALLELISM }}"
 
     - name: Set Replicated kubeconfig
       env:
@@ -173,6 +174,7 @@ runs:
         echo "$KUBECONFIG" > ~/.kube/config
 
     - name: Extract Operator Name
+      id: extract
       env:
         REPOSITORY: ${{ github.repository }}
       shell: bash
@@ -180,7 +182,7 @@ runs:
         set -euo pipefail
 
         OPERATOR_NAME=$(echo "$REPOSITORY" | cut -d / -f 2 | sed 's/-operator//g')
-        echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_ENV"
+        echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_OUTPUT"
 
     - name: Install OpenTelemetry Operator
       shell: bash
@@ -197,6 +199,11 @@ runs:
     - name: Apply OpenTelemetry Collectors configurations
       shell: bash
       env:
+        # These are directly used in the script below, but then used by kustomize/replicated/kustomization.yaml
+        # (configMapGenerator which supplies env vars for the Otel collector config per patch in the same file)
+        KUBERNETES_CLUSTER_NAME: ${{ steps.extract.outputs.KUBERNETES_CLUSTER_NAME }}
+        INTERU_KUBERNETES_DISTRIBUTION: ${{ steps.extract.outputs.INTERU_KUBERNETES_DISTRIBUTION }}
+        INTERU_KUBERNETES_VERSION: ${{ steps.extract.outputs.INTERU_KUBERNETES_VERSION }}
         GITHUB_TRIGGERED_BY: ${{ github.triggering_actor }}
       run: |
         set -euo pipefail
@@ -232,6 +239,7 @@ runs:
       env:
         REF_NAME: ${{ github.ref_name }}
         GH_TOKEN: ${{ github.token }}
+        OPERATOR_NAME: ${{ steps.extract.outputs.OPERATOR_NAME }}
       shell: bash
       run: |
         set -euo pipefail
