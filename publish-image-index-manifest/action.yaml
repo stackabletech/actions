@@ -41,6 +41,11 @@ outputs:
   image-index-uri:
     description: The Image Index URI.
     value: ${{ steps.create-index.outputs.IMAGE_INDEX_URI }}
+  image-index-manifest-digest:
+    description: |
+      The digest (sha256:...) of the pushed image index manifest. Used as input
+      for SLSA provenance generation.
+    value: ${{ steps.create-index.outputs.IMAGE_INDEX_MANIFEST_DIGEST }}
 runs:
   using: composite
   steps:
@@ -94,6 +99,11 @@ runs:
         docker manifest create "$IMAGE_INDEX_URI" ${AMEND_OPTIONS[@]}
         docker manifest push "$IMAGE_INDEX_URI"
 
+        # Get the image index manifest digest and expose it as an output, so it
+        # can be fed into SLSA provenance generation.
+        DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_manifest_digest.sh" "$IMAGE_INDEX_URI")
+        echo "IMAGE_INDEX_MANIFEST_DIGEST=$DIGEST" | tee -a "$GITHUB_OUTPUT"
+
     - name: Sign Image Index Manifest
       shell: bash
       env:
@@ -101,13 +111,11 @@ runs:
         RETRY_COUNT: ${{ inputs.cosign-retries }}
         RETRY_ARGS: --verbose
         IMAGE_INDEX_URI: ${{ steps.create-index.outputs.IMAGE_INDEX_URI }}
+        DIGEST: ${{ steps.create-index.outputs.IMAGE_INDEX_MANIFEST_DIGEST }}
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         REGISTRY_URI: ${{ inputs.image-registry-uri }}
       run: |
         set -euo pipefail
-
-        # Get the image index manifest digest
-        DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_manifest_digest.sh" "$IMAGE_INDEX_URI")
 
         # Construct the image repo digest, which for example contains:
         # oci.stackable.tech/sdp/kafka@sha256:91...

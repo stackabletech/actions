@@ -29,5 +29,6 @@ This action creates an image index manifest, publishes it, and signs it. It does
 ### Outputs
 
 - `image-index-uri`: The final image index URI, eg. `oci.stackable.tech/spd/kafka:3.4.1-stackable0.0.0-dev`.
+- `image-index-manifest-digest`: The digest (`sha256:...`) of the pushed image index manifest, used as input for SLSA provenance generation.
 
 [publish-image-index-manifest]: ./action.yaml
