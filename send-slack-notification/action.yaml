@@ -31,6 +31,7 @@ runs:
   using: composite
   steps:
     - name: Validate Inputs
+      id: valid_inputs
       env:
         NOTIFICATION_TYPE: ${{ inputs.type }}
 
@@ -52,22 +53,22 @@ runs:
           [ -z "${PUBLISH_MANIFESTS_RESULT:-}" ] && echo "The publish-manifests-result input must be provided" && exit 1
           [ -z "${BUILD_RESULT:-}" ] && echo "The build-result input must be provided" && exit 1
 
-          echo "PUBLISH_MANIFESTS_RESULT=$PUBLISH_MANIFESTS_RESULT" | tee -a "$GITHUB_ENV"
-          echo "PUBLISH_HELM_CHART_RESULT=$PUBLISH_HELM_CHART_RESULT" | tee -a "$GITHUB_ENV"
-          echo "BUILD_RESULT=$BUILD_RESULT" | tee -a "$GITHUB_ENV"
+          echo "PUBLISH_MANIFESTS_RESULT=$PUBLISH_MANIFESTS_RESULT" | tee -a "$GITHUB_OUTPUT"
+          echo "PUBLISH_HELM_CHART_RESULT=$PUBLISH_HELM_CHART_RESULT" | tee -a "$GITHUB_OUTPUT"
+          echo "BUILD_RESULT=$BUILD_RESULT" | tee -a "$GITHUB_OUTPUT"
         elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
           [ -z "${TEST_RESULT:-}" ] && echo "The test-result input must be provided" && exit 1
           [ -z "${TEST_HEALTH:-}" ] && echo "The test-health input must be provided" && exit 1
 
-          echo "FAILED_TESTS=${FAILED_TESTS:-No failed tests}" | tee -a "$GITHUB_ENV"
-          echo "TEST_RESULT=$TEST_RESULT" | tee -a "$GITHUB_ENV"
-          echo "TEST_HEALTH=$TEST_HEALTH" | tee -a "$GITHUB_ENV"
+          echo "FAILED_TESTS=${FAILED_TESTS:-No failed tests}" | tee -a "$GITHUB_OUTPUT"
+          echo "TEST_RESULT=$TEST_RESULT" | tee -a "$GITHUB_OUTPUT"
+          echo "TEST_HEALTH=$TEST_HEALTH" | tee -a "$GITHUB_OUTPUT"
         else
           echo "Supported notification types are: 'container-image-build' and 'integration-test'"
           exit 1
         fi
 
-        echo "NOTIFICATION_TYPE=$NOTIFICATION_TYPE" | tee -a "$GITHUB_ENV"
+        echo "NOTIFICATION_TYPE=$NOTIFICATION_TYPE" | tee -a "$GITHUB_OUTPUT"
 
     - name: Retrieve Slack Thread ID
       id: retrieve-slack-thread-id
@@ -77,20 +78,28 @@ runs:
         name: slack-thread-id-${{ github.run_id }}
 
     - name: Extract Slack Thread ID into Environment Variable
+      id: extract
       if: steps.retrieve-slack-thread-id.outcome == 'success'
       shell: bash
       run: |
-        echo "SLACK_THREAD_ID=$(cat slack-thread-id)" | tee -a "$GITHUB_ENV"
+        echo "SLACK_THREAD_ID=$(cat slack-thread-id)" | tee -a "$GITHUB_OUTPUT"
 
     - name: Provide message template variables
+      id: template_variables
       env:
+        PUBLISH_MANIFESTS_RESULT: ${{ steps.valid_inputs.outputs.PUBLISH_MANIFESTS_RESULT }}
+        PUBLISH_HELM_CHART_RESULT: ${{ steps.valid_inputs.outputs.PUBLISH_HELM_CHART_RESULT }}
+        BUILD_RESULT: ${{ steps.valid_inputs.outputs.BUILD_RESULT }}
+        FAILED_TESTS: ${{ steps.valid_inputs.outputs.FAILED_TESTS }}
+        TEST_HEALTH: ${{ steps.valid_inputs.outputs.TEST_HEALTH }}
+        NOTIFICATION_TYPE: ${{ steps.valid_inputs.outputs.NOTIFICATION_TYPE }}
         GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         GITHUB_SERVER_URL: ${{ github.server_url }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_WORKFLOW: ${{ github.workflow }}
         GITHUB_RUN_ID: ${{ github.run_id }}
         SLACK_THREAD_YAML: |
-          ${{ steps.retrieve-slack-thread-id.outcome == 'success' && format('thread_ts: "{0}"', env.SLACK_THREAD_ID) || '' }}
+          ${{ steps.retrieve-slack-thread-id.outcome == 'success' && format('thread_ts: "{0}"', steps.extract.outputs.SLACK_THREAD_ID) || '' }}
         CHANNEL_ID: ${{ inputs.channel-id }}
         MESSAGE_SUBJECT: ${{ inputs.message-subject }}
       shell: bash
@@ -114,7 +123,7 @@ runs:
 
           export MESSAGE_TEXT="*$MESSAGE_SUBJECT* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)"
           PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/container-image-build/failure.tpl")
-          echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_ENV"
+          echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPUT"
         elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
           # Only override the message subject with the default value if it is empty
           if [ -z "${MESSAGE_SUBJECT:-}" ]; then
@@ -127,11 +136,11 @@ runs:
           if [ "$TEST_RESULT" == "failure" ]; then
             export MESSAGE_TEXT="The integration test for *`$MESSAGE_SUBJECT`* failed."
             PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/failure.tpl")
-            echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_ENV"
+            echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPUT"
           else
             export MESSAGE_TEXT="The integration test for *`$MESSAGE_SUBJECT`* succeeded."
             PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/success.tpl")
-            echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_ENV"
+            echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPUT"
           fi
         fi
 
@@ -141,7 +150,7 @@ runs:
       with:
         method: chat.postMessage
         token: ${{ inputs.slack-token }}
-        payload: ${{ env.PAYLOAD }}
+        payload: ${{ steps.template_variables.outputs.PAYLOAD }}
         payload-templated: false
 
     - name: Save Slack Thread ID to File
