@@ -174,7 +174,7 @@ runs:
         echo "$KUBECONFIG" > ~/.kube/config
 
     - name: Extract Operator Name
-      id: extract
+      id: extract_operator_name
       env:
         REPOSITORY: ${{ github.repository }}
       shell: bash
@@ -239,7 +239,7 @@ runs:
       env:
         REF_NAME: ${{ github.ref_name }}
         GH_TOKEN: ${{ github.token }}
-        OPERATOR_NAME: ${{ steps.extract.outputs.OPERATOR_NAME }}
+        OPERATOR_NAME: ${{ steps.extract_operator_name.outputs.OPERATOR_NAME }}
       shell: bash
       run: |
         set -euo pipefail
