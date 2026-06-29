@@ -9,9 +9,10 @@ following work:
    `image-repository`.
 2. Push the container image to the specified registry.
 3. Sign the container image (which pushes the signature to the specified registry).
-4. Generate an SBOM via a syft scan.
-5. Attest an image with the SBOM as a predicate (which pushes the attestation to the specified
-   registry).
+4. Generate a CycloneDX SBOM via a syft scan and merge its components.
+5. Convert the merged CycloneDX SBOM to SPDX (normalising deprecated license ids).
+6. Attest the image with both the CycloneDX and SPDX SBOMs as predicates (which pushes the
+   attestations to the specified registry).
 
 ## Inputs and Outputs
 
