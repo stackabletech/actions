@@ -193,3 +193,25 @@ runs:
             --predicate sbom.merged.json \
             --type cyclonedx \
             "${IMAGE_REPOSITORY_DIGEST}"
+
+        # Derive an SPDX SBOM from the merged CycloneDX SBOM. We only generate
+        # CycloneDX, SPDX is produced by conversion so both formats describe the
+        # same merged, deduplicated inventory.
+        syft convert sbom.merged.json --output spdx-json=sbom.spdx.raw.json
+
+        # Normalise deprecated SPDX license identifiers that strict validators and
+        # some consumers reject. syft still emits the deprecated standalone form
+        # "GPL-2.0-with-classpath-exception"; rewrite it to the valid WITH
+        # expression. Extend the `fix` chain if further deprecated ids show up.
+        jq '
+          def fix: gsub("GPL-2.0-with-classpath-exception"; "GPL-2.0-only WITH Classpath-exception-2.0");
+          (.. | .licenseDeclared?  // empty) |= (if type == "string" then fix else . end)
+        | (.. | .licenseConcluded? // empty) |= (if type == "string" then fix else . end)
+        ' sbom.spdx.raw.json > sbom.spdx.json
+
+        # Attest the SPDX SBOM to the image
+        "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign attest \
+            --yes \
+            --predicate sbom.spdx.json \
+            --type spdxjson \
+            "${IMAGE_REPOSITORY_DIGEST}"
