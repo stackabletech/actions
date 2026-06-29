@@ -118,13 +118,24 @@ jobs:
           persist-credentials: false
           submodules: recursive
 
-      - name: Package, Publish, and Sign Helm Chart
+      - name: Package, Publish, and Sign Helm Chart (oci.stackable.tech)
         uses: ./publish-helm-chart
         with:
           chart-registry-uri: oci.stackable.tech
           chart-registry-username: robot$smoke+github-action-build
           chart-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
           chart-repository: smoke
+          chart-directory: smoke/helm-chart
+          chart-version: ${{ matrix.versions }}
+          app-version: ${{ matrix.versions }}
+
+      - name: Package, Publish, and Sign Helm Chart (quay.io)
+        uses: ./publish-helm-chart
+        with:
+          chart-registry-uri: quay.io
+          chart-registry-username: stackable+robot_sdp_charts_github_action_build
+          chart-registry-password: ${{ secrets.QUAY_ROBOT_SDP_CHARTS_GITHUB_ACTION_BUILD_SECRET }}
+          chart-repository: stackable/smoke
           chart-directory: smoke/helm-chart
           chart-version: ${{ matrix.versions }}
           app-version: ${{ matrix.versions }}
