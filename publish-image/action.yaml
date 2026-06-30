@@ -199,14 +199,33 @@ runs:
         # same merged, deduplicated inventory.
         syft convert sbom.merged.json --output spdx-json=sbom.spdx.raw.json
 
-        # Normalise deprecated SPDX license identifiers that strict validators and
-        # some consumers reject. syft still emits the deprecated standalone form
-        # "GPL-2.0-with-classpath-exception"; rewrite it to the valid WITH
-        # expression. Extend the `fix` chain if further deprecated ids show up.
-        jq '
+        # Post-process the converted SPDX SBOM:
+        #   1. Normalise deprecated SPDX license identifiers that strict
+        #      validators reject. syft still emits the deprecated standalone form
+        #      "GPL-2.0-with-classpath-exception"; rewrite it to the valid WITH
+        #      expression. Extend the `fix` chain if further deprecated ids show up.
+        #   2. Restore top-level metadata that the CycloneDX -> SPDX conversion
+        #      drops: credit Stackable as an SBOM creator, and set the name,
+        #      version, originator, supplier and purl of the root container
+        #      package.
+        jq --arg source_name "$SOURCE_NAME" --arg version "$IMAGE_MANIFEST_TAG" --arg purl "$PURL" '
           def fix: gsub("GPL-2.0-with-classpath-exception"; "GPL-2.0-only WITH Classpath-exception-2.0");
           (.. | .licenseDeclared?  // empty) |= (if type == "string" then fix else . end)
         | (.. | .licenseConcluded? // empty) |= (if type == "string" then fix else . end)
+        | .creationInfo.creators += ["Organization: Stackable GmbH"]
+        | (first(.relationships[]? | select(.relationshipType == "DESCRIBES") | .relatedSpdxElement)) as $root
+        | .packages |= map(
+            if .SPDXID == $root then
+                .name = $source_name
+              | .versionInfo = $version
+              | .supplier = "Organization: Stackable GmbH"
+              | .originator = "Organization: Stackable GmbH"
+              | .externalRefs = ((.externalRefs // []) + [{
+                  "referenceCategory": "PACKAGE-MANAGER",
+                  "referenceType": "purl",
+                  "referenceLocator": $purl
+                }])
+            else . end)
         ' sbom.spdx.raw.json > sbom.spdx.json
 
         # Attest the SPDX SBOM to the image
