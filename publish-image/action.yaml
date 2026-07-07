@@ -144,10 +144,14 @@ runs:
         IMAGE_METADATA_DESCRIPTION=$(docker inspect --format='{{.Config.Labels.description}}' "$IMAGE_REPOSITORY_DIGEST")
         IMAGE_METADATA_NAME=$(docker inspect --format='{{.Config.Labels.name}}' "$IMAGE_REPOSITORY_DIGEST")
 
-        # Generate the SBOM
+        # Generate the SBOM.
+        # The "-file" cataloger tag disables the file catalogers so no file-type
+        # components (RPM-owned files like /etc/aliases) are emitted. They carry
+        # no purl, so vulnerability scanners cannot use them, and for large
+        # images they would make up most of the component count.
         syft scan \
           --output cyclonedx-json@1.5=sbom_raw.json \
-          --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger" \
+          --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger,-file" \
           --scope all-layers \
           --source-name "$SOURCE_NAME" \
           --source-version "$IMAGE_MANIFEST_TAG" "$IMAGE_REPOSITORY_DIGEST"
@@ -167,6 +171,22 @@ runs:
         chmod +x ./mergebom
         ./mergebom sbom_raw.json sbom.json
 
+        # Strip syft's per-component bookkeeping properties (layer IDs, evidence
+        # annotations, package IDs, ...) after mergebom has consumed them. Keep
+        # the paths a component was found at, the path inside an archive it was
+        # unpacked from, and the cataloger name as these are useful for debugging.
+        jq '.components |= map(
+              if .properties then
+                .properties |= map(select(
+                  (.name | startswith("syft:") | not)
+                  or (.name | test("^syft:location:[0-9]+:path$"))
+                  or .name == "syft:metadata:virtualPath"
+                  or .name == "syft:package:foundBy"
+                ))
+              else . end
+            | if .properties == [] then del(.properties) else . end)' \
+          sbom.json > sbom.slim.json
+
         # TODO (@Techassi): Replace author with manufacturer, because it is
         # automated, see https://cyclonedx.org/docs/1.6/json/#metadata_component_manufacturer
         jq -s \
@@ -185,7 +205,7 @@ runs:
                       "publisher": "Stackable GmbH"
                   }
               }
-          } * .[0]' sbom.json > sbom.merged.json
+          } * .[0]' sbom.slim.json > sbom.merged.json
 
         # Attest the SBOM to the image
         "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign attest \
