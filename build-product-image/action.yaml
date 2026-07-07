@@ -24,6 +24,9 @@ inputs:
   registry-namespace:
     description: Path of the registry namespace, eg. `sdp` or `stackable`
     required: true
+  floating-tag:
+    description: Whether a floating tag should be added to the final image
+    default: "false"
 outputs:
   image-manifest-tag:
     description: |
@@ -38,6 +41,19 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Validate inputs
+      env:
+        FLOATING_TAG: ${{ inputs.floating-tag }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
+
+        if [ "$FLOATING_TAG" != 'true' ] && [ "$FLOATING_TAG" != 'false' ]; then
+          echo 'The floating-tag input must be either "true" or "false".'
+          exit 1
+        fi
+
     - name: Setup Docker Buildx
       uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
@@ -55,6 +71,7 @@ runs:
         BOIL_CONFIG_FILE: ${{ inputs.boil-config-file }}
         IMAGE_REPOSITORY: ${{ inputs.product-name }}
         EXTRA_TAG_DATA: ${{ inputs.extra-tag-data }}
+        FLOATING_TAG: ${{ inputs.floating-tag }}
         SDP_VERSION: ${{ inputs.sdp-version }}
       shell: bash
       run: |
@@ -77,15 +94,30 @@ runs:
         fi
 
         echo "::group::boil"
-        boil build \
-          --image-version "$IMAGE_INDEX_MANIFEST_TAG" \
-          --registry-namespace "$REGISTRY_NAMESPACE" \
-          --target-platform "linux/${IMAGE_ARCH}" \
-          --configuration "$BOIL_CONFIG_FILE" \
-          --write-image-manifest-uris \
-          --use-localhost-registry \
-          "$IMAGE_REPOSITORY=$BOIL_PRODUCT_VERSION" \
-          -- --load
+        # FIXME (@Techassi): We could get rid of this if block if we would support --floating-tag=true/false in boil
+        # See https://github.com/clap-rs/clap/issues/1649
+        if [ "$FLOATING_TAG" == 'true' ]; then
+          boil build \
+            --image-version "$IMAGE_INDEX_MANIFEST_TAG" \
+            --registry-namespace "$REGISTRY_NAMESPACE" \
+            --target-platform "linux/${IMAGE_ARCH}" \
+            --configuration "$BOIL_CONFIG_FILE" \
+            --write-image-manifest-uris \
+            --use-localhost-registry \
+            --floating-tag \
+            "$IMAGE_REPOSITORY=$BOIL_PRODUCT_VERSION" \
+            -- --load
+        else
+          boil build \
+            --image-version "$IMAGE_INDEX_MANIFEST_TAG" \
+            --registry-namespace "$REGISTRY_NAMESPACE" \
+            --target-platform "linux/${IMAGE_ARCH}" \
+            --configuration "$BOIL_CONFIG_FILE" \
+            --write-image-manifest-uris \
+            --use-localhost-registry \
+            "$IMAGE_REPOSITORY=$BOIL_PRODUCT_VERSION" \
+            -- --load
+        fi
         echo "::endgroup::"
 
         echo "boil-target-tags: "$(< boil-target-tags)
