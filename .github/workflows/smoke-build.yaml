@@ -63,10 +63,11 @@ jobs:
         with:
           product-version: ${{ matrix.versions }}
           boil-config-file: smoke/container-image/boil.toml
-          boil-version: latest
+          boil-version: 0.2.3-rc.1
           registry-namespace: smoke
           extra-tag-data: pr-321
           product-name: smoke/container-image
+          floating-tag: "true"
 
       - name: Publish Container Image on oci.stackable.tech
         uses: ./publish-image
