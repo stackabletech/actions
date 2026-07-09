@@ -14,6 +14,9 @@ attachments:
       - title: Build/Publish Helm Chart
         short: true
         value: "${PUBLISH_HELM_CHART_RESULT}"
+      - title: Generate Provenance
+        short: true
+        value: "${GENERATE_PROVENANCE_RESULT}"
     actions:
       - type: button
         text: Go to workflow run
