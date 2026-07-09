@@ -28,6 +28,7 @@ jobs:
           build-result: ${{ needs.job_1.result }}
           publish-helm-chart-result: ${{ needs.job_3.result }}
           publish-manifests-result: ${{ needs.job_2.result }}
+          generate-provenance-result: ${{ needs.job_4.result }}
           slack-token: ${{ secrets.MY_SECRET }}
 ```
 
@@ -65,6 +66,7 @@ jobs:
 - `build-result` (optional, e.g. `success`)
 - `publish-manifests-result` (optional, e.g. `failure`)
 - `publish-helm-chart-result` (optional, e.g. `failure`)
+- `generate-provenance-result` (optional, e.g. `failure`)
 - `message-subject` (optional, defaults to `github.workflow` for `container-image-build` and
   `github.repository` for `integration-test`)
 
