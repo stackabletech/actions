@@ -149,10 +149,12 @@ runs:
         # components (RPM-owned files like /etc/aliases) are emitted. They carry
         # no purl, so vulnerability scanners cannot use them, and for large
         # images they would make up most of the component count.
+        # The "squashed" scope only looks at the final filesystem, so packages
+        # that were replaced or removed by a later layer are not reported.
         syft scan \
           --output cyclonedx-json@1.5=sbom_raw.json \
           --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger,-file" \
-          --scope all-layers \
+          --scope squashed \
           --source-name "$SOURCE_NAME" \
           --source-version "$IMAGE_MANIFEST_TAG" "$IMAGE_REPOSITORY_DIGEST"
 
