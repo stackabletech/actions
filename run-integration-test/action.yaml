@@ -40,7 +40,7 @@ inputs:
   helm-version:
     description: Version of helm
     # See https://github.com/helm/helm/releases for latest version
-    default: v3.19.0
+    default: v3.21.1
   stackablectl-version:
     description: Version of stackablectl
     # See https://github.com/stackabletech/stackable-cockpit/releases for latest version
