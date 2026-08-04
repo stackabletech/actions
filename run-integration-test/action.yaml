@@ -205,7 +205,7 @@ runs:
       run: |
         set -euo pipefail
         # No 'set -x' here: it would risk exposing the token. Mask defensively in case the
-        # value did not arrive via ${{ secrets.* }} (which GitHub redacts automatically).
+        # value did not arrive via secrets.* (which GitHub redacts automatically).
         echo "::add-mask::${OTLP_BEARER_TOKEN}"
 
         echo "::group::kubectl apply secret"
