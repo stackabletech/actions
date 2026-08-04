@@ -107,6 +107,8 @@ runs:
         KUBECTL_VERSION: ${{ inputs.kubectl-version }}
         KUTTL_VERSION: ${{ inputs.kuttl-version }}
         HELM_VERSION: ${{ inputs.helm-version }}
+        # The helm signature is expired since a couple of years...
+        VERIFY_SIGNATURE: "false"
         RUNNER_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
