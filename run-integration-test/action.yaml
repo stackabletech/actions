@@ -64,7 +64,6 @@ runs:
     - name: Install interu
       env:
         INTERU_VERSION: ${{ inputs.interu-version }}
-        RUNNER_DEBUG: ${{ runner.debug }}
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_interu.sh"
 
@@ -75,7 +74,6 @@ runs:
         TEST_SUITE: ${{ inputs.test-suite }}
         TEST_MODE: ${{ inputs.test-mode }}
         TEST: ${{ inputs.test }}
-        RUNNER_DEBUG: ${{ runner.debug }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_RUN_ID: ${{ github.run_id }}"
       shell: bash
@@ -109,7 +107,6 @@ runs:
         HELM_VERSION: ${{ inputs.helm-version }}
         # The helm signature is expired since a couple of years...
         VERIFY_SIGNATURE: "false"
-        RUNNER_DEBUG: ${{ runner.debug }}
       shell: bash
       run: |
         "$GITHUB_ACTION_PATH/../.scripts/actions/install_kubectl.sh"
