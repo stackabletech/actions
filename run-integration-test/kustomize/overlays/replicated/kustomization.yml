@@ -12,14 +12,35 @@ patches:
     kind: OpenTelemetryCollector
   patch: |-
     - op: add
-      path: /spec/config/exporters/otlp
+      path: /spec/config/exporters/otlp_http
       value:
-        endpoint: otel-logs-source.nick.stackable.build:443
-        # tls:
-        #   insecure: true
+        # otlp_http appends the signal-specific path (eg: /v1/logs) to this endpoint.
+        # Note: the exporter was renamed from `otlphttp` to `otlp_http`; the old name
+        # is a deprecated alias that still works but will be removed in a future release.
+        endpoint: https://otlp.stackable.build
+        auth:
+          authenticator: bearertokenauth
+    # The ingester at otlp.stackable.build requires Bearer auth. The token is read from
+    # the OTLP_BEARER_TOKEN env var, sourced from the otlp-auth Secret (spec/env below).
+    # In CI this Secret is created by the run-integration-test action from a GHA secret.
+    - op: add
+      path: /spec/config/extensions/bearertokenauth
+      value:
+        token: ${env:OTLP_BEARER_TOKEN}
+    - op: add
+      path: /spec/config/service/extensions/-
+      value: bearertokenauth
+    - op: add
+      path: /spec/env/-
+      value:
+        name: OTLP_BEARER_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: otlp-auth
+            key: bearer-token
     - op: add
       path: /spec/config/service/pipelines/logs/exporters/-
-      value: otlp
+      value: otlp_http
     - op: add
       path: /spec/envFrom/-
       value:
@@ -63,7 +84,7 @@ patches:
     # - op: add
     # - op: add
     #   path: /spec/config/service/pipelines/metrics/exporters/-
-    #   value: otlphttp
+    #   value: otlp_http
 
 configMapGenerator:
 # These get used by the attributes processor in each collector

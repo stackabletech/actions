@@ -17,6 +17,8 @@ inputs:
   # Tokens
   replicated-api-token:
     description: Replicated API token
+  otlp-bearer-token:
+    description: Bearer token for the OTLP ingester (otlp.stackable.build)
 
   # Tool versions
   interu-version:
@@ -194,6 +196,24 @@ runs:
         kubectl -n opentelemetry-operator wait --for condition=Progressing deploy/opentelemetry-operator --timeout=300s
         kubectl -n opentelemetry-operator wait --for condition=Available deploy/opentelemetry-operator --timeout=300s
         kubectl -n opentelemetry-operator get pods
+        echo "::endgroup::"
+
+    - name: Install OTLP ingester auth Secret
+      shell: bash
+      env:
+        OTLP_BEARER_TOKEN: ${{ inputs.otlp-bearer-token }}
+      run: |
+        set -euo pipefail
+        # No 'set -x' here: it would risk exposing the token. Mask defensively in case the
+        # value did not arrive via ${{ secrets.* }} (which GitHub redacts automatically).
+        echo "::add-mask::${OTLP_BEARER_TOKEN}"
+
+        echo "::group::kubectl apply secret"
+        # The collectors read this via spec.env -> secretKeyRef (otlp-auth / bearer-token).
+        kubectl create secret generic otlp-auth \
+          --namespace opentelemetry-operator \
+          --from-literal=bearer-token="${OTLP_BEARER_TOKEN}" \
+          --dry-run=client -o yaml | kubectl apply -f -
         echo "::endgroup::"
 
     - name: Apply OpenTelemetry Collectors configurations
