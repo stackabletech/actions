@@ -164,6 +164,12 @@ runs:
           - key: test-parallelism
             value: "${{ steps.extract.outputs.BEKU_TEST_PARALLELISM }}"
 
+    # Until this is resolved: https://github.com/replicatedhq/replicated-actions/issues/119
+    - name: Mask data
+      shell: bash
+      run: |
+        echo "::add-mask::${{ steps.prepare-replicated-cluster.outputs.cluster-kubeconfig }}"
+
     - name: Set Replicated kubeconfig
       env:
         KUBECONFIG: ${{ steps.prepare-replicated-cluster.outputs.cluster-kubeconfig }}
