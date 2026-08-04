@@ -146,7 +146,7 @@ runs:
 
     - name: Prepare Replicated Cluster
       id: prepare-replicated-cluster
-      uses: replicatedhq/replicated-actions/create-cluster@291bef61a059631e39e84f8470f86152171c4c20 # v1.26.0
+      uses: replicatedhq/replicated-actions/create-cluster@0fbf5395cf3e8c744f447bbc92b7de9135eead8e # v1.27.1
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
@@ -285,7 +285,7 @@ runs:
       if: always()
       # If the creation of the cluster failed, we don't want to error and abort
       continue-on-error: true
-      uses: replicatedhq/replicated-actions/remove-cluster@291bef61a059631e39e84f8470f86152171c4c20 # v1.26.0
+      uses: replicatedhq/replicated-actions/remove-cluster@0fbf5395cf3e8c744f447bbc92b7de9135eead8e # v1.27.1
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
