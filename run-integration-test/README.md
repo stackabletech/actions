@@ -94,6 +94,7 @@ profiles:
 | Input                  | Required | Description                                                            |
 | ---------------------- | -------- | ---------------------------------------------------------------------- |
 | `replicated-api-token` | Yes      | Replicated API Token, available via `secrets.REPLICATED_API_TOKEN`     |
+| `otlp-bearer-token`    | Yes      | Bearer token for the OTLP ingester (otlp.stackable.build)              |
 | `test-mode`            | Yes      | Either run a `profile` or a `custom` test                              |
 | `test-mode-input`      | Yes      | The name of the profile or runner, based on the `test-mode`            |
 | `test-suite`           | No       | The name of the BeKu test-suite (only used if running a `custom` test) |
