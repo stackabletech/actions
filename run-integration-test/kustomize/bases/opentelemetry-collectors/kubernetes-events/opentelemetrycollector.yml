@@ -30,9 +30,24 @@ spec:
     processors:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor
       k8s_attributes:
-        # Use the k8s attributes set by the receiver
-        # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor#as-a-gateway
-        passthrough: true
+        # Enrich telemetry with pod metadata (including the owning workload) via the k8s API.
+        # The k8s_cluster/k8s_events receivers describe other objects and are not "sent" by
+        # those pods, so there is no source connection IP to match on. Associate by the
+        # k8s.pod.uid the k8s_cluster receiver stamps as a resource attribute instead.
+        passthrough: false
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+        extract:
+          metadata:
+            # Owning workload of each pod (deployment is resolved via its replicaset).
+            - k8s.deployment.name
+            - k8s.replicaset.name
+            - k8s.daemonset.name
+            - k8s.statefulset.name
+            - k8s.job.name
+            - k8s.cronjob.name
 
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/attributesprocessor
       # These are attributes for the specific spans, log events, etc...
