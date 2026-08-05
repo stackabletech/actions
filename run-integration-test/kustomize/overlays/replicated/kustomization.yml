@@ -78,13 +78,9 @@ patches:
     kind: OpenTelemetryCollector
     name: kubernetes-events
   patch: |-
-    # OpenSearch Metrics collector is not yet available
-    - op: remove
-      path: /spec/config/service/pipelines/metrics
-    # - op: add
-    # - op: add
-    #   path: /spec/config/service/pipelines/metrics/exporters/-
-    #   value: otlp_http
+    - op: add
+      path: /spec/config/service/pipelines/metrics/exporters/-
+      value: otlp_http
 
 configMapGenerator:
 # These get used by the attributes processor in each collector
