@@ -51,6 +51,18 @@ inputs:
       SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours or 'd' for days.
       See `sleep --help` for the full details.
     default: "30s"
+outputs:
+  image-repository-digest:
+    description: |
+      The pushed image as a repository digest, for example
+      `oci.stackable.tech/sdp/kafka@sha256:917f...`.
+    value: ${{ steps.push.outputs.IMAGE_REPOSITORY_DIGEST }}
+  image-digest:
+    description: |
+      The digest (`sha256:...`) of the pushed image manifest. Pass this to
+      `actions/attest` as `subject-digest` to attach SLSA build provenance to
+      the image in the same job that built and pushed it.
+    value: ${{ steps.push.outputs.IMAGE_DIGEST }}
 runs:
   using: composite
   steps:
@@ -92,6 +104,10 @@ runs:
         # Output for the next step
         IMAGE_REPOSITORY_DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_repo_digest.sh" "$IMAGE_MANIFEST_URI")
         echo "IMAGE_REPOSITORY_DIGEST=$IMAGE_REPOSITORY_DIGEST" | tee -a "$GITHUB_OUTPUT"
+
+        # The bare digest (right side of '@') is what actions/attest expects as
+        # subject-digest.
+        echo "IMAGE_DIGEST=${IMAGE_REPOSITORY_DIGEST#*@}" | tee -a "$GITHUB_OUTPUT"
 
     - name: Sign the container image (${{ env.IMAGE_REPOSITORY_DIGEST }})
       shell: bash

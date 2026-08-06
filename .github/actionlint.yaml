@@ -3,3 +3,15 @@ self-hosted-runner:
   # Ubicloud machines we are using
   labels:
     - ubicloud-standard-8-arm
+
+paths:
+  # `job.workflow_repository` and `job.workflow_sha` are documented context
+  # properties (github.com only, not GHES), and the docs show exactly the
+  # actions/checkout usage this workflow relies on, but actionlint does not know
+  # them yet (still reported by 1.7.12).
+  # https://docs.github.com/en/actions/reference/workflows-and-actions/contexts
+  # https://github.com/rhysd/actionlint/issues/705
+  .github/workflows/reusable_build_container_image.yaml:
+    ignore:
+      - 'property "workflow_repository" is not defined'
+      - 'property "workflow_sha" is not defined'

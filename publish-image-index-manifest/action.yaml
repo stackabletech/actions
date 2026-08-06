@@ -25,9 +25,19 @@ inputs:
   image-architectures:
     description: |
       A JSON array of architectures to add to the image index manifest, like
-      ["amd64", "arm64", "riscv"]
+      ["amd64", "arm64", "riscv"]. Only used when `image-manifest-digests` is
+      not provided.
     default: |
       ["amd64", "arm64"]
+  image-manifest-digests:
+    description: |
+      A JSON array of image manifest digests to add to the image index
+      manifest, like ["sha256:2c5e...", "sha256:917f..."]. When provided, the
+      index is assembled from these exact digests instead of resolving
+      `<tag>-<arch>` tags from the registry. This closes the window in which a
+      tag could be moved between image push and index creation, and is
+      required when the resulting index digest is used for SLSA provenance.
+    default: ""
   cosign-retries:
     description: The number of times cosign operations should be retried
     default: "3"
@@ -65,6 +75,7 @@ runs:
       env:
         IMAGE_INDEX_MANIFEST_TAG: ${{ inputs.image-index-manifest-tag }}
         IMAGE_ARCHITECTURES: ${{ inputs.image-architectures }}
+        IMAGE_MANIFEST_DIGESTS: ${{ inputs.image-manifest-digests }}
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         REGISTRY_URI: ${{ inputs.image-registry-uri }}
       run: |
@@ -75,20 +86,42 @@ runs:
         IMAGE_INDEX_URI="$REGISTRY_URI/$IMAGE_REPOSITORY:$IMAGE_INDEX_MANIFEST_TAG"
         echo "IMAGE_INDEX_URI=$IMAGE_INDEX_URI" | tee -a "$GITHUB_OUTPUT"
 
-        AMEND_OPTIONS=$(
-          jq \
-          --raw-output \
-          --null-input \
-          --arg image_index_uri "$IMAGE_INDEX_URI" \
-          --arg arch_list "$IMAGE_ARCHITECTURES" \
-          '
-            $arch_list
-            | fromjson
-            | [
-                .[] as $arch | "--amend \($image_index_uri)-\($arch)"
-              ]
-            | join(" ")'
-        )
+        if [ -n "$IMAGE_MANIFEST_DIGESTS" ]; then
+          # Digest-based assembly: reference the image manifests by the exact
+          # digests that were produced by the build, instead of resolving
+          # moving `<tag>-<arch>` tags from the registry.
+          AMEND_OPTIONS=$(
+            jq \
+            --raw-output \
+            --null-input \
+            --arg image_repository_uri "$REGISTRY_URI/$IMAGE_REPOSITORY" \
+            --arg digest_list "$IMAGE_MANIFEST_DIGESTS" \
+            '
+              $digest_list
+              | fromjson
+              | map(select(. != ""))
+              | if length == 0 then error("image-manifest-digests must contain at least one non-empty digest") else . end
+              | [
+                  .[] as $digest | "--amend \($image_repository_uri)@\($digest)"
+                ]
+              | join(" ")'
+          )
+        else
+          AMEND_OPTIONS=$(
+            jq \
+            --raw-output \
+            --null-input \
+            --arg image_index_uri "$IMAGE_INDEX_URI" \
+            --arg arch_list "$IMAGE_ARCHITECTURES" \
+            '
+              $arch_list
+              | fromjson
+              | [
+                  .[] as $arch | "--amend \($image_index_uri)-\($arch)"
+                ]
+              | join(" ")'
+          )
+        fi
 
         # `docker manifest push` directly returns the digest of the manifest list
         # As it is an experimental feature, this might change in the future.

@@ -40,6 +40,12 @@ following work:
 
 ### Outputs
 
-None
+| Output                    | Description                                                                        |
+| ------------------------- | ---------------------------------------------------------------------------------- |
+| `image-repository-digest` | The pushed image as a repository digest, eg `oci.stackable.tech/sdp/kafka@sha256:…` |
+| `image-digest`            | The digest of the pushed image manifest, eg `sha256:917f…`                         |
+
+Pass `image-digest` to `actions/attest` as `subject-digest` to attach SLSA build provenance to
+the image in the same job that built and pushed it.
 
 [publish-image]: ./action.yaml

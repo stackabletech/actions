@@ -1,0 +1,413 @@
+---
+# Shared builder for container images, targeting SLSA v1.0 Build Level 3.
+#
+# GitHub's stated mechanism for Build L3 on Actions is that the build runs in a
+# reusable workflow, separate from the calling workflow, rather than in the
+# caller itself:
+# https://docs.github.com/en/actions/concepts/security/artifact-attestations
+#
+# This workflow performs the entire build-sign-attest chain itself: it checks
+# out the calling repository's source, builds the per-architecture images,
+# pushes them, attests each one, assembles the multi-arch image index from the
+# exact digests it built, and signs and attests that too.
+#
+# Security design (do not weaken these properties):
+#
+# - Inputs are source-level build parameters only (paths, tags, versions,
+#   build arguments). The workflow MUST NOT accept digests or pre-built
+#   artifacts to sign: a caller that could hand in a digest could obtain
+#   provenance for an image it never built.
+# - No caller-supplied shell runs on the runner. Caller-controlled code only
+#   executes inside the container build (BuildKit), which has no access to the
+#   runner's OIDC credentials.
+# - All signing (cosign) and attestation (actions/attest) happens in jobs
+#   defined by this workflow, so the Sigstore certificate's job_workflow_ref
+#   identifies this file. Verifiers pin it, e.g.:
+#
+#     gh attestation verify oci://oci.stackable.tech/sdp/kafka-operator:25.7.0 \
+#       --owner stackabletech \
+#       --signer-workflow stackabletech/actions/.github/workflows/reusable_build_container_image.yaml \
+#       --signer-digest <commit sha of this file's version>
+#
+# - The image index is assembled from the digests produced by the build jobs
+#   (passed as job outputs, not artifacts, and not re-resolved from tags), so
+#   a moved tag between build and index creation cannot be attested.
+# - Every architecture manifest is attested in the job that built it, so the
+#   index attestation is not load-bearing for what is inside the index.
+name: Build and Attest Container Image
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: The local name of the built image, for example `kafka-operator`
+        required: true
+        type: string
+      image-index-manifest-tag:
+        description: |
+          Human-readable tag (usually the version) without architecture
+          information, for example `3.4.1-stackable0.0.0-dev`
+        required: true
+        type: string
+      container-file:
+        description: Path to the Containerfile (or Dockerfile), relative to the repository root
+        default: Dockerfile
+        type: string
+      build-context:
+        description: Path to the build context, relative to the repository root
+        default: "."
+        type: string
+      build-arguments:
+        description: |
+          A comma-separated list of KEY=VALUE pairs provided as build
+          arguments. MUST not contain any whitespace.
+        default: ""
+        type: string
+      cargo-workspace-version:
+        description: |
+          When set, the `version` field of the workspace `Cargo.toml` (the
+          first `version = "..."` line) is rewritten to this value before the
+          build. Used by operator builds to stamp PR versions.
+        default: ""
+        type: string
+      amd64-runner:
+        description: Runner label for the amd64 build. Empty skips the amd64 build.
+        default: ubuntu-latest
+        type: string
+      arm64-runner:
+        description: Runner label for the arm64 build. Empty skips the arm64 build.
+        default: ""
+        type: string
+      oci-registry-uri:
+        description: The URI of the primary (Harbor) container image registry
+        default: oci.stackable.tech
+        type: string
+      oci-repository:
+        description: Image repository on the primary registry, for example `sdp/kafka-operator`
+        required: true
+        type: string
+      oci-username:
+        description: The username used to login to the primary registry
+        required: true
+        type: string
+      quay-repository:
+        description: |
+          Image repository on quay.io, for example `stackable/sdp/kafka-operator`.
+          Empty skips publishing to quay.io.
+        default: ""
+        type: string
+      quay-username:
+        description: The username used to login to quay.io
+        default: ""
+        type: string
+      publish:
+        description: Whether to publish, sign and attest images
+        default: true
+        type: boolean
+    secrets:
+      oci-password:
+        description: The password of the robot user used to push to the primary registry
+        required: false
+      quay-password:
+        description: The password of the robot user used to push to quay.io
+        required: false
+    outputs:
+      oci-image-index-digest:
+        description: The digest (sha256:...) of the image index pushed to the primary registry
+        value: ${{ jobs.publish-index.outputs.oci-image-index-digest }}
+      quay-image-index-digest:
+        description: The digest (sha256:...) of the image index pushed to quay.io
+        value: ${{ jobs.publish-index.outputs.quay-image-index-digest }}
+
+permissions: {}
+
+jobs:
+  build-amd64:
+    name: Build amd64 Image
+    if: inputs.amd64-runner != ''
+    runs-on: ${{ inputs.amd64-runner }}
+    permissions:
+      contents: read
+      id-token: write # cosign keyless signing and attestation OIDC identity
+      attestations: write # persist the attestation in the GitHub attestation store
+      artifact-metadata: write # create the artifact metadata storage record
+    outputs:
+      oci-image-digest: ${{ steps.publish-oci.outputs.image-digest }}
+      quay-image-digest: ${{ steps.publish-quay.outputs.image-digest }}
+    steps:
+      - name: Checkout Caller Repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+          path: src
+
+      # Check out this builder's own repository at the exact ref the caller
+      # pinned, so the composite actions used below always match this workflow.
+      - name: Checkout Builder Repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          persist-credentials: false
+          path: builder
+
+      - name: Set Cargo Workspace Version
+        if: inputs.cargo-workspace-version != ''
+        env:
+          NEW_VERSION: ${{ inputs.cargo-workspace-version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! echo "$NEW_VERSION" | grep --perl-regexp --quiet '^[0-9A-Za-z][0-9A-Za-z.+-]*$'; then
+            >&2 echo "Invalid cargo-workspace-version: $NEW_VERSION"
+            exit 1
+          fi
+          sed -i "0,/^version = \".*\"$/s//version = \"$NEW_VERSION\"/" src/Cargo.toml
+          grep -m 1 '^version = ' src/Cargo.toml
+
+      - name: Build Container Image
+        id: build
+        uses: ./builder/build-container-image
+        with:
+          image-name: ${{ inputs.image-name }}
+          image-index-manifest-tag: ${{ inputs.image-index-manifest-tag }}
+          container-file: src/${{ inputs.container-file }}
+          build-context: src/${{ inputs.build-context }}
+          build-arguments: ${{ inputs.build-arguments }}
+
+      - name: Publish Container Image to ${{ inputs.oci-registry-uri }}
+        if: inputs.publish
+        id: publish-oci
+        uses: ./builder/publish-image
+        with:
+          image-registry-uri: ${{ inputs.oci-registry-uri }}
+          image-registry-username: ${{ inputs.oci-username }}
+          image-registry-password: ${{ secrets.oci-password }}
+          image-repository: ${{ inputs.oci-repository }}
+          image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
+          source-image-uri: ${{ steps.build.outputs.image-manifest-uri }}
+
+      - name: Publish Container Image to quay.io
+        if: inputs.publish && inputs.quay-repository != ''
+        id: publish-quay
+        uses: ./builder/publish-image
+        with:
+          image-registry-uri: quay.io
+          image-registry-username: ${{ inputs.quay-username }}
+          image-registry-password: ${{ secrets.quay-password }}
+          image-repository: ${{ inputs.quay-repository }}
+          image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
+          source-image-uri: ${{ steps.build.outputs.image-manifest-uri }}
+
+      # Attest the per-architecture image here, in the job that built and pushed
+      # it. Attesting only the index would not cover these: the index
+      # attestation asserts that this workflow assembled an index, not what the
+      # manifests inside it are. With per-arch provenance every manifest in the
+      # index verifies on its own.
+      - name: Attest Container Image on ${{ inputs.oci-registry-uri }}
+        if: inputs.publish
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ inputs.oci-registry-uri }}/${{ inputs.oci-repository }}
+          subject-digest: ${{ steps.publish-oci.outputs.image-digest }}
+          push-to-registry: true
+
+      - name: Attest Container Image on quay.io
+        if: inputs.publish && inputs.quay-repository != ''
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: quay.io/${{ inputs.quay-repository }}
+          subject-digest: ${{ steps.publish-quay.outputs.image-digest }}
+          push-to-registry: true
+
+  build-arm64:
+    name: Build arm64 Image
+    if: inputs.arm64-runner != ''
+    runs-on: ${{ inputs.arm64-runner }}
+    permissions:
+      contents: read
+      id-token: write # cosign keyless signing and attestation OIDC identity
+      attestations: write # persist the attestation in the GitHub attestation store
+      artifact-metadata: write # create the artifact metadata storage record
+    outputs:
+      oci-image-digest: ${{ steps.publish-oci.outputs.image-digest }}
+      quay-image-digest: ${{ steps.publish-quay.outputs.image-digest }}
+    steps:
+      - name: Checkout Caller Repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+          path: src
+
+      - name: Checkout Builder Repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          persist-credentials: false
+          path: builder
+
+      - name: Set Cargo Workspace Version
+        if: inputs.cargo-workspace-version != ''
+        env:
+          NEW_VERSION: ${{ inputs.cargo-workspace-version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! echo "$NEW_VERSION" | grep --perl-regexp --quiet '^[0-9A-Za-z][0-9A-Za-z.+-]*$'; then
+            >&2 echo "Invalid cargo-workspace-version: $NEW_VERSION"
+            exit 1
+          fi
+          sed -i "0,/^version = \".*\"$/s//version = \"$NEW_VERSION\"/" src/Cargo.toml
+          grep -m 1 '^version = ' src/Cargo.toml
+
+      - name: Build Container Image
+        id: build
+        uses: ./builder/build-container-image
+        with:
+          image-name: ${{ inputs.image-name }}
+          image-index-manifest-tag: ${{ inputs.image-index-manifest-tag }}
+          container-file: src/${{ inputs.container-file }}
+          build-context: src/${{ inputs.build-context }}
+          build-arguments: ${{ inputs.build-arguments }}
+
+      - name: Publish Container Image to ${{ inputs.oci-registry-uri }}
+        if: inputs.publish
+        id: publish-oci
+        uses: ./builder/publish-image
+        with:
+          image-registry-uri: ${{ inputs.oci-registry-uri }}
+          image-registry-username: ${{ inputs.oci-username }}
+          image-registry-password: ${{ secrets.oci-password }}
+          image-repository: ${{ inputs.oci-repository }}
+          image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
+          source-image-uri: ${{ steps.build.outputs.image-manifest-uri }}
+
+      - name: Publish Container Image to quay.io
+        if: inputs.publish && inputs.quay-repository != ''
+        id: publish-quay
+        uses: ./builder/publish-image
+        with:
+          image-registry-uri: quay.io
+          image-registry-username: ${{ inputs.quay-username }}
+          image-registry-password: ${{ secrets.quay-password }}
+          image-repository: ${{ inputs.quay-repository }}
+          image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
+          source-image-uri: ${{ steps.build.outputs.image-manifest-uri }}
+
+      # See the equivalent steps in build-amd64 for why the per-architecture
+      # images are attested here rather than only via the index.
+      - name: Attest Container Image on ${{ inputs.oci-registry-uri }}
+        if: inputs.publish
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ inputs.oci-registry-uri }}/${{ inputs.oci-repository }}
+          subject-digest: ${{ steps.publish-oci.outputs.image-digest }}
+          push-to-registry: true
+
+      - name: Attest Container Image on quay.io
+        if: inputs.publish && inputs.quay-repository != ''
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: quay.io/${{ inputs.quay-repository }}
+          subject-digest: ${{ steps.publish-quay.outputs.image-digest }}
+          push-to-registry: true
+
+  publish-index:
+    name: Publish/Sign/Attest Image Index
+    # Run when publishing is enabled, no build leg failed, and at least one
+    # leg actually built (a leg is 'skipped' when its runner input is empty).
+    if: |
+      !cancelled()
+      && inputs.publish
+      && contains(fromJson('["success", "skipped"]'), needs.build-amd64.result)
+      && contains(fromJson('["success", "skipped"]'), needs.build-arm64.result)
+      && (needs.build-amd64.result == 'success' || needs.build-arm64.result == 'success')
+    needs:
+      - build-amd64
+      - build-arm64
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # cosign keyless signing and attestation OIDC identity
+      attestations: write # persist the attestation in the GitHub attestation store
+      artifact-metadata: write # create the artifact metadata storage record
+    outputs:
+      oci-image-index-digest: ${{ steps.publish-oci.outputs.image-index-manifest-digest }}
+      quay-image-index-digest: ${{ steps.publish-quay.outputs.image-index-manifest-digest }}
+    steps:
+      - name: Checkout Builder Repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          persist-credentials: false
+          path: builder
+
+      # The digests come from the build jobs' outputs. They MUST NOT be taken
+      # from workflow inputs or artifacts, both of which a calling job could
+      # influence.
+      - name: Collect Image Manifest Digests
+        id: digests
+        env:
+          OCI_DIGEST_AMD64: ${{ needs.build-amd64.outputs.oci-image-digest }}
+          OCI_DIGEST_ARM64: ${{ needs.build-arm64.outputs.oci-image-digest }}
+          QUAY_DIGEST_AMD64: ${{ needs.build-amd64.outputs.quay-image-digest }}
+          QUAY_DIGEST_ARM64: ${{ needs.build-arm64.outputs.quay-image-digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OCI_DIGESTS=$(jq --compact-output --null-input \
+            --arg a "$OCI_DIGEST_AMD64" --arg b "$OCI_DIGEST_ARM64" \
+            '[$a, $b] | map(select(. != ""))')
+          if [ "$OCI_DIGESTS" == "[]" ]; then
+            >&2 echo "No image manifest digests were produced by the build jobs"
+            exit 1
+          fi
+          echo "OCI_DIGESTS=$OCI_DIGESTS" | tee -a "$GITHUB_OUTPUT"
+
+          QUAY_DIGESTS=$(jq --compact-output --null-input \
+            --arg a "$QUAY_DIGEST_AMD64" --arg b "$QUAY_DIGEST_ARM64" \
+            '[$a, $b] | map(select(. != ""))')
+          echo "QUAY_DIGESTS=$QUAY_DIGESTS" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Publish and Sign Image Index to ${{ inputs.oci-registry-uri }}
+        id: publish-oci
+        uses: ./builder/publish-image-index-manifest
+        with:
+          image-registry-uri: ${{ inputs.oci-registry-uri }}
+          image-registry-username: ${{ inputs.oci-username }}
+          image-registry-password: ${{ secrets.oci-password }}
+          image-repository: ${{ inputs.oci-repository }}
+          image-index-manifest-tag: ${{ inputs.image-index-manifest-tag }}
+          image-manifest-digests: ${{ steps.digests.outputs.OCI_DIGESTS }}
+
+      - name: Attest Image Index on ${{ inputs.oci-registry-uri }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ inputs.oci-registry-uri }}/${{ inputs.oci-repository }}
+          subject-digest: ${{ steps.publish-oci.outputs.image-index-manifest-digest }}
+          push-to-registry: true
+
+      - name: Publish and Sign Image Index to quay.io
+        if: inputs.quay-repository != '' && steps.digests.outputs.QUAY_DIGESTS != '[]'
+        id: publish-quay
+        uses: ./builder/publish-image-index-manifest
+        with:
+          image-registry-uri: quay.io
+          image-registry-username: ${{ inputs.quay-username }}
+          image-registry-password: ${{ secrets.quay-password }}
+          image-repository: ${{ inputs.quay-repository }}
+          image-index-manifest-tag: ${{ inputs.image-index-manifest-tag }}
+          image-manifest-digests: ${{ steps.digests.outputs.QUAY_DIGESTS }}
+
+      - name: Attest Image Index on quay.io
+        if: inputs.quay-repository != '' && steps.digests.outputs.QUAY_DIGESTS != '[]'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: quay.io/${{ inputs.quay-repository }}
+          subject-digest: ${{ steps.publish-quay.outputs.image-index-manifest-digest }}
+          push-to-registry: true
