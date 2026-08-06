@@ -134,24 +134,24 @@ runs:
             export MESSAGE_COLOR=10c400
           fi
 
-          export MESSAGE_TEXT="*$MESSAGE_SUBJECT* $MESSAGE_VERB (attempt $GITHUB_RUN_ATTEMPT)"
+          export MESSAGE_TEXT="*${MESSAGE_SUBJECT}* ${MESSAGE_VERB} (attempt ${GITHUB_RUN_ATTEMPT})"
           PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/container-image-build/failure.tpl")
           echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPUT"
         elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
           # Only override the message subject with the default value if it is empty
           if [ -z "${MESSAGE_SUBJECT:-}" ]; then
-            export MESSAGE_SUBJECT="$GITHUB_REPOSITORY"
+            export MESSAGE_SUBJECT="${GITHUB_REPOSITORY}"
           fi
 
           export HEALTH_SLACK_EMOJI=$(echo "$TEST_HEALTH" | cut -d ',' -f 1)
           export HEALTH_RATE=$(echo "$TEST_HEALTH" | cut -d ',' -f 3)
 
           if [ "$TEST_RESULT" == "failure" ]; then
-            export MESSAGE_TEXT="The integration test for *`$MESSAGE_SUBJECT`* failed."
+            export MESSAGE_TEXT="The integration test for *\`${MESSAGE_SUBJECT}\`* failed."
             PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/failure.tpl")
-            echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPUT"
+            echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPhttps://nodejs.org/learn/getting-started/debuggingUT"
           else
-            export MESSAGE_TEXT="The integration test for *`$MESSAGE_SUBJECT`* succeeded."
+            export MESSAGE_TEXT="The integration test for *\`${MESSAGE_SUBJECT}\`* succeeded."
             PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/success.tpl")
             echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPUT"
           fi
