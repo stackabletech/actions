@@ -70,6 +70,12 @@ patches:
         action: upsert
         key: github.actions.triggered_by
         value: ${env:TRIGGERED_BY}
+    - op: add
+      path: /spec/config/processors/resource/attributes/-
+      value:
+        action: upsert
+        key: github.actions.run_attempt
+        value: ${env:RUN_ATTEMPT}
 
 # Specifically override config for the kubernetes-events collector.
 - target:

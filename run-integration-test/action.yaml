@@ -224,6 +224,7 @@ runs:
         INTERU_KUBERNETES_DISTRIBUTION: ${{ steps.extract.outputs.INTERU_KUBERNETES_DISTRIBUTION }}
         INTERU_KUBERNETES_VERSION: ${{ steps.extract.outputs.INTERU_KUBERNETES_VERSION }}
         GITHUB_TRIGGERED_BY: ${{ github.triggering_actor }}
+        GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
       run: |
         set -euo pipefail
 
@@ -233,6 +234,7 @@ runs:
         echo "KUBERNETES_DISTRIBUTION=${INTERU_KUBERNETES_DISTRIBUTION}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "KUBERNETES_VERSION=${INTERU_KUBERNETES_VERSION}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "TRIGGERED_BY=${GITHUB_TRIGGERED_BY}" | tee -a "$INTEGRATION_TEST_INFO"
+        echo "RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "::endgroup::"
 
         echo "::group::kubectl apply"
