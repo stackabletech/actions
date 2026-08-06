@@ -13,14 +13,161 @@ spec:
     receivers:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/k8sobjectsreceiver/testdata/config.yaml
       k8sobjects:
+        # This action runs across operator repos, so most Stackable CRDs below will not be
+        # installed on any given run. error_mode: ignore makes a missing/unknown object type
+        # non-fatal - the receiver logs it and skips it at startup instead of failing.
+        # See handleError() in the receiver's Start(): missing types hit `continue`.
+        error_mode: ignore
         objects:
-        # TODO: Add Stackable objects, and other common k8s objects
+        # NOTE: events are intentionally NOT watched here - they are already collected by the
+        # k8s_events receiver in the kubernetes-events collector. Core Secrets are intentionally
+        # excluded: k8sobjects emits full object data with no field stripping (would exfiltrate
+        # secret material, including this stack's own otlp-auth token).
+
+        # --- Common core (v1) resources ---
         - name: pods
           mode: watch
-        - name: events
+        - name: services
           mode: watch
-          group: events.k8s.io
-          exclude_watch_type: [DELETED]
+        - name: endpoints
+          mode: watch
+        - name: configmaps
+          mode: watch
+        - name: persistentvolumeclaims
+          mode: watch
+        - name: persistentvolumes
+          mode: watch
+        - name: namespaces
+          mode: watch
+        - name: nodes
+          mode: watch
+        - name: serviceaccounts
+          mode: watch
+        - name: resourcequotas
+          mode: watch
+        - name: limitranges
+          mode: watch
+
+        # --- apps ---
+        - name: deployments
+          group: apps
+          mode: watch
+        - name: statefulsets
+          group: apps
+          mode: watch
+        - name: daemonsets
+          group: apps
+          mode: watch
+        - name: replicasets
+          group: apps
+          mode: watch
+
+        # --- batch ---
+        - name: jobs
+          group: batch
+          mode: watch
+        - name: cronjobs
+          group: batch
+          mode: watch
+
+        # --- networking / scaling / policy / storage ---
+        - name: ingresses
+          group: networking.k8s.io
+          mode: watch
+        - name: networkpolicies
+          group: networking.k8s.io
+          mode: watch
+        - name: horizontalpodautoscalers
+          group: autoscaling
+          mode: watch
+        - name: poddisruptionbudgets
+          group: policy
+          mode: watch
+        - name: storageclasses
+          group: storage.k8s.io
+          mode: watch
+
+        # --- Stackable CRDs (https://hub.stackable.tech/crds) ---
+        # Verify plurals against `kubectl get crds` - a wrong plural is silently skipped
+        # (error_mode: ignore), so it fails as missing coverage rather than a crash.
+        - name: airflowclusters
+          group: airflow.stackable.tech
+          mode: watch
+        - name: druidclusters
+          group: druid.stackable.tech
+          mode: watch
+        - name: hbaseclusters
+          group: hbase.stackable.tech
+          mode: watch
+        - name: hdfsclusters
+          group: hdfs.stackable.tech
+          mode: watch
+        - name: hiveclusters
+          group: hive.stackable.tech
+          mode: watch
+        - name: kafkaclusters
+          group: kafka.stackable.tech
+          mode: watch
+        - name: nificlusters
+          group: nifi.stackable.tech
+          mode: watch
+        - name: sparkapplications
+          group: spark.stackable.tech
+          mode: watch
+        - name: sparkhistoryservers
+          group: spark.stackable.tech
+          mode: watch
+        - name: sparkconnectservers
+          group: spark.stackable.tech
+          mode: watch
+        - name: supersetclusters
+          group: superset.stackable.tech
+          mode: watch
+        - name: druidconnections
+          group: superset.stackable.tech
+          mode: watch
+        - name: trinoclusters
+          group: trino.stackable.tech
+          mode: watch
+        - name: trinocatalogs
+          group: trino.stackable.tech
+          mode: watch
+        - name: zookeeperclusters
+          group: zookeeper.stackable.tech
+          mode: watch
+        - name: zookeeperznodes
+          group: zookeeper.stackable.tech
+          mode: watch
+        - name: opaclusters
+          group: opa.stackable.tech
+          mode: watch
+        - name: opensearchclusters
+          group: opensearch.stackable.tech
+          mode: watch
+        - name: authenticationclasses
+          group: authentication.stackable.tech
+          mode: watch
+        - name: s3connections
+          group: s3.stackable.tech
+          mode: watch
+        - name: s3buckets
+          group: s3.stackable.tech
+          mode: watch
+        - name: listeners
+          group: listeners.stackable.tech
+          mode: watch
+        - name: listenerclasses
+          group: listeners.stackable.tech
+          mode: watch
+        - name: podlisteners
+          group: listeners.stackable.tech
+          mode: watch
+        - name: secretclasses
+          group: secrets.stackable.tech
+          mode: watch
+        - name: truststores
+          group: secrets.stackable.tech
+          mode: watch
 
     # This key exists so it can be easily extended in an overlay:
     extensions: {}
