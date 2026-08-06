@@ -48,6 +48,8 @@ runs:
         TEST_HEALTH: ${{ inputs.test-health }}
       shell: bash
       run: |
+        set -euo pipefail
+
         if [ -z "${NOTIFICATION_TYPE:-}" ]; then
           echo "The type input must be provided"
           exit 1
@@ -87,6 +89,8 @@ runs:
       if: steps.retrieve-slack-thread-id.outcome == 'success'
       shell: bash
       run: |
+        set -euo pipefail
+
         echo "SLACK_THREAD_ID=$(cat slack-thread-id)" | tee -a "$GITHUB_OUTPUT"
 
     - name: Provide message template variables
@@ -111,6 +115,8 @@ runs:
         MESSAGE_SUBJECT: ${{ inputs.message-subject }}
       shell: bash
       run: |
+        set -euo pipefail
+
         export WORKFLOW_RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}"
 
         if [ "$NOTIFICATION_TYPE" == "container-image-build" ]; then
@@ -166,6 +172,8 @@ runs:
         SLACK_THREAD_ID_OUTPUT: ${{ steps.send-notification.outputs.ts }}
       shell: bash
       run: |
+        set -euo pipefail
+
         echo "$SLACK_THREAD_ID_OUTPUT" > slack-thread-id
 
     - name: Store Slack Thread ID as Artifact
