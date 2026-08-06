@@ -75,6 +75,7 @@ runs:
         TEST_MODE: ${{ inputs.test-mode }}
         TEST: ${{ inputs.test }}
         GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}"
         GITHUB_RUN_ID: ${{ github.run_id }}"
       shell: bash
       run: |
@@ -82,7 +83,7 @@ runs:
         [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         # Generate the cluster name
-        echo "KUBERNETES_CLUSTER_NAME=integration-test-${GITHUB_REPOSITORY}-${GITHUB_RUN_ID}" | tee -a "$GITHUB_OUTPUT"
+        echo "KUBERNETES_CLUSTER_NAME=integration-test-${GITHUB_REPOSITORY}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" | tee -a "$GITHUB_OUTPUT"
 
         # Run interu to expand parameters into GITHUB_OUTPUT for use as env vars in later steps.
         if [ "$TEST_MODE" == "profile" ]; then
