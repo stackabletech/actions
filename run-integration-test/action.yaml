@@ -19,6 +19,12 @@ inputs:
     description: Replicated API token
   otlp-bearer-token:
     description: Bearer token for the OTLP ingester (otlp.stackable.build)
+  # TODO: Add an input to control the k8sobjects receiver error_mode at runtime, eg:
+  # otel-k8sobjects-error-mode:
+  #   description: k8sobjects receiver error_mode (propagate|ignore|silent)
+  #   default: ignore
+  # Wire it into integration-test-info.env (see the collectors apply step) and reference it
+  # via ${env:OTEL_K8SOBJECTS_ERROR_MODE:-ignore} in the kubernetes-objects collector config.
 
   # Tool versions
   interu-version:
@@ -236,6 +242,10 @@ runs:
         echo "KUBERNETES_VERSION=${INTERU_KUBERNETES_VERSION}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "TRIGGERED_BY=${GITHUB_TRIGGERED_BY}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" | tee -a "$INTEGRATION_TEST_INFO"
+        # TODO: To make the k8sobjects receiver error_mode runtime-controllable, expose the
+        # otel-k8sobjects-error-mode input in this step's `env:` block above and write it here:
+        #   echo "OTEL_K8SOBJECTS_ERROR_MODE=${OTEL_K8SOBJECTS_ERROR_MODE}" | tee -a "$INTEGRATION_TEST_INFO"
+        # Then reference it via ${env:OTEL_K8SOBJECTS_ERROR_MODE:-ignore} in the collector config.
         echo "::endgroup::"
 
         echo "::group::kubectl apply"

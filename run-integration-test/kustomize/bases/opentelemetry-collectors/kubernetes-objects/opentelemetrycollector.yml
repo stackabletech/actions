@@ -17,6 +17,11 @@ spec:
         # installed on any given run. error_mode: ignore makes a missing/unknown object type
         # non-fatal - the receiver logs it and skips it at startup instead of failing.
         # See handleError() in the receiver's Start(): missing types hit `continue`.
+        # TODO: Make error_mode runtime-controllable from the workflow (no action bump) by
+        # sourcing it from an env var with a safe default:
+        #   error_mode: "${env:OTEL_K8SOBJECTS_ERROR_MODE:-ignore}"
+        # Requires: an action input, writing it into integration-test-info.env, and this
+        # collector receiving that ConfigMap via envFrom (already true in the replicated overlay).
         error_mode: ignore
         objects:
         # NOTE: events are intentionally NOT watched here - they are already collected by the
