@@ -98,6 +98,7 @@ runs:
         BUILD_RESULT: ${{ steps.valid_inputs.outputs.BUILD_RESULT }}
         FAILED_TESTS: ${{ steps.valid_inputs.outputs.FAILED_TESTS }}
         TEST_HEALTH: ${{ steps.valid_inputs.outputs.TEST_HEALTH }}
+        TEST_RESULT: ${{ steps.valid_inputs.outputs.TEST_RESULT }}
         NOTIFICATION_TYPE: ${{ steps.valid_inputs.outputs.NOTIFICATION_TYPE }}
         GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         GITHUB_SERVER_URL: ${{ github.server_url }}
