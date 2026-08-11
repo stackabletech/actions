@@ -232,8 +232,13 @@ runs:
         INTERU_KUBERNETES_VERSION: ${{ steps.extract.outputs.INTERU_KUBERNETES_VERSION }}
         GITHUB_TRIGGERED_BY: ${{ github.triggering_actor }}
         GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        GITHUB_SERVER_URL: ${{ github.server_url }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
       run: |
         set -euo pipefail
+
+        WORKFLOW_RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}"
 
         echo "::group::get info"
         INTEGRATION_TEST_INFO="${GITHUB_ACTION_PATH}/kustomize/overlays/replicated/integration-test-info.env"
@@ -242,6 +247,7 @@ runs:
         echo "KUBERNETES_VERSION=${INTERU_KUBERNETES_VERSION}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "TRIGGERED_BY=${GITHUB_TRIGGERED_BY}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" | tee -a "$INTEGRATION_TEST_INFO"
+        echo "RUN_URL=${WORKFLOW_RUN_URL}" | tee -a "$INTEGRATION_TEST_INFO"
         # TODO: To make the k8sobjects receiver error_mode runtime-controllable, expose the
         # otel-k8sobjects-error-mode input in this step's `env:` block above and write it here:
         #   echo "OTEL_K8SOBJECTS_ERROR_MODE=${OTEL_K8SOBJECTS_ERROR_MODE}" | tee -a "$INTEGRATION_TEST_INFO"
