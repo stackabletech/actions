@@ -339,7 +339,7 @@ runs:
         # turned into an appropriate "weather" emoji and provided as an output to follow-up steps.
         LAST_RUNS=$(gh run list --limit "$LAST_TRIES_LIMIT" --workflow "$WORKFLOW_NAME" --json conclusion)
         SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
-        export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq 'length')
+        export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion != "")] | length')
 
         [ "$INTEGRATION_TEST_CONCLUSION" == "success" ] && SUCCESSES=$(echo "$SUCCESSES+1" | bc)
         export SUCCESSES="$SUCCESSES"
