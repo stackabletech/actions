@@ -235,7 +235,7 @@ runs:
         echo "::endgroup::"
 
     - name: Install Stackable Operators
-      id: integration-test
+      id: stackable-operators
       env:
         REF_NAME: ${{ github.ref_name }}
         OPERATOR_NAME: ${{ steps.extract_operator_name.outputs.OPERATOR_NAME }}
