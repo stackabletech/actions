@@ -52,12 +52,18 @@ inputs:
     # See https://github.com/stackabletech/stackable-cockpit/releases for latest version
     default: 1.1.0
 outputs:
-  start-time:
+  test-start-time:
     description: The date and time this integration test was started.
-    value: ${{ steps.start-time.outputs.START_TIME }}
-  end-time:
+    value: ${{ steps.test-start-time.outputs.TEST_START_TIME }}
+  test-end-time:
     description: The date and time this integration test finished.
-    value: ${{ steps.end-time.outputs.END_TIME }}
+    value: ${{ steps.test-end-time.outputs.TEST_END_TIME }}
+  cluster-start-time:
+    description: The date and time this cluster was started.
+    value: ${{ steps.cluster-start-time.outputs.CLUSTER_START_TIME }}
+  cluster-end-time:
+    description: The date and time this cluster was shut down.
+    value: ${{ steps.cluster-end-time.outputs.CLUSTER_END_TIME }}
   health:
     description: The health of this integration test over the last few tries.
     value: ${{ steps.health.outputs.HEALTH }}
@@ -181,6 +187,12 @@ runs:
         mkdir ~/.kube
         echo "$KUBECONFIG" > ~/.kube/config
 
+    - name: Record Cluster Start Time
+      id: cluster-start-time
+      shell: bash
+      run: |
+        echo "CLUSTER_START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
+
     - name: Extract Operator Name
       id: extract_operator_name
       env:
@@ -267,10 +279,10 @@ runs:
         echo "::endgroup::"
 
     - name: Record Test Start Time
-      id: start-time
+      id: test-start-time
       shell: bash
       run: |
-        echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
+        echo "TEST_START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Run Integration Test
       id: integration-test
@@ -294,11 +306,11 @@ runs:
         python ./scripts/run-tests --skip-release --log-level debug --parallel "$BEKU_TEST_PARALLELISM" ${ARGS:-} | tee -a test-output.log
 
     - name: Record Test End Time
-      id: end-time
+      id: test-end-time
       if: always()
       shell: bash
       run: |
-        echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
+        echo "TEST_END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Destroy Replicated Cluster
       if: always()
@@ -309,6 +321,13 @@ runs:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
         cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
+
+    - name: Record Cluster End Time
+      id: cluster-end-time
+      if: always()
+      shell: bash
+      run: |
+        echo "CLUSTER_END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Extract Failed Tests
       id: failed-tests
