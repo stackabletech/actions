@@ -1,5 +1,14 @@
 ---
-namePrefix: replicated-
+# Local testing overlay: a self-contained sibling of ../replicated for running on a
+# local cluster (kind/minikube/k3d) without the run-integration-test GitHub Action.
+#
+# Differences from ../replicated:
+# - Resource attributes are set to static literal values instead of ${env:...} vars
+#   populated by the CI action, so no integration-test-info.env / configMapGenerator
+#   is needed (the collector errors on startup if an ${env:...} var is unset).
+# - Adds a `debug` exporter to the logs pipeline so telemetry is visible on the
+#   collector pod's stdout locally (kubectl logs) in addition to the OTLP/HTTP export.
+namePrefix: local-
 
 resources:
 - ../../bases/opentelemetry-collectors
@@ -15,14 +24,16 @@ patches:
       path: /spec/config/exporters/otlp_http
       value:
         # otlp_http appends the signal-specific path (eg: /v1/logs) to this endpoint.
-        # Note: the exporter was renamed from `otlphttp` to `otlp_http`; the old name
-        # is a deprecated alias that still works but will be removed in a future release.
         endpoint: https://otlp.stackable.build
         auth:
           authenticator: bearertokenauth
+    - op: add
+      path: /spec/config/exporters/debug
+      value:
+        verbosity: detailed
     # The ingester at otlp.stackable.build requires Bearer auth. The token is read from
     # the OTLP_BEARER_TOKEN env var, sourced from the otlp-auth Secret (spec/env below).
-    # In CI this Secret is created by the run-integration-test action from a GHA secret.
+    # Locally that Secret is built by the secretGenerator from a gitignored otlp-auth.env.
     - op: add
       path: /spec/config/extensions/bearertokenauth
       value:
@@ -42,46 +53,32 @@ patches:
       path: /spec/config/service/pipelines/logs/exporters/-
       value: otlp_http
     - op: add
-      path: /spec/envFrom/-
-      value:
-        configMapRef:
-          name: integration-test-info
+      path: /spec/config/service/pipelines/logs/exporters/-
+      value: debug
     - op: add
       path: /spec/config/processors/resource/attributes/-
       value:
         action: upsert
         key: k8s.cluster.name
-        value: ${env:KUBERNETES_CLUSTER_NAME}
+        value: local
     - op: add
       path: /spec/config/processors/resource/attributes/-
       value:
         action: upsert
         key: k8s.cluster.distribution
-        value: ${env:KUBERNETES_DISTRIBUTION}
+        value: local
     - op: add
       path: /spec/config/processors/resource/attributes/-
       value:
         action: upsert
         key: k8s.cluster.version
-        value: ${env:KUBERNETES_VERSION}
+        value: local
     - op: add
       path: /spec/config/processors/resource/attributes/-
       value:
         action: upsert
         key: github.actions.triggered_by
-        value: ${env:TRIGGERED_BY}
-    - op: add
-      path: /spec/config/processors/resource/attributes/-
-      value:
-        action: upsert
-        key: github.actions.run_attempt
-        value: ${env:RUN_ATTEMPT}
-    - op: add
-      path: /spec/config/processors/resource/attributes/-
-      value:
-        action: upsert
-        key: github.actions.run_attempt
-        value: ${env:RUN_URL}
+        value: local
 
 # Specifically override config for the kubernetes-events collector.
 - target:
@@ -90,17 +87,16 @@ patches:
     kind: OpenTelemetryCollector
     name: kubernetes-events
   patch: |-
-    - op: add
-      path: /spec/config/service/pipelines/metrics/exporters/-
-      value: otlp_http
+    # OpenSearch Metrics collector is not yet available
+    - op: remove
+      path: /spec/config/service/pipelines/metrics
 
-configMapGenerator:
-# These get used by the attributes processor in each collector
-- name: integration-test-info
+secretGenerator:
+# Local-only: builds the otlp-auth Secret from a gitignored otlp-auth.secret.env so the
+# token is never committed. Copy otlp-auth.secret.env.example to otlp-auth.secret.env and
+# set the real token. The generated (hashed) Secret name is rewritten into each collector's
+# spec.env via the Secret nameReference in ../../bases/opentelemetry-collectors/crds.yml.
+- name: otlp-auth
   namespace: opentelemetry-operator
   envs:
-  # KUBERNETES_CLUSTER_NAME
-  # KUBERNETES_DISTRIBUTION
-  # KUBERNETES_VERSION
-  # TRIGGERED_BY
-  - integration-test-info.env
+  - otlp-auth.secret.env

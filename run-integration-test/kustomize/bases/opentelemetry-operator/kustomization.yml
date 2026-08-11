@@ -9,7 +9,10 @@ helmCharts:
 - name: opentelemetry-operator
   repo: https://open-telemetry.github.io/opentelemetry-helm-charts
   # Find the latest release here: https://github.com/open-telemetry/opentelemetry-helm-charts/releases
-  version: 0.93.0
+  # helm repo add opentelemetry-helm-charts https://open-telemetry.github.io/opentelemetry-helm-charts --force-update
+  # helm search repo opentelemetry-helm-charts/opentelemetry-operator
+  # renovate: registryUrl=https://open-telemetry.github.io/opentelemetry-helm-charts
+  version: 0.120.0 # 0.156.0
   releaseName: opentelemetry-operator
   includeCRDs: true
   skipTests: true
@@ -22,7 +25,7 @@ helmCharts:
         # See which plugins the opentelemetry-collector-k8s image contains here:
         # https://github.com/open-telemetry/opentelemetry-collector-releases/blob/main/distributions/otelcol-k8s/manifest.yaml
         repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
-        tag: 0.132.4 # Often the chart has old values for the collector image
+        tag: 0.157.0 # Often the chart has old values for the collector image
     admissionWebhooks:
       certManager:
         enabled: false

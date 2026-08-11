@@ -6,20 +6,102 @@ metadata:
   labels:
     app: kubernetes-objects
 rules:
-  # TODO: Add Stackable objects, and other common k8s objects
+  # Read-only across the object types watched by the k8sobjects receiver.
+  # NOTE: core "secrets" is deliberately omitted - the receiver emits full object data.
   - apiGroups:
       - ""
     resources:
-      - events
       - pods
+      - services
+      - endpoints
+      - configmaps
+      - persistentvolumeclaims
+      - persistentvolumes
+      - namespaces
+      - nodes
+      - serviceaccounts
+      - resourcequotas
+      - limitranges
     verbs:
       - get
       - list
       - watch
   - apiGroups:
-      - "events.k8s.io"
+      - "apps"
     resources:
-      - events
+      - deployments
+      - statefulsets
+      - daemonsets
+      - replicasets
     verbs:
-      - watch
+      - get
       - list
+      - watch
+  - apiGroups:
+      - "batch"
+    resources:
+      - jobs
+      - cronjobs
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - "networking.k8s.io"
+    resources:
+      - ingresses
+      - networkpolicies
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - "autoscaling"
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - "policy"
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - "storage.k8s.io"
+    resources:
+      - storageclasses
+    verbs:
+      - get
+      - list
+      - watch
+  # All Stackable CRDs, by API group. Wildcard resources so this survives plural typos and
+  # new CRDs across SDP releases. Read-only. Groups are far more stable than plural names.
+  - apiGroups:
+      - airflow.stackable.tech
+      - druid.stackable.tech
+      - hbase.stackable.tech
+      - hdfs.stackable.tech
+      - hive.stackable.tech
+      - kafka.stackable.tech
+      - nifi.stackable.tech
+      - spark.stackable.tech
+      - superset.stackable.tech
+      - trino.stackable.tech
+      - zookeeper.stackable.tech
+      - opa.stackable.tech
+      - opensearch.stackable.tech
+      - authentication.stackable.tech
+      - s3.stackable.tech
+      - listeners.stackable.tech
+      - secrets.stackable.tech
+    resources:
+      - "*"
+    verbs:
+      - get
+      - list
+      - watch

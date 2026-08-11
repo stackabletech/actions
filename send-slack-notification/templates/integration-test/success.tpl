@@ -8,7 +8,7 @@ blocks:
   - type: "section"
     text:
       type: "mrkdwn"
-      text: "${HEALTH_SLACK_EMOJI} (${HEALTH_RATE}) The integration test for *${{ github.repository }}* succeeded."
+      text: "${HEALTH_SLACK_EMOJI} (${HEALTH_RATE}) The integration test for *${MESSAGE_SUBJECT}* succeeded."
   - type: "actions"
     elements:
       - type: button

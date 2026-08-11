@@ -94,6 +94,7 @@ profiles:
 | Input                  | Required | Description                                                            |
 | ---------------------- | -------- | ---------------------------------------------------------------------- |
 | `replicated-api-token` | Yes      | Replicated API Token, available via `secrets.REPLICATED_API_TOKEN`     |
+| `otlp-bearer-token`    | Yes      | Bearer token for the OTLP ingester (otlp.stackable.build)              |
 | `test-mode`            | Yes      | Either run a `profile` or a `custom` test                              |
 | `test-mode-input`      | Yes      | The name of the profile or runner, based on the `test-mode`            |
 | `test-suite`           | No       | The name of the BeKu test-suite (only used if running a `custom` test) |
@@ -109,8 +110,10 @@ profiles:
 
 | Output | Description |
 | ------ | ----------- |
-| `start-time` | The time the test started running, in the `%Y-%m-%dT%H:%M:%S` (eg. `2025-08-20T09:57:53`) format. |
-| `end-time` |  The time the test completed, in the same format as above. |
+| `test-start-time` | The time the test started running, in the `%Y-%m-%dT%H:%M:%S` (eg. `2025-08-20T09:57:53`) format. |
+| `test-end-time` |  The time the test completed, in the same format as above. |
+| `cluster-start-time` | The time the cluster started running, in the `%Y-%m-%dT%H:%M:%S` (eg. `2025-08-20T09:57:53`) format. |
+| `cluster-end-time` |  The time the cluster shut down, in the same format as above. |
 | `health` | The health of the integration tests. Contains three comma-separated values: Slack emoji, GitHub emoji, and success rate. |
 | `failed-tests` | A (potentially empty) plain text list of failed tests. |
 
