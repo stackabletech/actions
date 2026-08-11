@@ -12,7 +12,7 @@ spec:
   config:
     receivers:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/k8sobjectsreceiver/testdata/config.yaml
-      k8sobjects:
+      k8s_objects:
         # This action runs across operator repos, so most Stackable CRDs below will not be
         # installed on any given run. error_mode: ignore makes a missing/unknown object type
         # non-fatal - the receiver logs it and skips it at startup instead of failing.
@@ -26,7 +26,7 @@ spec:
         objects:
         # NOTE: events are intentionally NOT watched here - they are already collected by the
         # k8s_events receiver in the kubernetes-events collector. Core Secrets are intentionally
-        # excluded: k8sobjects emits full object data with no field stripping (would exfiltrate
+        # excluded: k8s_objects emits full object data with no field stripping (would exfiltrate
         # secret material, including this stack's own otlp-auth token).
 
         # --- Common core (v1) resources ---
@@ -223,7 +223,7 @@ spec:
       extensions: []
       pipelines:
         logs:
-          receivers: [k8sobjects]
+          receivers: [k8s_objects]
           # processors: [memory_limiter, batch]
           processors: [k8s_attributes, resource_detection/env, resource]
           # Enable configured exporters in the overlay
