@@ -60,7 +60,7 @@ spec:
           # Recombine multi-line application output (eg: Java stack traces). The container
           # runtime writes one physical line per CRI entry, so a stack trace arrives as many
           # separate log records. Here a new record starts at column 0 (non-whitespace);
-          # indented continuation lines ("\tat ...", "\t... N more", "\tSuppressed:") plus the
+          # indented continuation lines ("<tab>at ...", "<tab>... N more", "<tab>Suppressed:") plus the
           # column-0 "Caused by:" lines are appended to it. Keying on indentation keeps this
           # robust across Java versions/loggers. Runs before the format parsers below, so normal
           # single-line logs (each starting at column 0) are emitted unchanged.
