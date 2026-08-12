@@ -193,15 +193,18 @@ runs:
       run: |
         echo "CLUSTER_START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
-    - name: Extract Operator Name
-      id: extract_operator_name
+    - name: Extract Repository and Operator Name
+      id: extract_names
       env:
         REPOSITORY: ${{ github.repository }}
       shell: bash
       run: |
         set -euo pipefail
 
-        OPERATOR_NAME=$(echo "$REPOSITORY" | cut -d / -f 2 | sed 's/-operator//g')
+        REPOSITORY_NAME=$(echo "${REPOSITORY}" | cut -d / -f)
+        OPERATOR_NAME=$(echo "${REPOSITORY_NAME}" | sed 's/-operator//g')
+
+        echo "REPOSITORY_NAME=$REPOSITORY_NAME" | tee -a "$GITHUB_OUTPUT"
         echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_OUTPUT"
 
     - name: Install OpenTelemetry Operator
@@ -239,12 +242,13 @@ runs:
       env:
         REF_NAME: ${{ github.ref_name }}
         GH_TOKEN: ${{ github.token }}
-        OPERATOR_NAME: ${{ steps.extract_operator_name.outputs.OPERATOR_NAME }}
+        REPOSITORY_NAME: ${{ steps.extract_names.outputs.REPOSITORY_NAME }}
+        OPERATOR_NAME: ${{ steps.extract_names.outputs.OPERATOR_NAME }}
       shell: bash
       run: |
         set -euo pipefail
 
-        OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$REF_NAME")
+        OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$REPOSITORY_NAME" "$REF_NAME")
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION" | tee -a test-output.log
 
     - name: Apply OpenTelemetry Collectors configurations
