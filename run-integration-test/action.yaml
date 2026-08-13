@@ -201,7 +201,7 @@ runs:
       run: |
         set -euo pipefail
 
-        REPOSITORY_NAME=$(echo "${REPOSITORY}" | cut -d / -f)
+        REPOSITORY_NAME=$(echo "${REPOSITORY}" | cut -d / -f 2)
         OPERATOR_NAME=$(echo "${REPOSITORY_NAME}" | sed 's/-operator//g')
 
         echo "REPOSITORY_NAME=$REPOSITORY_NAME" | tee -a "$GITHUB_OUTPUT"
