@@ -4,18 +4,24 @@ set -uo pipefail
 # This script takes two arguments:
 # 1. The operator name, like zookeeper-operator
 # 2. The ref name, like `main` or a tag
+set -e
+OPERATOR_NAME="$1"
+REF_NAME="$2"
+# Disable -e again as otherwise the `PR_NUMBER=$(...)` command below would exit the script on non-0
+# exit codes. We however explicitly handle these error cases.
+set +e
 
-if [ "$2"  == "main" ]; then
+if [ "${REF_NAME}"  == "main" ]; then
   echo "0.0.0-dev"
   exit
 fi
 
-PR_NUMBER=$(gh pr view "$2" --json number --jq '.number')
+PR_NUMBER=$(gh pr view "${REF_NAME}" --json number --jq '.number')
 
 if [ "$?" == "0" ]; then
   VERSION="0.0.0-pr$PR_NUMBER"
   # Check if the image exists upstream. If not, fall back to 0.0.0-dev
-  HTTP_STATUS_CODE=$(curl -o /dev/null -w "%{http_code}" -H "Authorization: Does not matter, but Harbor needs it" "https://oci.stackable.tech/v2/sdp/$1/manifests/${VERSION}")
+  HTTP_STATUS_CODE=$(curl -o /dev/null -w "%{http_code}" -H "Authorization: Does not matter, but Harbor needs it" "https://oci.stackable.tech/v2/sdp/${OPERATOR_NAME}/manifests/${VERSION}")
 
   if [ "$HTTP_STATUS_CODE" == "200" ]; then
     echo "$VERSION"
