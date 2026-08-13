@@ -16,6 +16,8 @@ if [ "${REF_NAME}"  == "main" ]; then
   exit
 fi
 
+# Look up the PR number for the ref. If no PR exists, this exists with a non-0
+# exit code which we handle below.
 PR_NUMBER=$(gh pr view "${REF_NAME}" --json number --jq '.number')
 
 if [ "$?" == "0" ]; then
@@ -26,7 +28,7 @@ if [ "$?" == "0" ]; then
   if [ "$HTTP_STATUS_CODE" == "200" ]; then
     echo "$VERSION"
   else
-    # The PR version is no (yet) available. Print a warning and fall back to 0.0.0-dev
+    # The PR version is no (yet) available. Print a warning (to stderr) and fall back to 0.0.0-dev
     echo "::warning title=Operator Version::The operator PR version was not available (yet). Fell back to 0.0.0-dev" 1>&2
     echo "0.0.0-dev"
   fi
