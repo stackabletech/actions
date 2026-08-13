@@ -25,7 +25,7 @@ if PR_NUMBER=$(gh pr view "${REF_NAME}" --json number --jq '.number'); then
     echo "$VERSION"
   else
     # The PR version is no (yet) available. Print a warning (to stderr) and fall back to 0.0.0-dev
-    echo "::warning title=Operator Version::The operator PR version was not available (yet). Fell back to 0.0.0-dev" 1>&2
+    echo "::warning title=Operator Version::The operator PR version was not available (yet). Fell back to ${DEFAULT_VERSION}" 1>&2
     echo "${DEFAULT_VERSION}"
   fi
 else
