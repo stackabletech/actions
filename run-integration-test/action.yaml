@@ -195,16 +195,14 @@ runs:
 
     - name: Extract Repository and Operator Name
       id: extract_names
-      env:
-        REPOSITORY: ${{ github.repository }}
       shell: bash
       run: |
         set -euo pipefail
 
-        REPOSITORY_NAME=$(echo "${REPOSITORY}" | cut -d / -f 2)
-        OPERATOR_NAME=$(echo "${REPOSITORY_NAME}" | sed 's/-operator//g')
+        REPOSITORY_WITHOUT_ORG=$(echo "${GITHUB_REPOSITORY}" | cut -d / -f 2)
+        OPERATOR_NAME=$(echo "${REPOSITORY_WITHOUT_ORG}" | sed 's/-operator//g')
 
-        echo "REPOSITORY_NAME=$REPOSITORY_NAME" | tee -a "$GITHUB_OUTPUT"
+        echo "REPOSITORY_WITHOUT_ORG=$REPOSITORY_WITHOUT_ORG" | tee -a "$GITHUB_OUTPUT"
         echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_OUTPUT"
 
     - name: Install OpenTelemetry Operator
@@ -240,15 +238,14 @@ runs:
     - name: Install Stackable Operators
       id: stackable-operators
       env:
-        REF_NAME: ${{ github.ref_name }}
         GH_TOKEN: ${{ github.token }}
-        REPOSITORY_NAME: ${{ steps.extract_names.outputs.REPOSITORY_NAME }}
+        REPOSITORY_WITHOUT_ORG: ${{ steps.extract_names.outputs.REPOSITORY_WITHOUT_ORG }}
         OPERATOR_NAME: ${{ steps.extract_names.outputs.OPERATOR_NAME }}
       shell: bash
       run: |
         set -euo pipefail
 
-        OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$REPOSITORY_NAME" "$REF_NAME")
+        OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$GITHUB_REPOSITORY" "$REPOSITORY_WITHOUT_ORG" "$GITHUB_REF_NAME")
         python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION" | tee -a test-output.log
 
     - name: Apply OpenTelemetry Collectors configurations
@@ -367,7 +364,7 @@ runs:
         # add 1 to the number of successes if this run succeeded. This ultimately represents the
         # number of successes in the last 5 runs, similar to what Jenkins does. This score is then
         # turned into an appropriate "weather" emoji and provided as an output to follow-up steps.
-        LAST_RUNS=$(gh run list --limit "$LAST_TRIES_LIMIT" --workflow "$GITHUB_WORKFLOW" --json conclusion)
+        LAST_RUNS=$(gh run list --repo "$GITHUB_REPOSITORY" --limit "$LAST_TRIES_LIMIT" --workflow "$GITHUB_WORKFLOW" --json conclusion)
         SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
         export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion != "")] | length')
 
