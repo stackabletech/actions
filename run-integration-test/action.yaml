@@ -86,9 +86,6 @@ runs:
         TEST_SUITE: ${{ inputs.test-suite }}
         TEST_MODE: ${{ inputs.test-mode }}
         TEST: ${{ inputs.test }}
-        GITHUB_REPOSITORY: ${{ github.repository }}
-        GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}"
-        GITHUB_RUN_ID: ${{ github.run_id }}"
       shell: bash
       run: |
         set -euo pipefail
@@ -256,11 +253,6 @@ runs:
         KUBERNETES_CLUSTER_NAME: ${{ steps.extract.outputs.KUBERNETES_CLUSTER_NAME }}
         INTERU_KUBERNETES_DISTRIBUTION: ${{ steps.extract.outputs.INTERU_KUBERNETES_DISTRIBUTION }}
         INTERU_KUBERNETES_VERSION: ${{ steps.extract.outputs.INTERU_KUBERNETES_VERSION }}
-        GITHUB_TRIGGERED_BY: ${{ github.triggering_actor }}
-        GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
-        GITHUB_SERVER_URL: ${{ github.server_url }}
-        GITHUB_REPOSITORY: ${{ github.repository }}
-        GITHUB_RUN_ID: ${{ github.run_id }}
       run: |
         set -euo pipefail
 
@@ -271,7 +263,7 @@ runs:
         echo "KUBERNETES_CLUSTER_NAME=${KUBERNETES_CLUSTER_NAME}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "KUBERNETES_DISTRIBUTION=${INTERU_KUBERNETES_DISTRIBUTION}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "KUBERNETES_VERSION=${INTERU_KUBERNETES_VERSION}" | tee -a "$INTEGRATION_TEST_INFO"
-        echo "TRIGGERED_BY=${GITHUB_TRIGGERED_BY}" | tee -a "$INTEGRATION_TEST_INFO"
+        echo "TRIGGERED_BY=${GITHUB_TRIGGERING_ACTOR}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "RUN_URL=${WORKFLOW_RUN_URL}" | tee -a "$INTEGRATION_TEST_INFO"
         # TODO: To make the k8sobjects receiver error_mode runtime-controllable, expose the
