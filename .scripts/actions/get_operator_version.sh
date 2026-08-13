@@ -7,9 +7,10 @@ set -euo pipefail
 OPERATOR_NAME="$1"
 REF_NAME="$2"
 
+DEFAULT_VERSION="0.0.0-dev"
 
 if [ "${REF_NAME}"  == "main" ]; then
-  echo "0.0.0-dev"
+  echo "${DEFAULT_VERSION}"
   exit
 fi
 
@@ -25,8 +26,8 @@ if PR_NUMBER=$(gh pr view "${REF_NAME}" --json number --jq '.number'); then
   else
     # The PR version is no (yet) available. Print a warning (to stderr) and fall back to 0.0.0-dev
     echo "::warning title=Operator Version::The operator PR version was not available (yet). Fell back to 0.0.0-dev" 1>&2
-    echo "0.0.0-dev"
+    echo "${DEFAULT_VERSION}"
   fi
 else
-  echo "0.0.0-dev"
+  echo "${DEFAULT_VERSION}"
 fi
