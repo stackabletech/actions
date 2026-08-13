@@ -353,7 +353,6 @@ runs:
       id: health
       env:
         INTEGRATION_TEST_CONCLUSION: ${{ steps.integration-test.conclusion }}
-        GITHUB_WORKFLOW_NAME: ${{ github.workflow }}
         GH_TOKEN: ${{ github.token }}
         LAST_TRIES_LIMIT: "4"
       shell: bash
@@ -364,7 +363,7 @@ runs:
         # add 1 to the number of successes if this run succeeded. This ultimately represents the
         # number of successes in the last 5 runs, similar to what Jenkins does. This score is then
         # turned into an appropriate "weather" emoji and provided as an output to follow-up steps.
-        LAST_RUNS=$(gh run list --limit "$LAST_TRIES_LIMIT" --workflow "$GITHUB_WORKFLOW_NAME" --json conclusion)
+        LAST_RUNS=$(gh run list --limit "$LAST_TRIES_LIMIT" --workflow "$GITHUB_WORKFLOW" --json conclusion)
         SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
         export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion != "")] | length')
 
