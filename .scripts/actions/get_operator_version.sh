@@ -11,11 +11,27 @@ REF_NAME="$3"
 
 DEFAULT_VERSION="0.0.0-dev"
 
+# Detect well-known ref names first
+# Detect if run against the `main` branch
 if [ "${REF_NAME}"  == "main" ]; then
   echo "${DEFAULT_VERSION}"
   exit
 fi
 
+# Detect release branches in the form `release-YY.MM`
+if [[ "${REF_NAME}" =~ ^release-[0-9]{2}\.[0-9]{1,2}$ ]]; then
+  VERSION=$(echo "${REF_NAME}" | cut -d - -f 2)
+  echo "${VERSION}.0"
+  exit
+fi
+
+# Detect release tags in the form `YY.MM.X<REST>`
+if [[ "${REF_NAME}" =~ ^[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2} ]]; then
+  echo "${REF_NAME}"
+  exit
+fi
+
+# Now handle unknown ref names.
 # Look up the PR number for the ref. If no PR exists, this exists with a non-0
 # exit code which we handle below.
 if PR_NUMBER=$(gh pr view "${REF_NAME}" --repo "${REPOSITORY}" --json number --jq '.number'); then
