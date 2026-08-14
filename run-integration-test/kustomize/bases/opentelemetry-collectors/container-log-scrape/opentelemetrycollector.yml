@@ -46,7 +46,7 @@ spec:
           # Exclude logs from all containers named otc-container
           # This is to prevent log amplification
           - /var/log/pods/*/otc-container/*.log
-        start_at: end
+        start_at: beginning # Operators are installed before the collectors
         include_file_path: true
         include_file_name: false
         # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/README.md#what-operators-are-available
