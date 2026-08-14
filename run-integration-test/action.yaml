@@ -70,6 +70,9 @@ outputs:
   failed-tests:
     description: The (potentially empty) list of failed tests
     value: ${{ steps.failed-tests.outputs.FAILED_TESTS }}
+  dashboard-url:
+    description: The dashboard URL to inspect the integration test run.
+    value: ${{ steps.dashboard-url.outputs.DASHBOARD_URL }}
 runs:
   using: composite
   steps:
@@ -340,6 +343,22 @@ runs:
         # Only look at the last 200 lines of test output which should be more than enough to capture all test results
         FAILED_TESTS=$(tail --lines 200 test-output.log | grep -E '\s{8}--- FAIL:' | sed -e 's|^.*kuttl/harness/||')
         echo -e "FAILED_TESTS<<EOF\n$FAILED_TESTS\nEOF" | tee -a "$GITHUB_OUTPUT"
+
+    - name: Construct Dashboard URL
+      id: dashboard-url
+      env:
+        KUBERNETES_CLUSTER_NAME: ${{ steps.extract.outputs.KUBERNETES_CLUSTER_NAME }}
+        CLUSTER_START_TIME: ${{ steps.cluster-start-time.outputs.CLUSTER_START_TIME }}
+        CLUSTER_END_TIME: ${{ steps.cluster-end-time.outputs.CLUSTER_END_TIME }}
+        DASHBOARD_BASE_URL: https://grafana.stackable.build/d/ni7hbw2/integration-tests
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        DASHBOARD_URL="${DASHBOARD_BASE_URL}?from=${CLUSTER_START_TIME}&to=${CLUSTER_END_TIME}&timezone=browser&var-github_actions_triggered_by=${GITHUB_TRIGGERING_ACTOR}&var-k8s_cluster_name=${KUBERNETES_CLUSTER_NAME}&dtab=info"
+        echo "${DASHBOARD_URL}"
+
+        echo "DASHBOARD_URL=${DASHBOARD_URL}" | tee -a "$GITHUB_OUTPUT"
 
     - name: Calculate Health
       if: always()

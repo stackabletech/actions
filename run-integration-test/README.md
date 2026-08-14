@@ -116,6 +116,7 @@ profiles:
 | `cluster-end-time` |  The time the cluster shut down, in the same format as above. |
 | `health` | The health of the integration tests. Contains three comma-separated values: Slack emoji, GitHub emoji, and success rate. |
 | `failed-tests` | A (potentially empty) plain text list of failed tests. |
+| `dashboard-url` | The dashboard URL to inspect the integration test run. |
 
 [supported-clusters]: https://docs.replicated.com/vendor/testing-supported-clusters
 [run-integration-test]: ./action.yaml
