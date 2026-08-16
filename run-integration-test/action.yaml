@@ -13,6 +13,9 @@ inputs:
     description: The Beku test-suite to run
   test:
     description: Matching Beku tests to run
+  test-script:
+    description: Path to the test script
+    default: ./scripts/run-tests
 
   # Tokens
   replicated-api-token:
@@ -238,12 +241,13 @@ runs:
         GH_TOKEN: ${{ github.token }}
         REPOSITORY_WITHOUT_ORG: ${{ steps.extract_names.outputs.REPOSITORY_WITHOUT_ORG }}
         OPERATOR_NAME: ${{ steps.extract_names.outputs.OPERATOR_NAME }}
+        TEST_SCRIPT: ${{ inputs.test-script }}
       shell: bash
       run: |
         set -euo pipefail
 
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$GITHUB_REPOSITORY" "$REPOSITORY_WITHOUT_ORG" "$GITHUB_REF_NAME")
-        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION" | tee -a test-output.log
+        python "${TEST_SCRIPT}" --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION" | tee -a test-output.log
 
     - name: Apply OpenTelemetry Collectors configurations
       shell: bash
@@ -297,6 +301,7 @@ runs:
         BEKU_TEST_PARALLELISM: ${{ steps.extract.outputs.BEKU_TEST_PARALLELISM }}
         BEKU_TEST_SUITE: ${{ steps.extract.outputs.BEKU_TEST_SUITE }}
         BEKU_TEST: ${{ steps.extract.outputs.BEKU_TEST }}
+        TEST_SCRIPT: ${{ inputs.test-script }}
       shell: bash
       run: |
         set -euo pipefail
@@ -304,7 +309,7 @@ runs:
         [ -n "${BEKU_TEST_SUITE:-}" ] && ARGS+=" --test-suite $BEKU_TEST_SUITE"
         [ -n "${BEKU_TEST:-}" ] && ARGS+=" --test $BEKU_TEST"
 
-        python ./scripts/run-tests --skip-release --log-level debug --parallel "$BEKU_TEST_PARALLELISM" ${ARGS:-} | tee -a test-output.log
+        python "${TEST_SCRIPT}" --skip-release --log-level debug --parallel "$BEKU_TEST_PARALLELISM" ${ARGS:-} | tee -a test-output.log
 
     - name: Record Test End Time
       id: test-end-time

@@ -1,0 +1,19 @@
+---
+runners:
+  amd64:
+    platform: kind-1.36
+    ttl: 30m
+    node-groups:
+      - name: default
+        arch: amd64
+        size: small
+        disk-gb: 2
+        nodes: 1
+
+profiles:
+  smoke:
+    strategy: use-runner
+    runner: amd64
+    options:
+      beku-parallelism: 2
+      beku-test: smoke

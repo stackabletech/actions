@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: smoke
+status:
+  phase: Running
