@@ -16,6 +16,9 @@ inputs:
   test-script:
     description: Path to the test script
     default: ./scripts/run-tests
+  interu-config:
+    description: Path to the interu config
+    default: tests/interu.yaml
 
   # Tokens
   replicated-api-token:
@@ -89,6 +92,7 @@ runs:
       id: extract
       env:
         TEST_MODE_INPUT: ${{ inputs.test-mode-input }}
+        INTERU_CONFIG: ${{ inputs.interu-config }}
         TEST_SUITE: ${{ inputs.test-suite }}
         TEST_MODE: ${{ inputs.test-mode }}
         TEST: ${{ inputs.test }}
@@ -105,12 +109,12 @@ runs:
           [ -n "${TEST_SUITE:-}" ] && echo "::warning::The test-suite input is ignored, because a profile is selected."
           [ -n "${TEST:-}" ] && echo "::warning::The test input is ignored, because a profile is selected."
 
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_OUTPUT"
+          interu --config "$INTERU_CONFIG" --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_OUTPUT"
         else
           [ -n "${TEST_SUITE:-}" ] && ARGS+=" --test-suite $TEST_SUITE"
           [ -n "${TEST:-}" ] && ARGS+=" --test $TEST"
 
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" ${ARGS:-} --output "$GITHUB_OUTPUT"
+          interu --config "$INTERU_CONFIG" --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" ${ARGS:-} --output "$GITHUB_OUTPUT"
         fi
 
     # Install all tools BEFORE creating the cluster, because if some of the tools fail to download

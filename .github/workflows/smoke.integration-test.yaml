@@ -30,6 +30,7 @@ jobs:
         with:
           replicated-api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           otlp-bearer-token: ${{ secrets.OTLP_BEARER_TOKEN }}
+          interu-config: ./smoke/interu.yaml
           test-script: ./smoke/run-tests
           test-mode-input: smoke
           test-mode: profile
