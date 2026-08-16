@@ -422,7 +422,7 @@ runs:
         # represents the number of successes in the last 5 runs, similar to what Jenkins does. This
         # score is then turned into an appropriate "weather" emoji and provided as an output to
         # follow-up steps.
-        LAST_RUNS=$(gh run list --repo "$GITHUB_REPOSITORY" --limit "$LAST_TRIES_LIMIT" --workflow "$GITHUB_WORKFLOW" --json conclusion | jq 'del(.[0])'')
+        LAST_RUNS=$(gh run list --repo "$GITHUB_REPOSITORY" --limit "$LAST_TRIES_LIMIT" --workflow "$GITHUB_WORKFLOW" --json conclusion | jq 'del(.[0])')
         echo "LAST_RUNS: ${LAST_RUNS}"
 
         SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
