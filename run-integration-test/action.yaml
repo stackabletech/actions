@@ -411,16 +411,18 @@ runs:
       env:
         INTEGRATION_TEST_CONCLUSION: ${{ steps.integration-test.conclusion }}
         GH_TOKEN: ${{ github.token }}
-        LAST_TRIES_LIMIT: "4"
+        LAST_TRIES_LIMIT: "5"
       shell: bash
       run: |
         set -euo pipefail
 
-        # First, we retrieve the number of successes of the last (currently) 4 runs. Afterwards we
-        # add 1 to the number of successes if this run succeeded. This ultimately represents the
-        # number of successes in the last 5 runs, similar to what Jenkins does. This score is then
-        # turned into an appropriate "weather" emoji and provided as an output to follow-up steps.
-        LAST_RUNS=$(gh run list --repo "$GITHUB_REPOSITORY" --limit "$LAST_TRIES_LIMIT" --workflow "$GITHUB_WORKFLOW" --json conclusion)
+        # First, we retrieve the number of successes of the last 5 runs. This includes the current,
+        # in-progress run which is removed using jq, resulting in a maximum of 4 previous runs.
+        # Afterwards we add 1 to the number of successes if this run succeeded. This ultimately
+        # represents the number of successes in the last 5 runs, similar to what Jenkins does. This
+        # score is then turned into an appropriate "weather" emoji and provided as an output to
+        # follow-up steps.
+        LAST_RUNS=$(gh run list --repo "$GITHUB_REPOSITORY" --limit "$LAST_TRIES_LIMIT" --workflow "$GITHUB_WORKFLOW" --json conclusion | jq 'del(.[0])'')
         echo "LAST_RUNS: ${LAST_RUNS}"
 
         SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
