@@ -28,4 +28,4 @@ blocks:
           type: "plain_text"
           text: "View Dashboard"
           emoji: false
-        url: "https://example.org"
+        url: "${DASHBOARD_URL}"
