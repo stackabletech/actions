@@ -3,3 +3,4 @@ dimensions: {}
 
 tests:
   - name: smoke
+    dimensions: {}
