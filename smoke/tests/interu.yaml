@@ -7,7 +7,7 @@ runners:
       - name: default
         arch: amd64
         size: small
-        disk-gb: 2
+        disk-gb: 50
         nodes: 1
 
 profiles:
