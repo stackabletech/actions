@@ -91,23 +91,26 @@ profiles:
 
 ### Inputs
 
-| Input                  | Required | Description                                                                    |
-| ---------------------- | -------- | ------------------------------------------------------------------------------ |
-| `replicated-api-token` | Yes      | Replicated API Token, available via `secrets.REPLICATED_API_TOKEN`             |
-| `otlp-bearer-token`    | Yes      | Bearer token for the OTLP ingester (otlp.stackable.build)                      |
-| `test-mode`            | Yes      | Either run a `profile` or a `custom` test                                      |
-| `test-mode-input`      | Yes      | The name of the profile or runner, based on the `test-mode`                    |
-| `test-suite`           | No       | The name of the BeKu test-suite (only used if running a `custom` test)         |
-| `test`                 | No       | The name of the BeKu test (only used if running a `custom` test)               |
-| `test-script`          | No       | The path to the test script (default: `./scripts/run-tests`)                   |
-| `test-definition`      | No       | The path to the test definition file (default: `./tests/test-definition.yaml`) |
-| `interu-config`        | No       | The path to the interu config file (default: `./tests/interu.yaml`)            |
-| `interu-version`       | No       | The interu version used by the action                                          |
-| `beku-version`         | No       | The beku version used by the action                                            |
-| `kubectl-version`      | No       | The kubectl version used by the action                                         |
-| `kuttl-version`        | No       | The kubectl-kuttl version used by the action                                   |
-| `helm-version`         | No       | The helm version used by the action                                            |
-| `stackablectl-version` | No       | The stackablectl version used by the action                                    |
+| Input                  | Required | Description                                                                                                |
+| ---------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `replicated-api-token` | Yes      | Replicated API Token, available via `secrets.REPLICATED_API_TOKEN`                                         |
+| `otlp-bearer-token`    | Yes      | Bearer token for the OTLP ingester (otlp.stackable.build)                                                  |
+| `test-mode`            | Yes      | Either run a `profile` or a `custom` test                                                                  |
+| `test-mode-input`      | Yes      | The name of the profile or runner, based on the `test-mode`                                                |
+| `test-suite`           | No       | The name of the BeKu test-suite (only used if running a `custom` test)                                     |
+| `test`                 | No       | The name of the BeKu test (only used if running a `custom` test)                                           |
+| `test-script`          | No       | The path to the test script (default: `./scripts/run-tests`)                                               |
+| `test-definition`      | No       | The path to the test definition file (default: `./tests/test-definition.yaml`)                             |
+| `interu-config`        | No       | The path to the interu config file (default: `./tests/interu.yaml`)                                        |
+| `template-dir`         | No       | The directory containing test templates (default: `./tests/templates/kuttl`)                               |
+| `kuttl-test`           | No       | The path to the kuttl test definition file (default: `./tests/kuttl-test.yaml.jinja2`)                     |
+| `install-operator`     | No       | Whether to detect the operator based on the repository this action is run in and install it on the cluster |
+| `interu-version`       | No       | The interu version used by the action                                                                      |
+| `beku-version`         | No       | The beku version used by the action                                                                        |
+| `kubectl-version`      | No       | The kubectl version used by the action                                                                     |
+| `kuttl-version`        | No       | The kubectl-kuttl version used by the action                                                               |
+| `helm-version`         | No       | The helm version used by the action                                                                        |
+| `stackablectl-version` | No       | The stackablectl version used by the action                                                                |
 
 ### Outputs
 

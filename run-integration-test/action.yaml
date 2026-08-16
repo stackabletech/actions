@@ -22,6 +22,17 @@ inputs:
   interu-config:
     description: Path to the interu config
     default: ./tests/interu.yaml
+  template-dir:
+    description: Directory containing test templates
+    default: ./tests/templates/kuttl
+  kuttl-test:
+    description: Path to the kuttl test definition file
+    default: ./tests/kuttl-test.yaml.jinja2
+  install-operator:
+    description: |
+      Whether to detect the operator based on the repository this action is run
+      in and install it on the cluster
+    default: "true"
 
   # Tokens
   replicated-api-token:
@@ -246,19 +257,28 @@ runs:
           --dry-run=client -o yaml | kubectl apply -f -
         echo "::endgroup::"
 
-    - name: Install Stackable Operators
-      id: stackable-operators
+    - name: Install Operator
+      if: inputs.install-operator == 'true'
       env:
         GH_TOKEN: ${{ github.token }}
         REPOSITORY_WITHOUT_ORG: ${{ steps.extract_names.outputs.REPOSITORY_WITHOUT_ORG }}
         OPERATOR_NAME: ${{ steps.extract_names.outputs.OPERATOR_NAME }}
+        TEST_DEFINITION: ${{ inputs.test-definition }}
+        TEMPLATE_DIR: ${{ inputs.template-dir }}
         TEST_SCRIPT: ${{ inputs.test-script }}
+        KUTTL_TEST: ${{ inputs.kuttl-test }}
       shell: bash
       run: |
         set -euo pipefail
 
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$GITHUB_REPOSITORY" "$REPOSITORY_WITHOUT_ORG" "$GITHUB_REF_NAME")
-        python "${TEST_SCRIPT}" --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION" | tee -a test-output.log
+        python "${TEST_SCRIPT}" \
+          --template-dir "$TEMPLATE_DIR" \
+          --test-definition "$TEST_DEFINITION" \
+          --kuttl-test "$KUTTL_TEST" \
+          --operator "$OPERATOR_NAME=$OPERATOR_VERSION" \
+          --skip-tests \
+        | tee -a test-output.log
 
     - name: Apply OpenTelemetry Collectors configurations
       shell: bash
@@ -312,7 +332,10 @@ runs:
         BEKU_TEST_PARALLELISM: ${{ steps.extract.outputs.BEKU_TEST_PARALLELISM }}
         BEKU_TEST_SUITE: ${{ steps.extract.outputs.BEKU_TEST_SUITE }}
         BEKU_TEST: ${{ steps.extract.outputs.BEKU_TEST }}
+        TEST_DEFINITION: ${{ inputs.test-definition }}
+        TEMPLATE_DIR: ${{ inputs.template-dir }}
         TEST_SCRIPT: ${{ inputs.test-script }}
+        KUTTL_TEST: ${{ inputs.kuttl-test }}
       shell: bash
       run: |
         set -euo pipefail
@@ -320,7 +343,15 @@ runs:
         [ -n "${BEKU_TEST_SUITE:-}" ] && ARGS+=" --test-suite $BEKU_TEST_SUITE"
         [ -n "${BEKU_TEST:-}" ] && ARGS+=" --test $BEKU_TEST"
 
-        python "${TEST_SCRIPT}" --skip-release --log-level debug --parallel "$BEKU_TEST_PARALLELISM" ${ARGS:-} | tee -a test-output.log
+        python "${TEST_SCRIPT}" \
+          --template-dir "$TEMPLATE_DIR" \
+          --test-definition "$TEST_DEFINITION" \
+          --kuttl-test "$KUTTL_TEST" \
+          --log-level debug \
+          --parallel "$BEKU_TEST_PARALLELISM" \
+          --skip-release \
+          ${ARGS:-} \
+        | tee -a test-output.log
 
     - name: Record Test End Time
       id: test-end-time
