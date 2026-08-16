@@ -41,7 +41,6 @@ jobs:
           test-mode: profile
 
       - name: Send Notification
-        if: ${{ failure() || github.run_attempt > 1 }}
         uses: ./send-slack-notification
         with:
           slack-token: ${{ secrets.SLACK_INTEGRATION_TEST_TOKEN }}
