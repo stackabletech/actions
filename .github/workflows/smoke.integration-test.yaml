@@ -33,6 +33,7 @@ jobs:
           test-definition: ./smoke/tests/test-definition.yaml
           kuttl-test: ./smoke/tests/kuttl-test.yaml.jinja2
           template-dir: ./smoke/tests/templates/kuttl
+          release-file: ./smoke/tests/release.yaml
           interu-config: ./smoke/tests/interu.yaml
           test-script: ./smoke/tests/run-tests
           install-operator: "false"

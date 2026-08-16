@@ -104,6 +104,7 @@ profiles:
 | `interu-config`        | No       | The path to the interu config file (default: `./tests/interu.yaml`)                                        |
 | `template-dir`         | No       | The directory containing test templates (default: `./tests/templates/kuttl`)                               |
 | `kuttl-test`           | No       | The path to the kuttl test definition file (default: `./tests/kuttl-test.yaml.jinja2`)                     |
+| `release-file`         | No       | The path to the test release file (default: `./tests/release.yaml`)                                        |
 | `install-operator`     | No       | Whether to detect the operator based on the repository this action is run in and install it on the cluster |
 | `interu-version`       | No       | The interu version used by the action                                                                      |
 | `beku-version`         | No       | The beku version used by the action                                                                        |

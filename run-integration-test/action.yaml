@@ -28,6 +28,9 @@ inputs:
   kuttl-test:
     description: Path to the kuttl test definition file
     default: ./tests/kuttl-test.yaml.jinja2
+  release-file:
+    description: Path to the test release file
+    default: ./tests/release.yaml
   install-operator:
     description: |
       Whether to detect the operator based on the repository this action is run
@@ -215,18 +218,6 @@ runs:
       run: |
         echo "CLUSTER_START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
-    - name: Extract Repository and Operator Name
-      id: extract_names
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        REPOSITORY_WITHOUT_ORG=$(echo "${GITHUB_REPOSITORY}" | cut -d / -f 2)
-        OPERATOR_NAME=$(echo "${REPOSITORY_WITHOUT_ORG}" | sed 's/-operator//g')
-
-        echo "REPOSITORY_WITHOUT_ORG=$REPOSITORY_WITHOUT_ORG" | tee -a "$GITHUB_OUTPUT"
-        echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_OUTPUT"
-
     - name: Install OpenTelemetry Operator
       shell: bash
       run: |
@@ -264,6 +255,7 @@ runs:
         REPOSITORY_WITHOUT_ORG: ${{ steps.extract_names.outputs.REPOSITORY_WITHOUT_ORG }}
         OPERATOR_NAME: ${{ steps.extract_names.outputs.OPERATOR_NAME }}
         TEST_DEFINITION: ${{ inputs.test-definition }}
+        RELEASE_FILE: ${{ inputs.release-file }}
         TEMPLATE_DIR: ${{ inputs.template-dir }}
         TEST_SCRIPT: ${{ inputs.test-script }}
         KUTTL_TEST: ${{ inputs.kuttl-test }}
@@ -271,11 +263,18 @@ runs:
       run: |
         set -euo pipefail
 
+        REPOSITORY_WITHOUT_ORG=$(echo "${GITHUB_REPOSITORY}" | cut -d / -f 2)
+        OPERATOR_NAME=$(echo "${REPOSITORY_WITHOUT_ORG}" | sed 's/-operator//g')
+
+        echo "REPOSITORY_WITHOUT_ORG=$REPOSITORY_WITHOUT_ORG" | tee -a "$GITHUB_OUTPUT"
+        echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_OUTPUT"
+
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$GITHUB_REPOSITORY" "$REPOSITORY_WITHOUT_ORG" "$GITHUB_REF_NAME")
         python "${TEST_SCRIPT}" \
           --template-dir "$TEMPLATE_DIR" \
           --test-definition "$TEST_DEFINITION" \
           --kuttl-test "$KUTTL_TEST" \
+          --release-file "$RELEASE_FILE" \
           --operator "$OPERATOR_NAME=$OPERATOR_VERSION" \
           --skip-tests \
         | tee -a test-output.log
@@ -333,6 +332,7 @@ runs:
         BEKU_TEST_SUITE: ${{ steps.extract.outputs.BEKU_TEST_SUITE }}
         BEKU_TEST: ${{ steps.extract.outputs.BEKU_TEST }}
         TEST_DEFINITION: ${{ inputs.test-definition }}
+        RELEASE_FILE: ${{ inputs.release-file }}
         TEMPLATE_DIR: ${{ inputs.template-dir }}
         TEST_SCRIPT: ${{ inputs.test-script }}
         KUTTL_TEST: ${{ inputs.kuttl-test }}
@@ -347,6 +347,7 @@ runs:
           --template-dir "$TEMPLATE_DIR" \
           --test-definition "$TEST_DEFINITION" \
           --kuttl-test "$KUTTL_TEST" \
+          --release-file "$RELEASE_FILE" \
           --log-level debug \
           --parallel "$BEKU_TEST_PARALLELISM" \
           --skip-release \
