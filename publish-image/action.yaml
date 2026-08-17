@@ -16,7 +16,7 @@ inputs:
       Path to the image, for example `stackable/kafka` or
       `k8s/sig-storage/csi-provisioner`
     required: true
-  image-manifest-tag:
+  canonical-image-manifest-tag:
     description: |
       Human-readable tag (usually the version) with architecture information,
       for example: `3.4.1-stackable0.0.0-dev-amd64`
@@ -37,7 +37,7 @@ inputs:
   # On Harbor we use:
   # - sdp/kafka
   # - sdp/sig-storage/csi-provisioner
-  source-image-uri:
+  canonical-source-image-uri:
     description: |
       The source image uri, which gets re-tagged by this action to be pushed to
       the appropriate registry.
