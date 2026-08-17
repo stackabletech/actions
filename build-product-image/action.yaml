@@ -30,14 +30,17 @@ inputs:
 outputs:
   canonical-image-manifest-uri:
     description: |
-      Human-readable canonical URI (usually the version) with architecture
-      information, for example: `oci.stackable.tech/tools:3.4.1-stackable0.0.0-dev-amd64`
+      Human-readable canonical manifest URI: `oci.stackable.tech/tools:3.4.1-stackable0.0.0-dev-amd64`
     value: ${{ steps.build.outputs.CANONICAL_IMAGE_MANIFEST_URI }}
   canonical-image-manifest-tag:
     description: |
-      Human-readable canonical tag (usually the version) with architecture
-      information, for example: `3.4.1-stackable0.0.0-dev-amd64`
+      Human-readable canonical manifest tag: `3.4.1-stackable0.0.0-dev-amd64`
     value: ${{ steps.build.outputs.CANONICAL_IMAGE_MANIFEST_TAG }}
+  other-image-manifest-uris:
+    description: |
+      A JSON string containing a list of other/additional manifest URIs. This list for example
+      includes the floating tag if requested and needed.
+    value: ${{ steps.build.outputs.OTHER_IMAGE_MANIFEST_URIS }}
   suggested-image-index-manifest-tag:
     description: |
       Human-readable tag (usually the version) without architecture information,
@@ -127,17 +130,20 @@ runs:
 
         echo "boil-target-tags: "$(< boil-target-tags.json)
 
-        # TODO (@Techassi): Deal with other tags
         # Extract the image manifest tag from the boil-target-tags.json file
-
         CANONICAL_IMAGE_MANIFEST_URI=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output '.[$IMAGE_REPOSITORY].canonical' < boil-target-tags.json)
         CANONICAL_IMAGE_MANIFEST_TAG=$(echo "$CANONICAL_IMAGE_MANIFEST_URI" | cut -d : -f 2)
 
+        # TODO (@Techassi): Also output tags, not only the full URIs
+        OTHER_IMAGE_MANIFEST_URIS=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output --compact-output '.[$IMAGE_REPOSITORY].others' < boil-target-tags.json)
+
         [[ -n "$CANONICAL_IMAGE_MANIFEST_URI" ]]
         [[ -n "$CANONICAL_IMAGE_MANIFEST_TAG" ]]
+        [[ -n "$OTHER_IMAGE_MANIFEST_URIS" ]]
 
         echo "CANONICAL_IMAGE_MANIFEST_URI=$CANONICAL_IMAGE_MANIFEST_URI" | tee -a "$GITHUB_OUTPUT"
         echo "CANONICAL_IMAGE_MANIFEST_TAG=$CANONICAL_IMAGE_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
+        echo "OTHER_IMAGE_MANIFEST_URIS=$OTHER_IMAGE_MANIFEST_URIS" | tee -a "$GITHUB_OUTPUT"
 
     - name: Print out Disk Usage
       if: always()
