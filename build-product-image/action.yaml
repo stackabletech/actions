@@ -124,7 +124,7 @@ runs:
 
         # TODO (@Techassi): Deal with other tags
         # Extract the image manifest tag from the boil-target-tags.json file
-        CANONICAL_IMAGE_MANIFEST_TAG=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" '.[$IMAGE_REPOSITORY].canonical' < boil-target-tags.json)
+        CANONICAL_IMAGE_MANIFEST_TAG=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output '.[$IMAGE_REPOSITORY].canonical' < boil-target-tags.json)
         [[ -n "$CANONICAL_IMAGE_MANIFEST_TAG" ]]
         echo "CANONICAL_IMAGE_MANIFEST_TAG=$CANONICAL_IMAGE_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
 
