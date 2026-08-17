@@ -64,7 +64,7 @@ jobs:
           product-version: ${{ matrix.versions }}
           sdp-version: 1.2.3
           boil-config-file: smoke/container-image/boil.toml
-          boil-version: 0.3.0
+          boil-version: latest
           registry-namespace: smoke
           extra-tag-data: pr-321
           product-name: smoke/container-image
