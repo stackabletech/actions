@@ -43,9 +43,12 @@ localhost/kafka:3.4.1-stackable0.0.0-dev-amd64
 
 ### Outputs
 
-| Output                               | Example                          | Description                                     |
-| ------------------------------------ | -------------------------------- | ----------------------------------------------- |
-| `image-manifest-tag`                 | `3.4.1-stackable0.0.0-dev-amd64` | The image manifest tag (including architecture) |
-| `suggested-image-index-manifest-tag` | `3.4.1-stackable0.0.0-dev`       | The suggested image index manifest tag          |
+| Output                               | Example                                                           | Description                             |
+| ------------------------------------ | ----------------------------------------------------------------- | --------------------------------------- |
+| `canonical-image-manifest-uri`       | `oci.stackable.tech/sdp/tools:3.4.1-stackable0.0.0-dev-amd64`     | The canonical image manifest uri        |
+| `canonical-image-manifest-tag`       | `3.4.1-stackable0.0.0-dev-amd64`                                  | The canonical image manifest tag        |
+| `other-image-manifest-uris`          | `["oci.stackable.tech/sdp/tools:3.4.1-stackable0.0.0-dev-amd64"]` | Other image manifest uris (JSON string) |
+| `other-image-manifest-tags`          | `["3.4.1-stackable0.0.0-dev-amd64"]`                              | Other image manifest tags (JSON string) |
+| `suggested-image-index-manifest-tag` | `3.4.1-stackable0.0.0-dev`                                        | The suggested image index manifest tag  |
 
 [build-product-image]: ./action.yaml
