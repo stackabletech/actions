@@ -144,11 +144,17 @@ runs:
         IMAGE_METADATA_DESCRIPTION=$(docker inspect --format='{{.Config.Labels.description}}' "$IMAGE_REPOSITORY_DIGEST")
         IMAGE_METADATA_NAME=$(docker inspect --format='{{.Config.Labels.name}}' "$IMAGE_REPOSITORY_DIGEST")
 
-        # Generate the SBOM
+        # Generate the SBOM.
+        # The "-file" cataloger tag disables the file catalogers so no file-type
+        # components (RPM-owned files like /etc/aliases) are emitted. They carry
+        # no purl, so vulnerability scanners cannot use them, and for large
+        # images they would make up most of the component count.
+        # The "squashed" scope only looks at the final filesystem, so packages
+        # that were replaced or removed by a later layer are not reported.
         syft scan \
           --output cyclonedx-json@1.5=sbom_raw.json \
-          --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger" \
-          --scope all-layers \
+          --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger,-file" \
+          --scope squashed \
           --source-name "$SOURCE_NAME" \
           --source-version "$IMAGE_MANIFEST_TAG" "$IMAGE_REPOSITORY_DIGEST"
 
@@ -166,6 +172,22 @@ runs:
         # Run mergebom
         chmod +x ./mergebom
         ./mergebom sbom_raw.json sbom.json
+
+        # Strip syft's per-component bookkeeping properties (layer IDs, evidence
+        # annotations, package IDs, ...) after mergebom has consumed them. Keep
+        # the paths a component was found at, the path inside an archive it was
+        # unpacked from, and the cataloger name as these are useful for debugging.
+        jq '.components |= map(
+              if .properties then
+                .properties |= map(select(
+                  (.name | startswith("syft:") | not)
+                  or (.name | test("^syft:location:[0-9]+:path$"))
+                  or .name == "syft:metadata:virtualPath"
+                  or .name == "syft:package:foundBy"
+                ))
+              else . end
+            | if .properties == [] then del(.properties) else . end)' \
+          sbom.json > sbom.slim.json
 
         # TODO (@Techassi): Replace author with manufacturer, because it is
         # automated, see https://cyclonedx.org/docs/1.6/json/#metadata_component_manufacturer
@@ -185,11 +207,52 @@ runs:
                       "publisher": "Stackable GmbH"
                   }
               }
-          } * .[0]' sbom.json > sbom.merged.json
+          } * .[0]' sbom.slim.json > sbom.merged.json
 
         # Attest the SBOM to the image
         "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign attest \
             --yes \
             --predicate sbom.merged.json \
             --type cyclonedx \
+            "${IMAGE_REPOSITORY_DIGEST}"
+
+        # Derive an SPDX SBOM from the merged CycloneDX SBOM. We only generate
+        # CycloneDX, SPDX is produced by conversion so both formats describe the
+        # same merged, deduplicated inventory.
+        syft convert sbom.merged.json --output spdx-json=sbom.spdx.raw.json
+
+        # Post-process the converted SPDX SBOM:
+        #   1. Normalise deprecated SPDX license identifiers that strict
+        #      validators reject. syft still emits the deprecated standalone form
+        #      "GPL-2.0-with-classpath-exception"; rewrite it to the valid WITH
+        #      expression. Extend the `fix` chain if further deprecated ids show up.
+        #   2. Restore top-level metadata that the CycloneDX -> SPDX conversion
+        #      drops: credit Stackable as an SBOM creator, and set the name,
+        #      version, originator, supplier and purl of the root container
+        #      package.
+        jq --arg source_name "$SOURCE_NAME" --arg version "$IMAGE_MANIFEST_TAG" --arg purl "$PURL" '
+          def fix: gsub("GPL-2.0-with-classpath-exception"; "GPL-2.0-only WITH Classpath-exception-2.0");
+          (.. | .licenseDeclared?  // empty) |= (if type == "string" then fix else . end)
+        | (.. | .licenseConcluded? // empty) |= (if type == "string" then fix else . end)
+        | .creationInfo.creators += ["Organization: Stackable GmbH"]
+        | (first(.relationships[]? | select(.relationshipType == "DESCRIBES") | .relatedSpdxElement)) as $root
+        | .packages |= map(
+            if .SPDXID == $root then
+                .name = $source_name
+              | .versionInfo = $version
+              | .supplier = "Organization: Stackable GmbH"
+              | .originator = "Organization: Stackable GmbH"
+              | .externalRefs = ((.externalRefs // []) + [{
+                  "referenceCategory": "PACKAGE-MANAGER",
+                  "referenceType": "purl",
+                  "referenceLocator": $purl
+                }])
+            else . end)
+        ' sbom.spdx.raw.json > sbom.spdx.json
+
+        # Attest the SPDX SBOM to the image
+        "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign attest \
+            --yes \
+            --predicate sbom.spdx.json \
+            --type spdxjson \
             "${IMAGE_REPOSITORY_DIGEST}"

@@ -46,6 +46,7 @@ jobs:
         with:
           type: integration-test
           channel-id: DEADBEEF
+          dashboard-url: ${{ needs.job_1.dashboard-url }}
           failed-tests: ${{ needs.job_1.failed-tests }}
           test-result: ${{ needs.job_1.result }}
           test-health: ${{ needs.job_1.health }}
@@ -65,6 +66,10 @@ jobs:
 - `build-result` (optional, e.g. `success`)
 - `publish-manifests-result` (optional, e.g. `failure`)
 - `publish-helm-chart-result` (optional, e.g. `failure`)
+- `test-result` (optional, e.g. `failure`)
+- `test-health` (optional, comes from the `run-integration-test` action)
+- `failed-tests` (optional, comes from the `run-integration-test` action)
+- `dashboard-url` (optional, comes from the `run-integration-test` action)
 - `message-subject` (optional, defaults to `github.workflow` for `container-image-build` and
   `github.repository` for `integration-test`)
 

@@ -1,0 +1,12 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: smoke
+spec:
+  containers:
+    - name: smoke
+      image: oci.stackable.tech/sdp/tools:1.0.0-stackable0.0.0-dev
+      command:
+        - sleep
+        - infinity

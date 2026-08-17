@@ -1,1 +1,4 @@
 charts/
+
+# Local-only secrets (eg: overlays/local/otlp-auth.secret.env). Never commit tokens.
+*.secret.env

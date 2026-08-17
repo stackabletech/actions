@@ -1,0 +1,52 @@
+---
+name: smoke-integration-test
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/smoke-integration-test.yaml
+      - run-integration-test/action.yaml
+      - send-slack-notification/action.yaml
+      - smoke/*
+
+permissions: {}
+
+jobs:
+  test:
+    name: Run Integration Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Run Integration Test
+        id: test
+        uses: ./run-integration-test
+        with:
+          replicated-api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          otlp-bearer-token: ${{ secrets.OTLP_BEARER_TOKEN }}
+          test-definition: ./smoke/tests/test-definition.yaml
+          kuttl-test: ./smoke/tests/kuttl-test.yaml.jinja2
+          template-dir: ./smoke/tests/templates/kuttl
+          release-file: ./smoke/tests/release.yaml
+          interu-config: ./smoke/tests/interu.yaml
+          test-script: ./smoke/tests/run-tests
+          install-operator: "false"
+          test-mode-input: smoke
+          test-mode: profile
+
+      - name: Send Notification
+        uses: ./send-slack-notification
+        with:
+          slack-token: ${{ secrets.SLACK_INTEGRATION_TEST_TOKEN }}
+          dashboard-url: ${{ steps.test.outputs.dashboard-url }}
+          failed-tests: ${{ steps.test.outputs.failed-tests }}
+          test-health: ${{ steps.test.outputs.health }}
+          test-result: ${{ steps.test.conclusion }}
+          channel-id: C07UYJYSMSN # notifications-integration-tests
+          type: integration-test

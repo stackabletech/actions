@@ -13,10 +13,41 @@ inputs:
     description: The Beku test-suite to run
   test:
     description: Matching Beku tests to run
+  test-script:
+    description: Path to the test script
+    default: ./scripts/run-tests
+  test-definition:
+    description: Path to the test definition file
+    default: ./tests/test-definition.yaml
+  interu-config:
+    description: Path to the interu config
+    default: ./tests/interu.yaml
+  template-dir:
+    description: Directory containing test templates
+    default: ./tests/templates/kuttl
+  kuttl-test:
+    description: Path to the kuttl test definition file
+    default: ./tests/kuttl-test.yaml.jinja2
+  release-file:
+    description: Path to the test release file
+    default: ./tests/release.yaml
+  install-operator:
+    description: |
+      Whether to detect the operator based on the repository this action is run
+      in and install it on the cluster
+    default: "true"
 
   # Tokens
   replicated-api-token:
     description: Replicated API token
+  otlp-bearer-token:
+    description: Bearer token for the OTLP ingester (otlp.stackable.build)
+  # TODO: Add an input to control the k8sobjects receiver error_mode at runtime, eg:
+  # otel-k8sobjects-error-mode:
+  #   description: k8sobjects receiver error_mode (propagate|ignore|silent)
+  #   default: ignore
+  # Wire it into integration-test-info.env (see the collectors apply step) and reference it
+  # via ${env:OTEL_K8SOBJECTS_ERROR_MODE:-ignore} in the kubernetes-objects collector config.
 
   # Tool versions
   interu-version:
@@ -38,62 +69,70 @@ inputs:
   helm-version:
     description: Version of helm
     # See https://github.com/helm/helm/releases for latest version
-    default: v3.19.0
+    default: v3.21.1
   stackablectl-version:
     description: Version of stackablectl
     # See https://github.com/stackabletech/stackable-cockpit/releases for latest version
     default: 1.1.0
 outputs:
-  start-time:
+  test-start-time:
     description: The date and time this integration test was started.
-    value: ${{ steps.start-time.outputs.START_TIME }}
-  end-time:
+    value: ${{ steps.test-start-time.outputs.TEST_START_TIME }}
+  test-end-time:
     description: The date and time this integration test finished.
-    value: ${{ steps.end-time.outputs.END_TIME }}
+    value: ${{ steps.test-end-time.outputs.TEST_END_TIME }}
+  cluster-start-time:
+    description: The date and time this cluster was started.
+    value: ${{ steps.cluster-start-time.outputs.CLUSTER_START_TIME }}
+  cluster-end-time:
+    description: The date and time this cluster was shut down.
+    value: ${{ steps.cluster-end-time.outputs.CLUSTER_END_TIME }}
   health:
     description: The health of this integration test over the last few tries.
     value: ${{ steps.health.outputs.HEALTH }}
   failed-tests:
     description: The (potentially empty) list of failed tests
     value: ${{ steps.failed-tests.outputs.FAILED_TESTS }}
+  dashboard-url:
+    description: The dashboard URL to inspect the integration test run.
+    value: ${{ steps.dashboard-url.outputs.DASHBOARD_URL }}
 runs:
   using: composite
   steps:
     - name: Install interu
       env:
         INTERU_VERSION: ${{ inputs.interu-version }}
-        RUNNER_DEBUG: ${{ runner.debug }}
       shell: bash
       run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_interu.sh"
 
     - name: Extract Test and Instance Configuration
+      id: extract
       env:
         TEST_MODE_INPUT: ${{ inputs.test-mode-input }}
+        TEST_DEFINITION: ${{ inputs.test-definition }}
+        INTERU_CONFIG: ${{ inputs.interu-config }}
         TEST_SUITE: ${{ inputs.test-suite }}
         TEST_MODE: ${{ inputs.test-mode }}
         TEST: ${{ inputs.test }}
-        RUNNER_DEBUG: ${{ runner.debug }}
-        GITHUB_REPOSITORY: ${{ github.repository }}
-        GITHUB_RUN_ID: ${{ github.run_id }}"
       shell: bash
       run: |
         set -euo pipefail
         [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         # Generate the cluster name
-        echo "KUBERNETES_CLUSTER_NAME=integration-test-${GITHUB_REPOSITORY}-${GITHUB_RUN_ID}" | tee -a "$GITHUB_ENV"
+        echo "KUBERNETES_CLUSTER_NAME=integration-test-${GITHUB_REPOSITORY}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" | tee -a "$GITHUB_OUTPUT"
 
-        # Run interu to expand parameters into GITHUB_ENV
+        # Run interu to expand parameters into GITHUB_OUTPUT for use as env vars in later steps.
         if [ "$TEST_MODE" == "profile" ]; then
           [ -n "${TEST_SUITE:-}" ] && echo "::warning::The test-suite input is ignored, because a profile is selected."
           [ -n "${TEST:-}" ] && echo "::warning::The test input is ignored, because a profile is selected."
 
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_ENV"
+          interu --config "$INTERU_CONFIG" --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --test-definitions "$TEST_DEFINITION" --check-test-definitions --output "$GITHUB_OUTPUT"
         else
           [ -n "${TEST_SUITE:-}" ] && ARGS+=" --test-suite $TEST_SUITE"
           [ -n "${TEST:-}" ] && ARGS+=" --test $TEST"
 
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" ${ARGS:-} --output "$GITHUB_ENV"
+          interu --config "$INTERU_CONFIG" --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" ${ARGS:-} --output "$GITHUB_OUTPUT"
         fi
 
     # Install all tools BEFORE creating the cluster, because if some of the tools fail to download
@@ -104,7 +143,8 @@ runs:
         KUBECTL_VERSION: ${{ inputs.kubectl-version }}
         KUTTL_VERSION: ${{ inputs.kuttl-version }}
         HELM_VERSION: ${{ inputs.helm-version }}
-        RUNNER_DEBUG: ${{ runner.debug }}
+        # The helm signature is expired since a couple of years...
+        VERIFY_SIGNATURE: "false"
       shell: bash
       run: |
         "$GITHUB_ACTION_PATH/../.scripts/actions/install_kubectl.sh"
@@ -144,23 +184,23 @@ runs:
 
     - name: Prepare Replicated Cluster
       id: prepare-replicated-cluster
-      uses: replicatedhq/replicated-actions/create-cluster@291bef61a059631e39e84f8470f86152171c4c20 # v1.26.0
+      uses: replicatedhq/replicated-actions/create-cluster@0fbf5395cf3e8c744f447bbc92b7de9135eead8e # v1.27.1
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
-        cluster-name: ${{ env.KUBERNETES_CLUSTER_NAME }}
-        kubernetes-distribution: ${{ env.INTERU_KUBERNETES_DISTRIBUTION }}
-        kubernetes-version: ${{ env.INTERU_KUBERNETES_VERSION }}
-        ttl: ${{ env.INTERU_CLUSTER_TTL }}
-        node-groups: ${{ env.INTERU_NODE_GROUPS }}
+        cluster-name: ${{ steps.extract.outputs.KUBERNETES_CLUSTER_NAME }}
+        kubernetes-distribution: ${{ steps.extract.outputs.INTERU_KUBERNETES_DISTRIBUTION }}
+        kubernetes-version: ${{ steps.extract.outputs.INTERU_KUBERNETES_VERSION }}
+        ttl: ${{ steps.extract.outputs.INTERU_CLUSTER_TTL }}
+        node-groups: ${{ steps.extract.outputs.INTERU_NODE_GROUPS }}
         # FIXME (@Techassi): Add test-suite and test here
         tags: |
           - key: kubernetes-distribution
-            value: ${{ env.INTERU_KUBERNETES_DISTRIBUTION }}
+            value: ${{ steps.extract.outputs.INTERU_KUBERNETES_DISTRIBUTION }}
           - key: triggered-by
             value: ${{ github.triggering_actor }}
           - key: test-parallelism
-            value: "${{ env.BEKU_TEST_PARALLELISM }}"
+            value: "${{ steps.extract.outputs.BEKU_TEST_PARALLELISM }}"
 
     - name: Set Replicated kubeconfig
       env:
@@ -172,15 +212,11 @@ runs:
         mkdir ~/.kube
         echo "$KUBECONFIG" > ~/.kube/config
 
-    - name: Extract Operator Name
-      env:
-        REPOSITORY: ${{ github.repository }}
+    - name: Record Cluster Start Time
+      id: cluster-start-time
       shell: bash
       run: |
-        set -euo pipefail
-
-        OPERATOR_NAME=$(echo "$REPOSITORY" | cut -d / -f 2 | sed 's/-operator//g')
-        echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_ENV"
+        echo "CLUSTER_START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Install OpenTelemetry Operator
       shell: bash
@@ -194,19 +230,80 @@ runs:
         kubectl -n opentelemetry-operator get pods
         echo "::endgroup::"
 
+    - name: Install OTLP ingester auth Secret
+      shell: bash
+      env:
+        OTLP_BEARER_TOKEN: ${{ inputs.otlp-bearer-token }}
+      run: |
+        set -euo pipefail
+        # No 'set -x' here: it would risk exposing the token. Mask defensively in case the
+        # value did not arrive via secrets.* (which GitHub redacts automatically).
+        echo "::add-mask::${OTLP_BEARER_TOKEN}"
+
+        echo "::group::kubectl apply secret"
+        # The collectors read this via spec.env -> secretKeyRef (otlp-auth / bearer-token).
+        kubectl create secret generic otlp-auth \
+          --namespace opentelemetry-operator \
+          --from-literal=bearer-token="${OTLP_BEARER_TOKEN}" \
+          --dry-run=client -o yaml | kubectl apply -f -
+        echo "::endgroup::"
+
+    - name: Install Operator
+      if: inputs.install-operator == 'true'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPOSITORY_WITHOUT_ORG: ${{ steps.extract_names.outputs.REPOSITORY_WITHOUT_ORG }}
+        OPERATOR_NAME: ${{ steps.extract_names.outputs.OPERATOR_NAME }}
+        TEST_DEFINITION: ${{ inputs.test-definition }}
+        RELEASE_FILE: ${{ inputs.release-file }}
+        TEMPLATE_DIR: ${{ inputs.template-dir }}
+        TEST_SCRIPT: ${{ inputs.test-script }}
+        KUTTL_TEST: ${{ inputs.kuttl-test }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        REPOSITORY_WITHOUT_ORG=$(echo "${GITHUB_REPOSITORY}" | cut -d / -f 2)
+        OPERATOR_NAME=$(echo "${REPOSITORY_WITHOUT_ORG}" | sed 's/-operator//g')
+
+        echo "REPOSITORY_WITHOUT_ORG=$REPOSITORY_WITHOUT_ORG" | tee -a "$GITHUB_OUTPUT"
+        echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_OUTPUT"
+
+        OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$GITHUB_REPOSITORY" "$REPOSITORY_WITHOUT_ORG" "$GITHUB_REF_NAME")
+        python "${TEST_SCRIPT}" \
+          --template-dir "$TEMPLATE_DIR" \
+          --test-definition "$TEST_DEFINITION" \
+          --kuttl-test "$KUTTL_TEST" \
+          --release-file "$RELEASE_FILE" \
+          --operator "$OPERATOR_NAME=$OPERATOR_VERSION" \
+          --skip-tests \
+        | tee -a test-output.log
+
     - name: Apply OpenTelemetry Collectors configurations
       shell: bash
       env:
-        GITHUB_TRIGGERED_BY: ${{ github.triggering_actor }}
+        # These are directly used in the script below, but then used by kustomize/replicated/kustomization.yaml
+        # (configMapGenerator which supplies env vars for the Otel collector config per patch in the same file)
+        KUBERNETES_CLUSTER_NAME: ${{ steps.extract.outputs.KUBERNETES_CLUSTER_NAME }}
+        INTERU_KUBERNETES_DISTRIBUTION: ${{ steps.extract.outputs.INTERU_KUBERNETES_DISTRIBUTION }}
+        INTERU_KUBERNETES_VERSION: ${{ steps.extract.outputs.INTERU_KUBERNETES_VERSION }}
       run: |
         set -euo pipefail
+
+        WORKFLOW_RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}"
 
         echo "::group::get info"
         INTEGRATION_TEST_INFO="${GITHUB_ACTION_PATH}/kustomize/overlays/replicated/integration-test-info.env"
         echo "KUBERNETES_CLUSTER_NAME=${KUBERNETES_CLUSTER_NAME}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "KUBERNETES_DISTRIBUTION=${INTERU_KUBERNETES_DISTRIBUTION}" | tee -a "$INTEGRATION_TEST_INFO"
         echo "KUBERNETES_VERSION=${INTERU_KUBERNETES_VERSION}" | tee -a "$INTEGRATION_TEST_INFO"
-        echo "TRIGGERED_BY=${GITHUB_TRIGGERED_BY}" | tee -a "$INTEGRATION_TEST_INFO"
+        echo "TRIGGERED_BY=${GITHUB_TRIGGERING_ACTOR}" | tee -a "$INTEGRATION_TEST_INFO"
+        echo "RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" | tee -a "$INTEGRATION_TEST_INFO"
+        echo "RUN_URL=${WORKFLOW_RUN_URL}" | tee -a "$INTEGRATION_TEST_INFO"
+        # TODO: To make the k8sobjects receiver error_mode runtime-controllable, expose the
+        # otel-k8sobjects-error-mode input in this step's `env:` block above and write it here:
+        #   echo "OTEL_K8SOBJECTS_ERROR_MODE=${OTEL_K8SOBJECTS_ERROR_MODE}" | tee -a "$INTEGRATION_TEST_INFO"
+        # Then reference it via ${env:OTEL_K8SOBJECTS_ERROR_MODE:-ignore} in the collector config.
         echo "::endgroup::"
 
         echo "::group::kubectl apply"
@@ -222,44 +319,64 @@ runs:
         echo "::endgroup::"
 
     - name: Record Test Start Time
-      id: start-time
+      id: test-start-time
       shell: bash
       run: |
-        echo "START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
+        echo "TEST_START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Run Integration Test
       id: integration-test
       env:
         REF_NAME: ${{ github.ref_name }}
-        GH_TOKEN: ${{ github.token }}
+        BEKU_TEST_PARALLELISM: ${{ steps.extract.outputs.BEKU_TEST_PARALLELISM }}
+        BEKU_TEST_SUITE: ${{ steps.extract.outputs.BEKU_TEST_SUITE }}
+        BEKU_TEST: ${{ steps.extract.outputs.BEKU_TEST }}
+        TEST_DEFINITION: ${{ inputs.test-definition }}
+        RELEASE_FILE: ${{ inputs.release-file }}
+        TEMPLATE_DIR: ${{ inputs.template-dir }}
+        TEST_SCRIPT: ${{ inputs.test-script }}
+        KUTTL_TEST: ${{ inputs.kuttl-test }}
       shell: bash
       run: |
         set -euo pipefail
 
-        OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$REF_NAME")
-        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION" | tee -a test-output.log
-
         [ -n "${BEKU_TEST_SUITE:-}" ] && ARGS+=" --test-suite $BEKU_TEST_SUITE"
         [ -n "${BEKU_TEST:-}" ] && ARGS+=" --test $BEKU_TEST"
 
-        python ./scripts/run-tests --skip-release --log-level debug --parallel "$BEKU_TEST_PARALLELISM" ${ARGS:-} | tee -a test-output.log
+        python "${TEST_SCRIPT}" \
+          --template-dir "$TEMPLATE_DIR" \
+          --test-definition "$TEST_DEFINITION" \
+          --kuttl-test "$KUTTL_TEST" \
+          --release-file "$RELEASE_FILE" \
+          --log-level debug \
+          --parallel "$BEKU_TEST_PARALLELISM" \
+          --skip-release \
+          ${ARGS:-} \
+        | tee -a test-output.log
 
     - name: Record Test End Time
-      id: end-time
+      id: test-end-time
       if: always()
       shell: bash
       run: |
-        echo "END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
+        echo "TEST_END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Destroy Replicated Cluster
       if: always()
       # If the creation of the cluster failed, we don't want to error and abort
       continue-on-error: true
-      uses: replicatedhq/replicated-actions/remove-cluster@291bef61a059631e39e84f8470f86152171c4c20 # v1.26.0
+      uses: replicatedhq/replicated-actions/remove-cluster@0fbf5395cf3e8c744f447bbc92b7de9135eead8e # v1.27.1
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
         cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
+
+    - name: Record Cluster End Time
+      id: cluster-end-time
+      if: always()
+      shell: bash
+      run: |
+        echo "CLUSTER_END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Extract Failed Tests
       id: failed-tests
@@ -270,29 +387,50 @@ runs:
       run: |
         # Only look at the last 200 lines of test output which should be more than enough to capture all test results
         FAILED_TESTS=$(tail --lines 200 test-output.log | grep -E '\s{8}--- FAIL:' | sed -e 's|^.*kuttl/harness/||')
-        echo "FAILED_TESTS<<EOF\n$FAILED_TESTS\nEOF" | tee -a "$GITHUB_OUTPUT"
+        echo -e "FAILED_TESTS<<EOF\n$FAILED_TESTS\nEOF" | tee -a "$GITHUB_OUTPUT"
+
+    - name: Construct Dashboard URL
+      id: dashboard-url
+      env:
+        KUBERNETES_CLUSTER_NAME: ${{ steps.extract.outputs.KUBERNETES_CLUSTER_NAME }}
+        CLUSTER_START_TIME: ${{ steps.cluster-start-time.outputs.CLUSTER_START_TIME }}
+        CLUSTER_END_TIME: ${{ steps.cluster-end-time.outputs.CLUSTER_END_TIME }}
+        DASHBOARD_BASE_URL: https://grafana.stackable.build/d/ni7hbw2/integration-tests
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        DASHBOARD_URL="${DASHBOARD_BASE_URL}?from=${CLUSTER_START_TIME}&to=${CLUSTER_END_TIME}&timezone=browser&var-github_actions_triggered_by=${GITHUB_TRIGGERING_ACTOR}&var-k8s_cluster_name=${KUBERNETES_CLUSTER_NAME}&dtab=info"
+        echo "${DASHBOARD_URL}"
+
+        echo "DASHBOARD_URL=${DASHBOARD_URL}" | tee -a "$GITHUB_OUTPUT"
 
     - name: Calculate Health
       if: always()
       id: health
       env:
         INTEGRATION_TEST_CONCLUSION: ${{ steps.integration-test.conclusion }}
-        WORKFLOW_NAME: "Integration Test"
         GH_TOKEN: ${{ github.token }}
-        LAST_TRIES_LIMIT: "4"
+        LAST_TRIES_LIMIT: "5"
       shell: bash
       run: |
         set -euo pipefail
 
-        # First, we retrieve the number of successes of the last (currently) 4 runs. Afterwards we
-        # add 1 to the number of successes if this run succeeded. This ultimately represents the
-        # number of successes in the last 5 runs, similar to what Jenkins does. This score is then
-        # turned into an appropriate "weather" emoji and provided as an output to follow-up steps.
-        LAST_RUNS=$(gh run list --limit "$LAST_TRIES_LIMIT" --workflow "$WORKFLOW_NAME" --json conclusion)
+        # First, we retrieve the number of successes of the last 5 runs. This includes the current,
+        # in-progress run which is removed using jq, resulting in a maximum of 4 previous runs.
+        # Afterwards we add 1 to the number of successes if this run succeeded. This ultimately
+        # represents the number of successes in the last 5 runs, similar to what Jenkins does. This
+        # score is then turned into an appropriate "weather" emoji and provided as an output to
+        # follow-up steps.
+        LAST_RUNS=$(gh run list --repo "$GITHUB_REPOSITORY" --limit "$LAST_TRIES_LIMIT" --workflow "$GITHUB_WORKFLOW" --json conclusion | jq 'del(.[0])')
+        echo "LAST_RUNS: ${LAST_RUNS}"
+
         SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
-        export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq 'length')
+        export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion != "")] | length')
 
         [ "$INTEGRATION_TEST_CONCLUSION" == "success" ] && SUCCESSES=$(echo "$SUCCESSES+1" | bc)
         export SUCCESSES="$SUCCESSES"
+
+        echo "Number of successes (last ${LAST_TRIES_TOTAL} run(s) + this run): ${SUCCESSES}"
 
         echo "HEALTH=$(cat "${GITHUB_ACTION_PATH}/health" | envsubst | bc)" | tee -a "$GITHUB_OUTPUT"

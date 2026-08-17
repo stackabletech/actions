@@ -36,7 +36,7 @@ spec:
   config:
     receivers:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/filelogreceiver
-      filelog/varlogpods:
+      file_log/varlogpods:
         # A storage extension (eg: redis, or file) can be used for storing log offsets. Otherwise it is held in memory.
         # See: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/extension/storage
         # storage: {}
@@ -46,7 +46,7 @@ spec:
           # Exclude logs from all containers named otc-container
           # This is to prevent log amplification
           - /var/log/pods/*/otc-container/*.log
-        start_at: end
+        start_at: beginning # Operators are installed before the collectors
         include_file_path: true
         include_file_name: false
         # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/README.md#what-operators-are-available
@@ -57,6 +57,21 @@ spec:
             type: container
             format: containerd
             add_metadata_from_filepath: true
+          # Recombine multi-line application output (eg: Java stack traces). The container
+          # runtime writes one physical line per CRI entry, so a stack trace arrives as many
+          # separate log records. Here a new record starts at column 0 (non-whitespace);
+          # indented continuation lines ("<tab>at ...", "<tab>... N more", "<tab>Suppressed:") plus the
+          # column-0 "Caused by:" lines are appended to it. Keying on indentation keeps this
+          # robust across Java versions/loggers. Runs before the format parsers below, so normal
+          # single-line logs (each starting at column 0) are emitted unchanged.
+          # NOTE: a leading log line that introduces the exception (eg: "... ERROR Foo - msg")
+          # stays as its own record; add your log-line start pattern to is_first_entry to merge
+          # it too, but that reintroduces log-format coupling this deliberately avoids.
+          - id: recombine-multiline
+            type: recombine
+            combine_field: body
+            source_identifier: 'attributes["log.file.path"]'
+            is_first_entry: 'body matches "^\\S" and not (body matches "^Caused by:")'
           - id: klog-parser
             type: regex_parser
             on_error: send_quiet
@@ -105,7 +120,7 @@ spec:
 
     processors:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor
-      k8sattributes:
+      k8s_attributes:
         filter:
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor/README.md#as-an-agent
           node_from_env_var: KUBE_NODE_NAME # this should be same as the var set from the downward API further up
@@ -124,7 +139,7 @@ spec:
         # This key exists so it can be easily extended in an overlay:
         attributes: []
 
-      resourcedetection/env:
+      resource_detection/env:
         detectors: [env]
         timeout: 2s
         override: false
@@ -146,8 +161,8 @@ spec:
       extensions: []
       pipelines:
         logs:
-          receivers: [filelog/varlogpods]
+          receivers: [file_log/varlogpods]
           # processors: [memory_limiter, batch]
-          processors: [k8sattributes, resourcedetection/env, resource]
+          processors: [k8s_attributes, resource_detection/env, resource]
           # Enable configured exporters in the overlay
           exporters: []

@@ -96,11 +96,12 @@ runs:
         key: rust-toolchains-${{ inputs.rust }}-components-${{ steps.rust-toolchain-cache-key.outputs.RUST_COMPONENTS }}
 
     - name: Setup Rust Toolchain
-      uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
       if: ${{ inputs.rust && steps.rust-toolchain-cache.outputs.cache-hit != 'true' }}
-      with:
-        toolchain: ${{ inputs.rust }}
-        components: ${{ inputs.rust-components }}
+      env:
+        RUST_TOOLCHAIN_VERSION: ${{ inputs.rust }}
+        RUST_COMPONENTS: ${{ inputs.rust-components }}
+      shell: bash
+      run: rustup toolchain install "${RUST_TOOLCHAIN_VERSION}" --component "${RUST_COMPONENTS}"
 
     - name: Setup Rust Cache
       if: ${{ inputs.rust }}

@@ -27,10 +27,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-          targets: ${{ inputs.target }}
+      - name: Setup Rust Toolchain
+        env:
+          RUST_TARGETS: ${{ inputs.target }}
+        shell: bash
+        # NOTE: target is a comma separated list of targets, which is fine here
+        # but further down it would break. Maybe we want to validate the target
+        # input is actually one target (and use the matrix for building multiple
+        # targets in parallel)
+        run: rustup toolchain install "${RUST_VERSION}" --target "${RUST_TARGETS}"
 
       - name: Build Binary
         env:
