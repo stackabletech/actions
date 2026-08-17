@@ -28,6 +28,11 @@ inputs:
     description: Whether a floating tag should be added to the final image
     default: "false"
 outputs:
+  canonical-image-manifest-uri:
+    description: |
+      Human-readable canonical URI (usually the version) with architecture
+      information, for example: `oci.stackable.tech/tools:3.4.1-stackable0.0.0-dev-amd64`
+    value: ${{ steps.build.outputs.CANONICAL_IMAGE_MANIFEST_URI }}
   canonical-image-manifest-tag:
     description: |
       Human-readable canonical tag (usually the version) with architecture
@@ -124,8 +129,14 @@ runs:
 
         # TODO (@Techassi): Deal with other tags
         # Extract the image manifest tag from the boil-target-tags.json file
-        CANONICAL_IMAGE_MANIFEST_TAG=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output '.[$IMAGE_REPOSITORY].canonical' < boil-target-tags.json)
+
+        CANONICAL_IMAGE_MANIFEST_URI=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output '.[$IMAGE_REPOSITORY].canonical' < boil-target-tags.json)
+        CANONICAL_IMAGE_MANIFEST_TAG=$(echo "$CANONICAL_IMAGE_MANIFEST_URI" | cut -d : -f 2)
+
+        [[ -n "$CANONICAL_IMAGE_MANIFEST_URI" ]]
         [[ -n "$CANONICAL_IMAGE_MANIFEST_TAG" ]]
+
+        echo "CANONICAL_IMAGE_MANIFEST_URI=$CANONICAL_IMAGE_MANIFEST_URI" | tee -a "$GITHUB_OUTPUT"
         echo "CANONICAL_IMAGE_MANIFEST_TAG=$CANONICAL_IMAGE_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
 
     - name: Print out Disk Usage
