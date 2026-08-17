@@ -63,7 +63,7 @@ jobs:
         with:
           product-version: ${{ matrix.versions }}
           boil-config-file: smoke/container-image/boil.toml
-          boil-version: 0.2.3-rc.1
+          boil-version: 0.3.0
           registry-namespace: smoke
           extra-tag-data: pr-321
           product-name: smoke/container-image
@@ -76,8 +76,8 @@ jobs:
           image-registry-username: robot$smoke+github-action-build
           image-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
           image-repository: smoke/container-image
-          image-manifest-tag: ${{ steps.build.outputs.image-manifest-tag }}
-          source-image-uri: localhost/smoke/smoke/container-image:${{ steps.build.outputs.image-manifest-tag }}
+          image-manifest-tag: ${{ steps.build.outputs.canonical-image-manifest-tag }}
+          source-image-uri: localhost/smoke/smoke/container-image:${{ steps.build.outputs.canonical-image-manifest-tag }}
 
   publish-manifests:
     name: Build/Publish ${{ matrix.versions }} Index Manifest
