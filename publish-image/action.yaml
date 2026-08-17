@@ -76,24 +76,24 @@ runs:
       shell: bash
       env:
         CANONICAL_IMAGE_MANIFEST_TAG: ${{ inputs.canonical-image-manifest-tag }}
+        CANONICAL_SOURCE_IMAGE_URI: ${{ inputs.canonical-source-image-uri }}
         OTHER_IMAGE_MANIFEST_TAGS: ${{ inputs.other-image-manifest-tags }}
         IMAGE_REGISTRY_URI: ${{ inputs.image-registry-uri }}
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
-        SOURCE_IMAGE_URI: ${{ inputs.source-image-uri }}
       run: |
         set -euo pipefail
 
         CANONICAL_TARGET_IMAGE_MANIFEST_URI="${IMAGE_REGISTRY_URI}/${IMAGE_REPOSITORY}:${CANONICAL_IMAGE_MANIFEST_TAG}"
 
         # The canonical image manifest tag is always set
-        docker tag "$SOURCE_IMAGE_URI" "$CANONICAL_TARGET_IMAGE_MANIFEST_URI"
+        docker tag "$CANONICAL_SOURCE_IMAGE_URI" "$CANONICAL_TARGET_IMAGE_MANIFEST_URI"
 
         # Now add all other tags
         while read -r TAG
         do
-          echo "Tagging $SOURCE_IMAGE_URI with additional tag:"
-          docker tag "$SOURCE_IMAGE_URI" "$TAG"
-        done < <(echo "OTHER_IMAGE_MANIFEST_TAGS" | jq --raw-output --compact-output '.[]')
+          echo "Tagging $CANONICAL_SOURCE_IMAGE_URI with additional tag: $TAG"
+          docker tag "$CANONICAL_SOURCE_IMAGE_URI" "$TAG"
+        done < <(echo "$OTHER_IMAGE_MANIFEST_TAGS" | jq --raw-output --compact-output '.[]')
 
         # Output for the next step
         echo "CANONICAL_IMAGE_MANIFEST_URI=$CANONICAL_TARGET_IMAGE_MANIFEST_URI" | tee -a "$GITHUB_OUTPUT"
