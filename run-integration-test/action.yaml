@@ -13,6 +13,29 @@ inputs:
     description: The Beku test-suite to run
   test:
     description: Matching Beku tests to run
+  test-script:
+    description: Path to the test script
+    default: ./scripts/run-tests
+  test-definition:
+    description: Path to the test definition file
+    default: ./tests/test-definition.yaml
+  interu-config:
+    description: Path to the interu config
+    default: ./tests/interu.yaml
+  template-dir:
+    description: Directory containing test templates
+    default: ./tests/templates/kuttl
+  kuttl-test:
+    description: Path to the kuttl test definition file
+    default: ./tests/kuttl-test.yaml.jinja2
+  release-file:
+    description: Path to the test release file
+    default: ./tests/release.yaml
+  install-operator:
+    description: |
+      Whether to detect the operator based on the repository this action is run
+      in and install it on the cluster
+    default: "true"
 
   # Tokens
   replicated-api-token:
@@ -86,6 +109,8 @@ runs:
       id: extract
       env:
         TEST_MODE_INPUT: ${{ inputs.test-mode-input }}
+        TEST_DEFINITION: ${{ inputs.test-definition }}
+        INTERU_CONFIG: ${{ inputs.interu-config }}
         TEST_SUITE: ${{ inputs.test-suite }}
         TEST_MODE: ${{ inputs.test-mode }}
         TEST: ${{ inputs.test }}
@@ -102,12 +127,12 @@ runs:
           [ -n "${TEST_SUITE:-}" ] && echo "::warning::The test-suite input is ignored, because a profile is selected."
           [ -n "${TEST:-}" ] && echo "::warning::The test input is ignored, because a profile is selected."
 
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --check-test-definitions --output "$GITHUB_OUTPUT"
+          interu --config "$INTERU_CONFIG" --instances "$GITHUB_ACTION_PATH/instances.yaml" profile "$TEST_MODE_INPUT" --test-definitions "$TEST_DEFINITION" --check-test-definitions --output "$GITHUB_OUTPUT"
         else
           [ -n "${TEST_SUITE:-}" ] && ARGS+=" --test-suite $TEST_SUITE"
           [ -n "${TEST:-}" ] && ARGS+=" --test $TEST"
 
-          interu --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" ${ARGS:-} --output "$GITHUB_OUTPUT"
+          interu --config "$INTERU_CONFIG" --instances "$GITHUB_ACTION_PATH/instances.yaml" custom "$TEST_MODE_INPUT" ${ARGS:-} --output "$GITHUB_OUTPUT"
         fi
 
     # Install all tools BEFORE creating the cluster, because if some of the tools fail to download
@@ -193,18 +218,6 @@ runs:
       run: |
         echo "CLUSTER_START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
-    - name: Extract Repository and Operator Name
-      id: extract_names
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        REPOSITORY_WITHOUT_ORG=$(echo "${GITHUB_REPOSITORY}" | cut -d / -f 2)
-        OPERATOR_NAME=$(echo "${REPOSITORY_WITHOUT_ORG}" | sed 's/-operator//g')
-
-        echo "REPOSITORY_WITHOUT_ORG=$REPOSITORY_WITHOUT_ORG" | tee -a "$GITHUB_OUTPUT"
-        echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_OUTPUT"
-
     - name: Install OpenTelemetry Operator
       shell: bash
       run: |
@@ -235,18 +248,36 @@ runs:
           --dry-run=client -o yaml | kubectl apply -f -
         echo "::endgroup::"
 
-    - name: Install Stackable Operators
-      id: stackable-operators
+    - name: Install Operator
+      if: inputs.install-operator == 'true'
       env:
         GH_TOKEN: ${{ github.token }}
         REPOSITORY_WITHOUT_ORG: ${{ steps.extract_names.outputs.REPOSITORY_WITHOUT_ORG }}
         OPERATOR_NAME: ${{ steps.extract_names.outputs.OPERATOR_NAME }}
+        TEST_DEFINITION: ${{ inputs.test-definition }}
+        RELEASE_FILE: ${{ inputs.release-file }}
+        TEMPLATE_DIR: ${{ inputs.template-dir }}
+        TEST_SCRIPT: ${{ inputs.test-script }}
+        KUTTL_TEST: ${{ inputs.kuttl-test }}
       shell: bash
       run: |
         set -euo pipefail
 
+        REPOSITORY_WITHOUT_ORG=$(echo "${GITHUB_REPOSITORY}" | cut -d / -f 2)
+        OPERATOR_NAME=$(echo "${REPOSITORY_WITHOUT_ORG}" | sed 's/-operator//g')
+
+        echo "REPOSITORY_WITHOUT_ORG=$REPOSITORY_WITHOUT_ORG" | tee -a "$GITHUB_OUTPUT"
+        echo "OPERATOR_NAME=$OPERATOR_NAME" | tee -a "$GITHUB_OUTPUT"
+
         OPERATOR_VERSION=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_operator_version.sh" "$GITHUB_REPOSITORY" "$REPOSITORY_WITHOUT_ORG" "$GITHUB_REF_NAME")
-        python ./scripts/run-tests --skip-tests --operator "$OPERATOR_NAME=$OPERATOR_VERSION" | tee -a test-output.log
+        python "${TEST_SCRIPT}" \
+          --template-dir "$TEMPLATE_DIR" \
+          --test-definition "$TEST_DEFINITION" \
+          --kuttl-test "$KUTTL_TEST" \
+          --release-file "$RELEASE_FILE" \
+          --operator "$OPERATOR_NAME=$OPERATOR_VERSION" \
+          --skip-tests \
+        | tee -a test-output.log
 
     - name: Apply OpenTelemetry Collectors configurations
       shell: bash
@@ -300,6 +331,11 @@ runs:
         BEKU_TEST_PARALLELISM: ${{ steps.extract.outputs.BEKU_TEST_PARALLELISM }}
         BEKU_TEST_SUITE: ${{ steps.extract.outputs.BEKU_TEST_SUITE }}
         BEKU_TEST: ${{ steps.extract.outputs.BEKU_TEST }}
+        TEST_DEFINITION: ${{ inputs.test-definition }}
+        RELEASE_FILE: ${{ inputs.release-file }}
+        TEMPLATE_DIR: ${{ inputs.template-dir }}
+        TEST_SCRIPT: ${{ inputs.test-script }}
+        KUTTL_TEST: ${{ inputs.kuttl-test }}
       shell: bash
       run: |
         set -euo pipefail
@@ -307,7 +343,16 @@ runs:
         [ -n "${BEKU_TEST_SUITE:-}" ] && ARGS+=" --test-suite $BEKU_TEST_SUITE"
         [ -n "${BEKU_TEST:-}" ] && ARGS+=" --test $BEKU_TEST"
 
-        python ./scripts/run-tests --skip-release --log-level debug --parallel "$BEKU_TEST_PARALLELISM" ${ARGS:-} | tee -a test-output.log
+        python "${TEST_SCRIPT}" \
+          --template-dir "$TEMPLATE_DIR" \
+          --test-definition "$TEST_DEFINITION" \
+          --kuttl-test "$KUTTL_TEST" \
+          --release-file "$RELEASE_FILE" \
+          --log-level debug \
+          --parallel "$BEKU_TEST_PARALLELISM" \
+          --skip-release \
+          ${ARGS:-} \
+        | tee -a test-output.log
 
     - name: Record Test End Time
       id: test-end-time
@@ -366,16 +411,20 @@ runs:
       env:
         INTEGRATION_TEST_CONCLUSION: ${{ steps.integration-test.conclusion }}
         GH_TOKEN: ${{ github.token }}
-        LAST_TRIES_LIMIT: "4"
+        LAST_TRIES_LIMIT: "5"
       shell: bash
       run: |
         set -euo pipefail
 
-        # First, we retrieve the number of successes of the last (currently) 4 runs. Afterwards we
-        # add 1 to the number of successes if this run succeeded. This ultimately represents the
-        # number of successes in the last 5 runs, similar to what Jenkins does. This score is then
-        # turned into an appropriate "weather" emoji and provided as an output to follow-up steps.
-        LAST_RUNS=$(gh run list --repo "$GITHUB_REPOSITORY" --limit "$LAST_TRIES_LIMIT" --workflow "$GITHUB_WORKFLOW" --json conclusion)
+        # First, we retrieve the number of successes of the last 5 runs. This includes the current,
+        # in-progress run which is removed using jq, resulting in a maximum of 4 previous runs.
+        # Afterwards we add 1 to the number of successes if this run succeeded. This ultimately
+        # represents the number of successes in the last 5 runs, similar to what Jenkins does. This
+        # score is then turned into an appropriate "weather" emoji and provided as an output to
+        # follow-up steps.
+        LAST_RUNS=$(gh run list --repo "$GITHUB_REPOSITORY" --limit "$LAST_TRIES_LIMIT" --workflow "$GITHUB_WORKFLOW" --json conclusion | jq 'del(.[0])')
+        echo "LAST_RUNS: ${LAST_RUNS}"
+
         SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
         export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion != "")] | length')
 
