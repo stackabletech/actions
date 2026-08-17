@@ -39,8 +39,13 @@ outputs:
   other-image-manifest-uris:
     description: |
       A JSON string containing a list of other/additional manifest URIs. This list for example
-      includes the floating tag if requested and needed.
+      includes the floating URI if requested and needed.
     value: ${{ steps.build.outputs.OTHER_IMAGE_MANIFEST_URIS }}
+  other-image-manifest-tags:
+    description: |
+      A JSON string containing a list of other/additional manifest tags. This list for example
+      includes the floating tag if requested and needed.
+    value: ${{ steps.build.outputs.OTHER_IMAGE_MANIFEST_TAGS }}
   suggested-image-index-manifest-tag:
     description: |
       Human-readable tag (usually the version) without architecture information,
@@ -134,16 +139,18 @@ runs:
         CANONICAL_IMAGE_MANIFEST_URI=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output '.[$IMAGE_REPOSITORY].canonical' < boil-target-tags.json)
         CANONICAL_IMAGE_MANIFEST_TAG=$(echo "$CANONICAL_IMAGE_MANIFEST_URI" | cut -d : -f 2)
 
-        # TODO (@Techassi): Also output tags, not only the full URIs
         OTHER_IMAGE_MANIFEST_URIS=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output --compact-output '.[$IMAGE_REPOSITORY].others' < boil-target-tags.json)
+        OTHER_IMAGE_MANIFEST_TAGS=$(echo "$OTHER_IMAGE_MANIFEST_URIS" | jq --raw-output --compact-output 'map(split(":")[1])')
 
         [[ -n "$CANONICAL_IMAGE_MANIFEST_URI" ]]
         [[ -n "$CANONICAL_IMAGE_MANIFEST_TAG" ]]
         [[ -n "$OTHER_IMAGE_MANIFEST_URIS" ]]
+        [[ -n "$OTHER_IMAGE_MANIFEST_TAGS" ]]
 
         echo "CANONICAL_IMAGE_MANIFEST_URI=$CANONICAL_IMAGE_MANIFEST_URI" | tee -a "$GITHUB_OUTPUT"
         echo "CANONICAL_IMAGE_MANIFEST_TAG=$CANONICAL_IMAGE_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
         echo "OTHER_IMAGE_MANIFEST_URIS=$OTHER_IMAGE_MANIFEST_URIS" | tee -a "$GITHUB_OUTPUT"
+        echo "OTHER_IMAGE_MANIFEST_TAGS=$OTHER_IMAGE_MANIFEST_TAGS" | tee -a "$GITHUB_OUTPUT"
 
     - name: Print out Disk Usage
       if: always()
