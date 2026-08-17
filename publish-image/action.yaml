@@ -45,6 +45,7 @@ inputs:
   other-image-manifest-tags:
     description: |
       A JSON string containing a list of other/additional image manifest tags.
+    default: "[]"
   cosign-retries:
     description: The number of times cosign operations should be retried
     default: "3"
