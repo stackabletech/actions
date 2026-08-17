@@ -102,7 +102,7 @@ jobs:
           image-registry-username: robot$smoke+github-action-build
           image-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
           image-repository: smoke/container-image
-          image-index-manifest-tag: ${{ matrix.versions }}-stackable0.0.0-dev-pr-321
+          image-index-manifest-tag: ${{ matrix.versions }}-stackable1.2.3-pr-321
 
   publish-helm-chart:
     name: Package/Publish ${{ matrix.versions }} Helm Chart
