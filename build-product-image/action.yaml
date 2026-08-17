@@ -28,11 +28,11 @@ inputs:
     description: Whether a floating tag should be added to the final image
     default: "false"
 outputs:
-  image-manifest-tag:
+  canonical-image-manifest-tag:
     description: |
-      Human-readable tag (usually the version) with architecture information,
-      for example: `3.4.1-stackable0.0.0-dev-amd64`
-    value: ${{ steps.build.outputs.IMAGE_MANIFEST_TAG }}
+      Human-readable canonical tag (usually the version) with architecture
+      information, for example: `3.4.1-stackable0.0.0-dev-amd64`
+    value: ${{ steps.build.outputs.CANONICAL_IMAGE_MANIFEST_TAG }}
   suggested-image-index-manifest-tag:
     description: |
       Human-readable tag (usually the version) without architecture information,
@@ -120,12 +120,13 @@ runs:
         fi
         echo "::endgroup::"
 
-        echo "boil-target-tags: "$(< boil-target-tags)
+        echo "boil-target-tags: "$(< boil-target-tags.json)
 
-        # Extract the image manifest tag from the boil-target-tags file
-        IMAGE_MANIFEST_TAG=$(cut -d : -f 2 < boil-target-tags)
-        [[ -n "$IMAGE_MANIFEST_TAG" ]]
-        echo "IMAGE_MANIFEST_TAG=$IMAGE_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
+        # TODO (@Techassi): Deal with other tags
+        # Extract the image manifest tag from the boil-target-tags.json file
+        CANONICAL_IMAGE_MANIFEST_TAG=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" '.[$IMAGE_REPOSITORY].canonical' < boil-target-tags.json)
+        [[ -n "$CANONICAL_IMAGE_MANIFEST_TAG" ]]
+        echo "CANONICAL_IMAGE_MANIFEST_TAG=$CANONICAL_IMAGE_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
 
     - name: Print out Disk Usage
       if: always()
