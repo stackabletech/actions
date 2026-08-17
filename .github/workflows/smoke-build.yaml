@@ -62,6 +62,7 @@ jobs:
         uses: ./build-product-image
         with:
           product-version: ${{ matrix.versions }}
+          sdp-version: 1.2.3
           boil-config-file: smoke/container-image/boil.toml
           boil-version: 0.3.0
           registry-namespace: smoke
