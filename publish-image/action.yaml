@@ -83,9 +83,11 @@ runs:
       run: |
         set -euo pipefail
 
-        CANONICAL_TARGET_IMAGE_MANIFEST_URI="${IMAGE_REGISTRY_URI}/${IMAGE_REPOSITORY}:${CANONICAL_IMAGE_MANIFEST_TAG}"
+        CANONICAL_TARGET_IMAGE_REPOSITORY_URI="${IMAGE_REGISTRY_URI}/${IMAGE_REPOSITORY}"
+        CANONICAL_TARGET_IMAGE_MANIFEST_URI="${CANONICAL_TARGET_IMAGE_REPOSITORY_URI}:${CANONICAL_IMAGE_MANIFEST_TAG}"
 
         # The canonical image manifest tag is always set
+        echo "Re-tagging ${CANONICAL_SOURCE_IMAGE_URI} to ${CANONICAL_TARGET_IMAGE_MANIFEST_URI}"
         docker tag "$CANONICAL_SOURCE_IMAGE_URI" "$CANONICAL_TARGET_IMAGE_MANIFEST_URI"
 
         # Now add all other tags
@@ -97,24 +99,26 @@ runs:
         done < <(echo "$OTHER_IMAGE_MANIFEST_TAGS" | jq --raw-output --compact-output '.[]')
 
         # Output for the next step
+        echo "CANONICAL_TARGET_IMAGE_REPOSITORY_URI=$CANONICAL_TARGET_IMAGE_REPOSITORY_URI" | tee -a "$GITHUB_OUTPUT"
         echo "CANONICAL_IMAGE_MANIFEST_URI=$CANONICAL_TARGET_IMAGE_MANIFEST_URI" | tee -a "$GITHUB_OUTPUT"
 
     - name: Push the container image to ${{ inputs.image-registry-uri }}
       id: push
       shell: bash
       env:
+        CANONICAL_IMAGE_REPOSITORY_URI: ${{ steps.re-tag.outputs.CANONICAL_TARGET_IMAGE_REPOSITORY_URI }}
         CANONICAL_IMAGE_MANIFEST_URI: ${{ steps.re-tag.outputs.CANONICAL_IMAGE_MANIFEST_URI }}
       run: |
         set -euo pipefail
 
         # Push image with all local tags to the remote
         # See https://github.com/docker/cli/pull/2220 for the exact behaviour
-        docker image push --all-tags "$CANONICAL_IMAGE_MANIFEST_URI"
+        docker image push --all-tags "$CANONICAL_IMAGE_REPOSITORY_URI"
 
         # NOTE (@Techassi): Will pushing multiple tags cause any trouble here? We should still only
         # need to sign a single digest, as all tags point to the exact same underlying image/artifact.
         # Output for the next step
-        IMAGE_REPOSITORY_DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_repo_digest.sh" "$CANONICAL_IMAGE_MANIFEST_URI")
+        IMAGE_REPOSITORY_DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_repo_digest.sh" "$CANONICAL_IMAGE_MANIFEST_URI" "$CANONICAL_IMAGE_REPOSITORY_URI")
         echo "IMAGE_REPOSITORY_DIGEST=$IMAGE_REPOSITORY_DIGEST" | tee -a "$GITHUB_OUTPUT"
 
     - name: Sign the container image (${{ env.IMAGE_REPOSITORY_DIGEST }})
