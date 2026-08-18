@@ -248,7 +248,7 @@ runs:
         #      drops: credit Stackable as an SBOM creator, and set the name,
         #      version, originator, supplier and purl of the root container
         #      package.
-        jq --arg source_name "$SOURCE_NAME" --arg version "$IMAGE_MANIFEST_TAG" --arg purl "$PURL" '
+        jq --arg source_name "$SOURCE_NAME" --arg version "$CANONICAL_IMAGE_MANIFEST_TAG" --arg purl "$PURL" '
           def fix: gsub("GPL-2.0-with-classpath-exception"; "GPL-2.0-only WITH Classpath-exception-2.0");
           (.. | .licenseDeclared?  // empty) |= (if type == "string" then fix else . end)
         | (.. | .licenseConcluded? // empty) |= (if type == "string" then fix else . end)
