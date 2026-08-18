@@ -89,10 +89,11 @@ runs:
         docker tag "$CANONICAL_SOURCE_IMAGE_URI" "$CANONICAL_TARGET_IMAGE_MANIFEST_URI"
 
         # Now add all other tags
-        while read -r TAG
+        while read -r OTHER_TAG
         do
-          echo "Tagging $CANONICAL_SOURCE_IMAGE_URI with additional tag: $TAG"
-          docker tag "$CANONICAL_SOURCE_IMAGE_URI" "$TAG"
+          echo "Tagging $CANONICAL_TARGET_IMAGE_MANIFEST_URI with additional tag: $OTHER_TAG"
+          # Use the target URI so that tags are added to the image which will be pushed
+          docker tag "$CANONICAL_TARGET_IMAGE_MANIFEST_URI" "$OTHER_TAG"
         done < <(echo "$OTHER_IMAGE_MANIFEST_TAGS" | jq --raw-output --compact-output '.[]')
 
         # Output for the next step
