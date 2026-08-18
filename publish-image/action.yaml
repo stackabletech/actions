@@ -106,8 +106,13 @@ runs:
         CANONICAL_IMAGE_MANIFEST_URI: ${{ steps.re-tag.outputs.CANONICAL_IMAGE_MANIFEST_URI }}
       run: |
         set -euo pipefail
-        docker image push "$CANONICAL_IMAGE_MANIFEST_URI"
 
+        # Push image with all local tags to the remote
+        # See https://github.com/docker/cli/pull/2220 for the exact behaviour
+        docker image push --all-tags "$CANONICAL_IMAGE_MANIFEST_URI"
+
+        # NOTE (@Techassi): Will pushing multiple tags cause any trouble here? We should still only
+        # need to sign a single digest, as all tags point to the exact same underlying image/artifact.
         # Output for the next step
         IMAGE_REPOSITORY_DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_repo_digest.sh" "$CANONICAL_IMAGE_MANIFEST_URI")
         echo "IMAGE_REPOSITORY_DIGEST=$IMAGE_REPOSITORY_DIGEST" | tee -a "$GITHUB_OUTPUT"
