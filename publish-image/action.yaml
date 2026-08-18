@@ -83,23 +83,35 @@ runs:
       run: |
         set -euo pipefail
 
-        CANONICAL_TARGET_IMAGE_REPOSITORY_URI="${IMAGE_REGISTRY_URI}/${IMAGE_REPOSITORY}"
-        CANONICAL_TARGET_IMAGE_MANIFEST_URI="${CANONICAL_TARGET_IMAGE_REPOSITORY_URI}:${CANONICAL_IMAGE_MANIFEST_TAG}"
+        # All images are tagged with localhost/... which is stored in the canonical source image URI.
+        # To be able to correctly ret-tag ALL tags (the canonical and other ones), we must re-tag
+        # all localhost/... tags to eg. oci.stackable.tech/... For this, we extract the source image
+        # repository URI.
+        SOURCE_IMAGE_REPOSITORY_URI=$(echo "$CANONICAL_SOURCE_IMAGE_URI" | cut -d : -f 1)
+
+        # The target image repository URI is constructed based on the registry and repository inputs.
+        TARGET_IMAGE_REPOSITORY_URI="${IMAGE_REGISTRY_URI}/${IMAGE_REPOSITORY}"
+
+        # The canonical target image manifest URI is a combination of the target image repository URI
+        # and the canonical image manifest tag wired through from the build action as an input.
+        CANONICAL_TARGET_IMAGE_MANIFEST_URI="${TARGET_IMAGE_REPOSITORY_URI}:${CANONICAL_IMAGE_MANIFEST_TAG}"
 
         # The canonical image manifest tag is always set
-        echo "Re-tagging ${CANONICAL_SOURCE_IMAGE_URI} to ${CANONICAL_TARGET_IMAGE_MANIFEST_URI}"
+        echo "Re-tagging ${CANONICAL_SOURCE_IMAGE_URI} as ${CANONICAL_TARGET_IMAGE_MANIFEST_URI} (canonical)"
         docker tag "$CANONICAL_SOURCE_IMAGE_URI" "$CANONICAL_TARGET_IMAGE_MANIFEST_URI"
 
         # Now add all other tags
         while read -r OTHER_TAG
         do
-          echo "Tagging $CANONICAL_TARGET_IMAGE_MANIFEST_URI with additional tag: $OTHER_TAG"
-          # Use the target URI so that tags are added to the image which will be pushed
-          docker tag "$CANONICAL_TARGET_IMAGE_MANIFEST_URI" "$OTHER_TAG"
+          echo "Re-tagging ${SOURCE_IMAGE_REPOSITORY_URI}:${OTHER_TAG} as ${TARGET_IMAGE_REPOSITORY_URI}:${OTHER_TAG} (other/additional)"
+          docker tag "${SOURCE_IMAGE_REPOSITORY_URI}:${OTHER_TAG}" "${TARGET_IMAGE_REPOSITORY_URI}:${OTHER_TAG}"
         done < <(echo "$OTHER_IMAGE_MANIFEST_TAGS" | jq --raw-output --compact-output '.[]')
 
+        # Print out a list of images (technically a single images with one or more tags)
+        docker images
+
         # Output for the next step
-        echo "CANONICAL_TARGET_IMAGE_REPOSITORY_URI=$CANONICAL_TARGET_IMAGE_REPOSITORY_URI" | tee -a "$GITHUB_OUTPUT"
+        echo "TARGET_IMAGE_REPOSITORY_URI=$TARGET_IMAGE_REPOSITORY_URI" | tee -a "$GITHUB_OUTPUT"
         echo "CANONICAL_IMAGE_MANIFEST_URI=$CANONICAL_TARGET_IMAGE_MANIFEST_URI" | tee -a "$GITHUB_OUTPUT"
 
     - name: Push the container image to ${{ inputs.image-registry-uri }}
