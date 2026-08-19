@@ -4,7 +4,7 @@
 # oci.stackable.tech/sdp/hello-world@sha256:917f800259ef4915f976e93987b752fd64debf347568610d7f685d20220fc88a
 set -euo pipefail
 
-# There is only two inputs to this script:
+# There are only two inputs to this script:
 # 1. The image manifest URI, Which contains the entire image manifest uri, like:
 #    oci.stackable.tech/sdp/hello-world:0.0.1-SNAPSHOT-stackable0.0.0-dev-arm64
 # 2. The image repository URI, like: oci.stackable.tech/sdp/hello-world
