@@ -4,13 +4,12 @@
 # oci.stackable.tech/sdp/hello-world@sha256:917f800259ef4915f976e93987b752fd64debf347568610d7f685d20220fc88a
 set -euo pipefail
 
-# There is only one input to this script, which contains the entire image
-# manifest uri, like: oci.stackable.tech/sdp/hello-world:0.0.1-SNAPSHOT-stackable0.0.0-dev-arm64
+# There are only two inputs to this script:
+# 1. The image manifest URI, Which contains the entire image manifest uri, like:
+#    oci.stackable.tech/sdp/hello-world:0.0.1-SNAPSHOT-stackable0.0.0-dev-arm64
+# 2. The image repository URI, like: oci.stackable.tech/sdp/hello-world
 IMAGE_MANIFEST_URI="$1"
-
-# Here, we cut off the image manifest tag to get the image repository uri, for
-# example: oci.stackable.tech/sdp/hello-world
-IMAGE_REPOSITORY_URI="$(echo "$IMAGE_MANIFEST_URI" | cut -d : -f 1)"
+IMAGE_REPOSITORY_URI="$2"
 
 IMAGE_REPO_DIGEST=$(
   docker inspect "$IMAGE_MANIFEST_URI" --format json | \

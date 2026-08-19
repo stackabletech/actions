@@ -135,20 +135,20 @@ runs:
 
         echo "boil-target-tags: "$(< boil-target-tags.json)
 
-        # Extract the image manifest tag from the boil-target-tags.json file
+        # Extract the canonical image manifest tag from the boil-target-tags.json file
         CANONICAL_IMAGE_MANIFEST_URI=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output '.[$IMAGE_REPOSITORY].canonical' < boil-target-tags.json)
         CANONICAL_IMAGE_MANIFEST_TAG=$(echo "$CANONICAL_IMAGE_MANIFEST_URI" | cut -d : -f 2)
 
-        OTHER_IMAGE_MANIFEST_URIS=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output --compact-output '.[$IMAGE_REPOSITORY].others' < boil-target-tags.json)
-        OTHER_IMAGE_MANIFEST_TAGS=$(echo "$OTHER_IMAGE_MANIFEST_URIS" | jq --raw-output --compact-output 'map(split(":")[1])')
-
         [[ -n "$CANONICAL_IMAGE_MANIFEST_URI" ]]
         [[ -n "$CANONICAL_IMAGE_MANIFEST_TAG" ]]
-        [[ -n "$OTHER_IMAGE_MANIFEST_URIS" ]]
-        [[ -n "$OTHER_IMAGE_MANIFEST_TAGS" ]]
 
         echo "CANONICAL_IMAGE_MANIFEST_URI=$CANONICAL_IMAGE_MANIFEST_URI" | tee -a "$GITHUB_OUTPUT"
         echo "CANONICAL_IMAGE_MANIFEST_TAG=$CANONICAL_IMAGE_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
+
+        # Extract all other/additional tags and default to an empty array ([]).
+        OTHER_IMAGE_MANIFEST_URIS=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output --compact-output '.[$IMAGE_REPOSITORY].others // []' < boil-target-tags.json)
+        OTHER_IMAGE_MANIFEST_TAGS=$(echo "$OTHER_IMAGE_MANIFEST_URIS" | jq --raw-output --compact-output 'map(split(":")[1])')
+
         echo "OTHER_IMAGE_MANIFEST_URIS=$OTHER_IMAGE_MANIFEST_URIS" | tee -a "$GITHUB_OUTPUT"
         echo "OTHER_IMAGE_MANIFEST_TAGS=$OTHER_IMAGE_MANIFEST_TAGS" | tee -a "$GITHUB_OUTPUT"
 

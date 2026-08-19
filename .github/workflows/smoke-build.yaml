@@ -77,8 +77,9 @@ jobs:
           image-registry-username: robot$smoke+github-action-build
           image-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
           image-repository: smoke/container-image
-          image-manifest-tag: ${{ steps.build.outputs.canonical-image-manifest-tag }}
-          source-image-uri: ${{ steps.build.outputs.canonical-image-manifest-uri }}
+          canonical-image-manifest-tag: ${{ steps.build.outputs.canonical-image-manifest-tag }}
+          canonical-source-image-uri: ${{ steps.build.outputs.canonical-image-manifest-uri }}
+          other-image-manifest-tags: ${{ steps.build.outputs.other-image-manifest-tags }}
 
   publish-manifests:
     name: Build/Publish ${{ matrix.versions }} Index Manifest

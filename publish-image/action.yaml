@@ -16,7 +16,7 @@ inputs:
       Path to the image, for example `stackable/kafka` or
       `k8s/sig-storage/csi-provisioner`
     required: true
-  image-manifest-tag:
+  canonical-image-manifest-tag:
     description: |
       Human-readable tag (usually the version) with architecture information,
       for example: `3.4.1-stackable0.0.0-dev-amd64`
@@ -37,11 +37,15 @@ inputs:
   # On Harbor we use:
   # - sdp/kafka
   # - sdp/sig-storage/csi-provisioner
-  source-image-uri:
+  canonical-source-image-uri:
     description: |
       The source image uri, which gets re-tagged by this action to be pushed to
       the appropriate registry.
     required: true
+  other-image-manifest-tags:
+    description: |
+      A JSON string containing a list of other/additional image manifest tags.
+    default: "[]"
   cosign-retries:
     description: The number of times cosign operations should be retried
     default: "3"
@@ -71,26 +75,62 @@ runs:
       id: re-tag
       shell: bash
       env:
-        TARGET_IMAGE_URI: ${{ inputs.image-registry-uri }}/${{ inputs.image-repository }}:${{ inputs.image-manifest-tag }}
-        SOURCE_IMAGE_URI: ${{ inputs.source-image-uri }}
+        CANONICAL_IMAGE_MANIFEST_TAG: ${{ inputs.canonical-image-manifest-tag }}
+        CANONICAL_SOURCE_IMAGE_URI: ${{ inputs.canonical-source-image-uri }}
+        OTHER_IMAGE_MANIFEST_TAGS: ${{ inputs.other-image-manifest-tags }}
+        IMAGE_REGISTRY_URI: ${{ inputs.image-registry-uri }}
+        IMAGE_REPOSITORY: ${{ inputs.image-repository }}
       run: |
         set -euo pipefail
-        docker tag "$SOURCE_IMAGE_URI" "$TARGET_IMAGE_URI"
+
+        # All images are tagged with localhost/... which is stored in the canonical source image URI.
+        # To be able to correctly ret-tag ALL tags (the canonical and other ones), we must re-tag
+        # all localhost/... tags to eg. oci.stackable.tech/... For this, we extract the source image
+        # repository URI.
+        SOURCE_IMAGE_REPOSITORY_URI=$(echo "$CANONICAL_SOURCE_IMAGE_URI" | cut -d : -f 1)
+
+        # The target image repository URI is constructed based on the registry and repository inputs.
+        TARGET_IMAGE_REPOSITORY_URI="${IMAGE_REGISTRY_URI}/${IMAGE_REPOSITORY}"
+
+        # The canonical target image manifest URI is a combination of the target image repository URI
+        # and the canonical image manifest tag wired through from the build action as an input.
+        CANONICAL_TARGET_IMAGE_MANIFEST_URI="${TARGET_IMAGE_REPOSITORY_URI}:${CANONICAL_IMAGE_MANIFEST_TAG}"
+
+        # The canonical image manifest tag is always set
+        echo "Re-tagging ${CANONICAL_SOURCE_IMAGE_URI} as ${CANONICAL_TARGET_IMAGE_MANIFEST_URI} (canonical)"
+        docker tag "$CANONICAL_SOURCE_IMAGE_URI" "$CANONICAL_TARGET_IMAGE_MANIFEST_URI"
+
+        # Now add all other tags
+        while read -r OTHER_TAG
+        do
+          echo "Re-tagging ${SOURCE_IMAGE_REPOSITORY_URI}:${OTHER_TAG} as ${TARGET_IMAGE_REPOSITORY_URI}:${OTHER_TAG} (other/additional)"
+          docker tag "${SOURCE_IMAGE_REPOSITORY_URI}:${OTHER_TAG}" "${TARGET_IMAGE_REPOSITORY_URI}:${OTHER_TAG}"
+        done < <(echo "$OTHER_IMAGE_MANIFEST_TAGS" | jq --raw-output --compact-output '.[]')
+
+        # Print out a list of images (technically a single images with one or more tags)
+        docker images
 
         # Output for the next step
-        echo "IMAGE_MANIFEST_URI=$TARGET_IMAGE_URI" | tee -a "$GITHUB_OUTPUT"
+        echo "TARGET_IMAGE_REPOSITORY_URI=$TARGET_IMAGE_REPOSITORY_URI" | tee -a "$GITHUB_OUTPUT"
+        echo "CANONICAL_IMAGE_MANIFEST_URI=$CANONICAL_TARGET_IMAGE_MANIFEST_URI" | tee -a "$GITHUB_OUTPUT"
 
     - name: Push the container image to ${{ inputs.image-registry-uri }}
       id: push
       shell: bash
       env:
-        IMAGE_MANIFEST_URI: ${{ steps.re-tag.outputs.IMAGE_MANIFEST_URI }}
+        CANONICAL_IMAGE_MANIFEST_URI: ${{ steps.re-tag.outputs.CANONICAL_IMAGE_MANIFEST_URI }}
+        IMAGE_REPOSITORY_URI: ${{ steps.re-tag.outputs.TARGET_IMAGE_REPOSITORY_URI }}
       run: |
         set -euo pipefail
-        docker image push "$IMAGE_MANIFEST_URI"
 
+        # Push image with all local tags to the remote
+        # See https://github.com/docker/cli/pull/2220 for the exact behaviour
+        docker image push --all-tags "$IMAGE_REPOSITORY_URI"
+
+        # NOTE (@Techassi): Will pushing multiple tags cause any trouble here? We should still only
+        # need to sign a single digest, as all tags point to the exact same underlying image/artifact.
         # Output for the next step
-        IMAGE_REPOSITORY_DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_repo_digest.sh" "$IMAGE_MANIFEST_URI")
+        IMAGE_REPOSITORY_DIGEST=$("$GITHUB_ACTION_PATH/../.scripts/actions/get_repo_digest.sh" "$CANONICAL_IMAGE_MANIFEST_URI" "$IMAGE_REPOSITORY_URI")
         echo "IMAGE_REPOSITORY_DIGEST=$IMAGE_REPOSITORY_DIGEST" | tee -a "$GITHUB_OUTPUT"
 
     - name: Sign the container image (${{ env.IMAGE_REPOSITORY_DIGEST }})
@@ -115,7 +155,7 @@ runs:
         RETRY_COUNT: ${{ inputs.cosign-retries }}
         RETRY_ARGS: --verbose
         IMAGE_REPOSITORY_DIGEST: ${{ steps.push.outputs.IMAGE_REPOSITORY_DIGEST }}
-        IMAGE_MANIFEST_TAG: ${{ inputs.image-manifest-tag }}
+        CANONICAL_IMAGE_MANIFEST_TAG: ${{ inputs.canonical-image-manifest-tag }}
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         REGISTRY_URI: ${{ inputs.image-registry-uri }}
       run: |
@@ -131,9 +171,9 @@ runs:
         # Example: sdp/kafka -> kafka
         SOURCE_NAME=$(echo "$IMAGE_REPOSITORY" | awk -F'/' '{print $NF}')
         # Extract architecture from image tag
-        ARCH=$(echo "$IMAGE_MANIFEST_TAG" | awk -F'-' '{print $NF}')
+        ARCH=$(echo "$CANONICAL_IMAGE_MANIFEST_TAG" | awk -F'-' '{print $NF}')
         if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
-          echo "Invalid architecture obtained from image tag. IMAGE_MANIFEST_TAG: $IMAGE_MANIFEST_TAG, ARCH: $ARCH"
+          echo "Invalid architecture obtained from image tag. CANONICAL_IMAGE_MANIFEST_TAG: $CANONICAL_IMAGE_MANIFEST_TAG, ARCH: $ARCH"
           exit 1
         fi
         # Construct the package url (purl)
@@ -156,7 +196,7 @@ runs:
           --select-catalogers "-cargo-auditable-binary-cataloger,+sbom-cataloger,-file" \
           --scope squashed \
           --source-name "$SOURCE_NAME" \
-          --source-version "$IMAGE_MANIFEST_TAG" "$IMAGE_REPOSITORY_DIGEST"
+          --source-version "$CANONICAL_IMAGE_MANIFEST_TAG" "$IMAGE_REPOSITORY_DIGEST"
 
         # Merge SBOM components using https://github.com/stackabletech/mergebom
         curl --fail -L -o mergebom https://repo.stackable.tech/repository/packages/mergebom/stable-$(uname -m)
@@ -230,7 +270,7 @@ runs:
         #      drops: credit Stackable as an SBOM creator, and set the name,
         #      version, originator, supplier and purl of the root container
         #      package.
-        jq --arg source_name "$SOURCE_NAME" --arg version "$IMAGE_MANIFEST_TAG" --arg purl "$PURL" '
+        jq --arg source_name "$SOURCE_NAME" --arg version "$CANONICAL_IMAGE_MANIFEST_TAG" --arg purl "$PURL" '
           def fix: gsub("GPL-2.0-with-classpath-exception"; "GPL-2.0-only WITH Classpath-exception-2.0");
           (.. | .licenseDeclared?  // empty) |= (if type == "string" then fix else . end)
         | (.. | .licenseConcluded? // empty) |= (if type == "string" then fix else . end)
