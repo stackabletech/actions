@@ -99,16 +99,17 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install boil
+        uses: ./setup-tools
+        with:
+          boil-version: latest
+
       # NOTE (@Techassi): I'm not super happy about how this looks/works, but as already mentioned,
       # this should only be a stepping stone towards a more robust solution.
       - name: Extract floating image index manifest tag
         id: extract-floating-tag
-        env:
-          BOIL_VERSION: latest
         shell: bash
         run: |
-          "$GITHUB_ACTION_PATH/../.scripts/actions/install_boil.sh"
-
           FLOATING_IMAGE_INDEX_MANIFEST_TAG=$(boil tools floating-tag "${SDP_VERSION}-pr-321")
           echo "FLOATING_IMAGE_INDEX_MANIFEST_TAG=[\"$FLOATING_IMAGE_INDEX_MANIFEST_TAG\"]" | tee -a "$GITHUB_OUTPUT"
 
