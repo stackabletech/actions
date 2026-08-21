@@ -15,16 +15,17 @@ This action creates an image index manifest, publishes it, and signs it. It does
 
 ### Inputs
 
-| Input                      | Required (Default)        | Description                                                                         |
-| -------------------------- | ------------------------- | ----------------------------------------------------------------------------------- |
-| `image-registry-uri`       | Yes                       | The image registry URI, eg `oci.stackable.tech`                                     |
-| `image-registry-username`  | Yes                       | The username used to access the image registry                                      |
-| `image-registry-password`  | Yes                       | The password used to access the image registry                                      |
-| `image-repository`         | Yes                       | The path to the image, eg `sdp/kafka`                                               |
-| `image-index-manifest-tag` | Yes                       | Human-readable tag without architecture information, eg `3.4.1-stackable0.0.0-dev`  |
-| `image-architectures`      | No (`["amd64", "arm64"]`) | The list of architectures the to-bo-published image was built for                   |
-| `cosign-retries`           | No (3)                    | The number of times cosign operations should be retried                             |
-| `cosign-retry-timeout`     | No (30s)                  | Duration to wait before a new cosign operation is retried, format: `NUMBER[SUFFIX]` |
+| Input                                | Required (Default)        | Description                                                                         |
+| ------------------------------------ | ------------------------- | ----------------------------------------------------------------------------------- |
+| `image-registry-uri`                 | Yes                       | The image registry URI, eg `oci.stackable.tech`                                     |
+| `image-registry-username`            | Yes                       | The username used to access the image registry                                      |
+| `image-registry-password`            | Yes                       | The password used to access the image registry                                      |
+| `image-repository`                   | Yes                       | The path to the image, eg `sdp/kafka`                                               |
+| `canonical-image-index-manifest-tag` | Yes                       | The canonical image index manifest tag which doesn't contain any architecture specific suffixes, like: `3.4.1-stackable0.0.0-dev` |
+| `other-image-index-manifest-tags`    | No (`[]`)                 | A JSON string containing a list of other/additional tags                            |
+| `image-architectures`                | No (`["amd64", "arm64"]`) | The list of architectures the to-bo-published image was built for                   |
+| `cosign-retries`                     | No (3)                    | The number of times cosign operations should be retried                             |
+| `cosign-retry-timeout`               | No (30s)                  | Duration to wait before a new cosign operation is retried, format: `NUMBER[SUFFIX]` |
 
 ### Outputs
 
