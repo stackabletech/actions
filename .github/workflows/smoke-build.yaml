@@ -108,9 +108,12 @@ jobs:
       # this should only be a stepping stone towards a more robust solution.
       - name: Extract floating image index manifest tag
         id: extract-floating-tag
+        env:
+          IMAGE_VERSION: ${{ matrix.versions }}
         shell: bash
         run: |
           FLOATING_IMAGE_INDEX_MANIFEST_TAG=$(boil tools floating-tag "${SDP_VERSION}-pr-321")
+          FLOATING_IMAGE_INDEX_MANIFEST_TAG="${IMAGE_VERSION}-stackable${FLOATING_IMAGE_INDEX_MANIFEST_TAG}"
           echo "FLOATING_IMAGE_INDEX_MANIFEST_TAG=[\"$FLOATING_IMAGE_INDEX_MANIFEST_TAG\"]" | tee -a "$GITHUB_OUTPUT"
 
       - name: Publish and Sign Image Index Manifest to oci.stackable.tech
