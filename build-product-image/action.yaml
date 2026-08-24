@@ -136,7 +136,9 @@ runs:
         echo "boil-target-tags: "$(< boil-target-tags.json)
 
         # Extract the canonical image manifest tag from the boil-target-tags.json file
-        CANONICAL_IMAGE_MANIFEST_URI=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output '.[$IMAGE_REPOSITORY].canonical' < boil-target-tags.json)
+        # This action only ever builds a single image in a single version. As such, we can safely
+        # target index 0 in the jq query below.
+        CANONICAL_IMAGE_MANIFEST_URI=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output '.[$IMAGE_REPOSITORY][0].canonical' < boil-target-tags.json)
         CANONICAL_IMAGE_MANIFEST_TAG=$(echo "$CANONICAL_IMAGE_MANIFEST_URI" | cut -d : -f 2)
 
         [[ -n "$CANONICAL_IMAGE_MANIFEST_URI" ]]
