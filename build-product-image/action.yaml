@@ -148,7 +148,9 @@ runs:
         echo "CANONICAL_IMAGE_MANIFEST_TAG=$CANONICAL_IMAGE_MANIFEST_TAG" | tee -a "$GITHUB_OUTPUT"
 
         # Extract all other/additional tags and default to an empty array ([]).
-        OTHER_IMAGE_MANIFEST_URIS=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output --compact-output '.[$IMAGE_REPOSITORY].others // []' < boil-target-tags.json)
+        # This action only ever builds a single image in a single version. As such, we can safely
+        # target index 0 in the jq query below.
+        OTHER_IMAGE_MANIFEST_URIS=$(jq --arg IMAGE_REPOSITORY "$IMAGE_REPOSITORY" --raw-output --compact-output '.[$IMAGE_REPOSITORY][0].others // []' < boil-target-tags.json)
         OTHER_IMAGE_MANIFEST_TAGS=$(echo "$OTHER_IMAGE_MANIFEST_URIS" | jq --raw-output --compact-output 'map(split(":")[1])')
 
         echo "OTHER_IMAGE_MANIFEST_URIS=$OTHER_IMAGE_MANIFEST_URIS" | tee -a "$GITHUB_OUTPUT"
