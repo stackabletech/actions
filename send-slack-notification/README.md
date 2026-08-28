@@ -66,6 +66,7 @@ jobs:
 - `build-result` (optional, e.g. `success`)
 - `publish-manifests-result` (optional, e.g. `failure`)
 - `publish-helm-chart-result` (optional, e.g. `failure`)
+- `combined-checks-result` (optional, e.g. `failure`)
 - `test-result` (optional, e.g. `failure`)
 - `test-health` (optional, comes from the `run-integration-test` action)
 - `failed-tests` (optional, comes from the `run-integration-test` action)

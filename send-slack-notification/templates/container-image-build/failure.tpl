@@ -14,6 +14,9 @@ attachments:
       - title: Build/Publish Helm Chart
         short: true
         value: "${PUBLISH_HELM_CHART_RESULT}"
+      - title: Checks
+        short: true
+        value: "${COMBINED_CHECKS_RESULT}"
     actions:
       - type: button
         text: Go to workflow run
