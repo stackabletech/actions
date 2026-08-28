@@ -112,6 +112,7 @@ jobs:
           IMAGE_VERSION: ${{ matrix.versions }}
         shell: bash
         run: |
+          set -euo pipefail
           FLOATING_IMAGE_INDEX_MANIFEST_TAG=$(boil tools floating-tag "${SDP_VERSION}-pr-321")
           FLOATING_IMAGE_INDEX_MANIFEST_TAG="${IMAGE_VERSION}-stackable${FLOATING_IMAGE_INDEX_MANIFEST_TAG}"
           echo "FLOATING_IMAGE_INDEX_MANIFEST_TAG=[\"$FLOATING_IMAGE_INDEX_MANIFEST_TAG\"]" | tee -a "$GITHUB_OUTPUT"
