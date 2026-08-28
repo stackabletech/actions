@@ -81,8 +81,8 @@ runs:
 
         # Construct the image index uri, which for example contains:
         # oci.stackable.tech/sdp/kafka:3.4.1-stackable0.0.0-dev
-        IMAGE_REGISTRY_URI="${REGISTRY_URI}/${IMAGE_REPOSITORY}"
-        CANONICAL_IMAGE_INDEX_MANIFEST_URI="${IMAGE_REGISTRY_URI}:$CANONICAL_IMAGE_INDEX_MANIFEST_TAG"
+        IMAGE_REPOSITORY_URI="${REGISTRY_URI}/${IMAGE_REPOSITORY}"
+        CANONICAL_IMAGE_INDEX_MANIFEST_URI="${IMAGE_REPOSITORY_URI}:$CANONICAL_IMAGE_INDEX_MANIFEST_TAG"
         echo "CANONICAL_IMAGE_INDEX_MANIFEST_URI=$CANONICAL_IMAGE_INDEX_MANIFEST_URI" | tee -a "$GITHUB_OUTPUT"
 
         MANIFEST_SOURCES=$(
@@ -103,10 +103,10 @@ runs:
         OTHER_TAGS=$(
           echo "$OTHER_IMAGE_INDEX_MANIFEST_TAGS" | jq \
           --raw-output \
-          --arg image_registry_uri "$IMAGE_REGISTRY_URI" \
+          --arg image_repository_uri "$IMAGE_REPOSITORY_URI" \
           '
             [
-              .[] as $tag | "--tag \($image_registry_uri):\($tag)"
+              .[] as $tag | "--tag \($image_repository_uri):\($tag)"
             ]
             | join(" ")'
         )
