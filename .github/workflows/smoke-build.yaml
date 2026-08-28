@@ -18,6 +18,9 @@ on:
 
 permissions: {}
 
+env:
+  SDP_VERSION: 1.2.3
+
 jobs:
   generate-matrix:
     name: Generate Version List
@@ -62,7 +65,7 @@ jobs:
         uses: ./build-product-image
         with:
           product-version: ${{ matrix.versions }}
-          sdp-version: 1.2.3
+          sdp-version: ${{ env.SDP_VERSION }}
           boil-config-file: smoke/container-image/boil.toml
           boil-version: latest
           registry-namespace: smoke
@@ -96,6 +99,24 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install boil
+        uses: ./setup-tools
+        with:
+          boil-version: latest
+
+      # NOTE (@Techassi): I'm not super happy about how this looks/works, but as already mentioned,
+      # this should only be a stepping stone towards a more robust solution.
+      - name: Extract floating image index manifest tag
+        id: extract-floating-tag
+        env:
+          IMAGE_VERSION: ${{ matrix.versions }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          FLOATING_IMAGE_INDEX_MANIFEST_TAG=$(boil tools floating-tag "${SDP_VERSION}-pr-321")
+          FLOATING_IMAGE_INDEX_MANIFEST_TAG="${IMAGE_VERSION}-stackable${FLOATING_IMAGE_INDEX_MANIFEST_TAG}"
+          echo "FLOATING_IMAGE_INDEX_MANIFEST_TAG=[\"$FLOATING_IMAGE_INDEX_MANIFEST_TAG\"]" | tee -a "$GITHUB_OUTPUT"
+
       - name: Publish and Sign Image Index Manifest to oci.stackable.tech
         uses: ./publish-image-index-manifest
         with:
@@ -103,7 +124,8 @@ jobs:
           image-registry-username: robot$smoke+github-action-build
           image-registry-password: ${{ secrets.HARBOR_ROBOT_SMOKE_GITHUB_ACTION_BUILD_SECRET }}
           image-repository: smoke/container-image
-          image-index-manifest-tag: ${{ matrix.versions }}-stackable1.2.3-pr-321
+          canonical-image-index-manifest-tag: ${{ matrix.versions }}-stackable${{ env.SDP_VERSION }}-pr-321
+          other-image-index-manifest-tags: ${{ steps.extract-floating-tag.outputs.FLOATING_IMAGE_INDEX_MANIFEST_TAG }}
 
   publish-helm-chart:
     name: Package/Publish ${{ matrix.versions }} Helm Chart

@@ -5,17 +5,17 @@ particular step in a workflow.
 
 ## Definitions
 
-| Name                               | Example                                                                |
-| ---------------------------------- | ---------------------------------------------------------------------- |
-| Image Registry                     | `oci.stackable.tech`                                                |
-| Image Repository                   | `stackable/kafka`                                                      |
-| Image Index Manifest Tag           | `3.4.1-stackable0.0.0-dev`                                             |
-| Image Manifest Tag                 | `3.4.1-stackable0.0.0-dev-amd64`                                       |
-| Image Repository URI               | `oci.stackable.tech/sdp/kafka`                                |
-| Image Index URI (if multi-arch)    | `oci.stackable.tech/sdp/kafka:3.4.1-stackable0.0.0-dev`       |
-| Image Manifest URI (if multi-arch) | `oci.stackable.tech/sdp/kafka:3.4.1-stackable0.0.0-dev-amd64` |
-| Image Repo Digest                  | `oci.stackable.tech/sdp/kafka@sha256:917f800259ef4915f976...` |
-| Digest                             | `sha256:917f800259ef4915f976e93987b752fd64debf347568610d7f685d2022...` |
+| Name                                     | Example                                                                |
+| ---------------------------------------- | ---------------------------------------------------------------------- |
+| Image Registry                           | `oci.stackable.tech`                                                   |
+| Image Repository                         | `stackable/kafka`                                                      |
+| Image Index Manifest Tag                 | `3.4.1-stackable0.0.0-dev`                                             |
+| Image Manifest Tag                       | `3.4.1-stackable0.0.0-dev-amd64`                                       |
+| Image Repository URI                     | `oci.stackable.tech/sdp/kafka`                                         |
+| Image Index Manifest URI (if multi-arch) | `oci.stackable.tech/sdp/kafka:3.4.1-stackable0.0.0-dev`                |
+| Image Manifest URI (if multi-arch)       | `oci.stackable.tech/sdp/kafka:3.4.1-stackable0.0.0-dev-amd64`          |
+| Image Repo Digest                        | `oci.stackable.tech/sdp/kafka@sha256:917f800259ef4915f976...`          |
+| Digest                                   | `sha256:917f800259ef4915f976e93987b752fd64debf347568610d7f685d2022...` |
 
 ## Available Actions
 
