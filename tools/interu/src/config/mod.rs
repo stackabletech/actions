@@ -110,7 +110,7 @@ impl Config {
         P: AsRef<Path>,
     {
         self.get_profile(profile_name)?
-            .validate_test_options(&profile_name, path)
+            .validate_test_options(profile_name, path)
             .context(ValidateTestOptionsSnafu)
     }
 
@@ -269,21 +269,21 @@ impl<'a> Display for Parameters<'a> {
         let mut test_set = String::new();
 
         #[rustfmt::skip] // Skip formatting because otherwise the next line would be split into three lines.
-        write!(f, "INTERU_KUBERNETES_DISTRIBUTION={kubernetes_distribution}\n")?;
-        write!(f, "INTERU_KUBERNETES_VERSION={kubernetes_version}\n")?;
-        write!(f, "BEKU_TEST_PARALLELISM={test_parallelism}\n")?;
-        write!(f, "INTERU_CLUSTER_TTL={cluster_ttl}\n")?;
+        writeln!(f, "INTERU_KUBERNETES_DISTRIBUTION={kubernetes_distribution}")?;
+        writeln!(f, "INTERU_KUBERNETES_VERSION={kubernetes_version}")?;
+        writeln!(f, "BEKU_TEST_PARALLELISM={test_parallelism}")?;
+        writeln!(f, "INTERU_CLUSTER_TTL={cluster_ttl}")?;
 
         if test_suite.is_none() && test.is_none() {
             test_set.push_str("all");
         }
 
         if let Some(test_suite_name) = test_suite {
-            write!(f, "BEKU_TEST_SUITE={test_suite_name}\n")?;
+            writeln!(f, "BEKU_TEST_SUITE={test_suite_name}")?;
         }
 
         if let Some(test_name) = test {
-            write!(f, "BEKU_TEST={test_name}\n")?;
+            writeln!(f, "BEKU_TEST={test_name}")?;
         }
 
         // See: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#multiline-strings
