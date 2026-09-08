@@ -124,7 +124,7 @@ runs:
             -- --load
         else
           boil build \
-            --build-arg "GITHUB_RUN_ID=${GITHUB_RUN_ATTEMPT}" \
+            --build-arg "GITHUB_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" \
             --build-arg "GITHUB_RUN_ID=${GITHUB_RUN_ID}" \
             --image-version "$IMAGE_INDEX_MANIFEST_TAG" \
             --registry-namespace "$REGISTRY_NAMESPACE" \
