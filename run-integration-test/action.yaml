@@ -398,12 +398,11 @@ runs:
 
     - name: Construct Dashboard URL
       id: dashboard-url
-      if: steps.prepare-cluster.result == 'success'
+      if: steps.prepare-cluster.outcome == 'success'
       env:
         KUBERNETES_CLUSTER_NAME: ${{ steps.extract.outputs.KUBERNETES_CLUSTER_NAME }}
         CLUSTER_START_TIME: ${{ steps.cluster-start-time.outputs.CLUSTER_START_TIME }}
         CLUSTER_END_TIME: ${{ steps.cluster-end-time.outputs.CLUSTER_END_TIME }}
-        PREPARE_CLUSTER_RESULT: ${{ steps.prepare-cluster.result }}
         DASHBOARD_SLUG: d/ni7hbw2/integration-tests
         GRAFANA_BASE_URL: https://grafana.stackable.build
       shell: bash
@@ -416,10 +415,10 @@ runs:
         echo "DASHBOARD_URL=${DASHBOARD_URL}" | tee -a "$GITHUB_OUTPUT"
 
     - name: Calculate Health
-      if: steps.prepare-cluster.result == 'success'
+      if: steps.prepare-cluster.outcome == 'success'
       id: health
       env:
-        INTEGRATION_TEST_RESULT: ${{ steps.integration-test.result }}
+        INTEGRATION_TEST_OUTCOME: ${{ steps.integration-test.outcome }}
         GH_TOKEN: ${{ github.token }}
         LAST_TRIES_LIMIT: "5"
       shell: bash
@@ -438,7 +437,7 @@ runs:
         SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
         export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion != "")] | length')
 
-        [ "$INTEGRATION_TEST_RESULT" == "success" ] && SUCCESSES=$(echo "$SUCCESSES+1" | bc)
+        [ "$INTEGRATION_TEST_OUTCOME" == "success" ] && SUCCESSES=$(echo "$SUCCESSES+1" | bc)
         export SUCCESSES="$SUCCESSES"
 
         echo "Number of successes (last ${LAST_TRIES_TOTAL} run(s) + this run): ${SUCCESSES}"
@@ -450,25 +449,25 @@ runs:
       id: result
       env:
         # Cluster/infra results
-        APPLY_OTEL_COLLECTORS_CONFIGS_RESULT: ${{ steps.apply-otel-collectors-configs.result }}
-        INSTALL_PRODUCT_OPERATOR_RESULT: ${{ steps.install-product-operator.result }}
-        INSTALL_OTEL_OPERATOR_RESULT: ${{ steps.install-otel-operator.result }}
-        INSTALL_OTLP_INGESTER_RESULT: ${{ steps.install-otlp-ingester.result }}
-        PREPARE_CLUSTER_RESULT: ${{ steps.prepare-cluster.result }}
+        APPLY_OTEL_COLLECTORS_CONFIGS_OUTCOME: ${{ steps.apply-otel-collectors-configs.outcome }}
+        INSTALL_PRODUCT_OPERATOR_OUTCOME: ${{ steps.install-product-operator.outcome }}
+        INSTALL_OTEL_OPERATOR_OUTCOME: ${{ steps.install-otel-operator.outcome }}
+        INSTALL_OTLP_INGESTER_OUTCOME: ${{ steps.install-otlp-ingester.outcome }}
+        PREPARE_CLUSTER_OUTCOME: ${{ steps.prepare-cluster.outcome }}
         # Test result
-        INTEGRATION_TEST_RESULT: ${{ steps.integration-test.result }}
+        INTEGRATION_TEST_OUTCOME: ${{ steps.integration-test.outcome }}
       shell: bash
       run: |
         set -euo pipefail
 
-        if [ "$APPLY_OTEL_COLLECTORS_CONFIGS_RESULT" == "failure" ] || \
-           [ "$INSTALL_PRODUCT_OPERATOR_RESULT" == "failure" ] || \
-           [ "$INSTALL_OTEL_OPERATOR_RESULT" == "failure" ] || \
-           [ "$INSTALL_OTLP_INGESTER_RESULT" == "failure" ] || \
-           [ "$PREPARE_CLUSTER_RESULT" == "failure" ]
+        if [ "$APPLY_OTEL_COLLECTORS_CONFIGS_OUTCOME" == "failure" ] || \
+           [ "$INSTALL_PRODUCT_OPERATOR_OUTCOME" == "failure" ] || \
+           [ "$INSTALL_OTEL_OPERATOR_OUTCOME" == "failure" ] || \
+           [ "$INSTALL_OTLP_INGESTER_OUTCOME" == "failure" ] || \
+           [ "$PREPARE_CLUSTER_OUTCOME" == "failure" ]
         then
           RESULT="cluster-failure"
-        elif [ "$INTEGRATION_TEST_RESULT" == "failure" ]; then
+        elif [ "$INTEGRATION_TEST_OUTCOME" == "failure" ]; then
           RESULT="test-failure"
         else
           RESULT="success"
