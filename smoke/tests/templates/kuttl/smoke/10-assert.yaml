@@ -4,5 +4,4 @@ kind: Pod
 metadata:
   name: smoke
 status:
-  # TODO (@Techassi): REVERT ME, ONLY FOR TESTING
-  phase: Revert
+  phase: Running
