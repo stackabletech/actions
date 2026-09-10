@@ -87,6 +87,9 @@ outputs:
   cluster-end-time:
     description: The date and time this cluster was shut down.
     value: ${{ steps.cluster-end-time.outputs.CLUSTER_END_TIME }}
+  result:
+    description: The result. Either cluster-failure, test-failure or success
+    value: ${{ steps.result.outputs.RESULT }}
   health:
     description: The health of this integration test over the last few tries.
     value: ${{ steps.health.outputs.HEALTH }}
@@ -182,8 +185,8 @@ runs:
         sudo apt install -y \
           gettext-base
 
-    - name: Prepare Replicated Cluster
-      id: prepare-replicated-cluster
+    - name: Prepare Cluster
+      id: prepare-cluster
       uses: replicatedhq/replicated-actions/create-cluster@0fbf5395cf3e8c744f447bbc92b7de9135eead8e # v1.27.1
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
@@ -202,9 +205,9 @@ runs:
           - key: test-parallelism
             value: "${{ steps.extract.outputs.BEKU_TEST_PARALLELISM }}"
 
-    - name: Set Replicated kubeconfig
+    - name: Set kubeconfig
       env:
-        KUBECONFIG: ${{ steps.prepare-replicated-cluster.outputs.cluster-kubeconfig }}
+        KUBECONFIG: ${{ steps.prepare-cluster.outputs.cluster-kubeconfig }}
       shell: bash
       run: |
         set -euo pipefail
@@ -219,6 +222,7 @@ runs:
         echo "CLUSTER_START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Install OpenTelemetry Operator
+      id: install-otel-operator
       shell: bash
       run: |
         set -euo pipefail
@@ -231,6 +235,7 @@ runs:
         echo "::endgroup::"
 
     - name: Install OTLP ingester auth Secret
+      id: install-otlp-ingester
       shell: bash
       env:
         OTLP_BEARER_TOKEN: ${{ inputs.otlp-bearer-token }}
@@ -248,7 +253,8 @@ runs:
           --dry-run=client -o yaml | kubectl apply -f -
         echo "::endgroup::"
 
-    - name: Install Operator
+    - name: Install Product Operator
+      id: install-product-operator
       if: inputs.install-operator == 'true'
       env:
         GH_TOKEN: ${{ github.token }}
@@ -280,6 +286,7 @@ runs:
         | tee -a test-output.log
 
     - name: Apply OpenTelemetry Collectors configurations
+      id: apply-otel-collectors-configs
       shell: bash
       env:
         # These are directly used in the script below, but then used by kustomize/replicated/kustomization.yaml
@@ -361,7 +368,7 @@ runs:
       run: |
         echo "TEST_END_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
-    - name: Destroy Replicated Cluster
+    - name: Destroy Cluster
       if: always()
       # If the creation of the cluster failed, we don't want to error and abort
       continue-on-error: true
@@ -369,7 +376,7 @@ runs:
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
-        cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
+        cluster-id: ${{ steps.prepare-cluster.outputs.cluster-id }}
 
     - name: Record Cluster End Time
       id: cluster-end-time
@@ -385,31 +392,35 @@ runs:
       if: failure() && steps.integration-test.conclusion == 'failure'
       shell: bash
       run: |
+        set -euo pipefail
+
         # Only look at the last 200 lines of test output which should be more than enough to capture all test results
         FAILED_TESTS=$(tail --lines 200 test-output.log | grep -E '\s{8}--- FAIL:' | sed -e 's|^.*kuttl/harness/||')
         echo -e "FAILED_TESTS<<EOF\n$FAILED_TESTS\nEOF" | tee -a "$GITHUB_OUTPUT"
 
     - name: Construct Dashboard URL
       id: dashboard-url
+      if: ${{ !cancelled() && steps.prepare-cluster.outcome == 'success' }}
       env:
         KUBERNETES_CLUSTER_NAME: ${{ steps.extract.outputs.KUBERNETES_CLUSTER_NAME }}
         CLUSTER_START_TIME: ${{ steps.cluster-start-time.outputs.CLUSTER_START_TIME }}
         CLUSTER_END_TIME: ${{ steps.cluster-end-time.outputs.CLUSTER_END_TIME }}
-        DASHBOARD_BASE_URL: https://grafana.stackable.build/d/ni7hbw2/integration-tests
+        DASHBOARD_SLUG: d/ni7hbw2/integration-tests
+        GRAFANA_BASE_URL: https://grafana.stackable.build
       shell: bash
       run: |
         set -euo pipefail
 
-        DASHBOARD_URL="${DASHBOARD_BASE_URL}?from=${CLUSTER_START_TIME}&to=${CLUSTER_END_TIME}&timezone=browser&var-github_actions_triggered_by=${GITHUB_TRIGGERING_ACTOR}&var-k8s_cluster_name=${KUBERNETES_CLUSTER_NAME}&dtab=info"
+        DASHBOARD_URL="${GRAFANA_BASE_URL}/${DASHBOARD_SLUG}?from=${CLUSTER_START_TIME}&to=${CLUSTER_END_TIME}&timezone=browser&var-github_actions_triggered_by=${GITHUB_TRIGGERING_ACTOR}&var-k8s_cluster_name=${KUBERNETES_CLUSTER_NAME}&dtab=info"
         echo "${DASHBOARD_URL}"
 
         echo "DASHBOARD_URL=${DASHBOARD_URL}" | tee -a "$GITHUB_OUTPUT"
 
     - name: Calculate Health
-      if: always()
+      if: ${{ !cancelled() && steps.prepare-cluster.outcome == 'success' }}
       id: health
       env:
-        INTEGRATION_TEST_CONCLUSION: ${{ steps.integration-test.conclusion }}
+        INTEGRATION_TEST_OUTCOME: ${{ steps.integration-test.outcome }}
         GH_TOKEN: ${{ github.token }}
         LAST_TRIES_LIMIT: "5"
       shell: bash
@@ -428,9 +439,40 @@ runs:
         SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
         export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion != "")] | length')
 
-        [ "$INTEGRATION_TEST_CONCLUSION" == "success" ] && SUCCESSES=$(echo "$SUCCESSES+1" | bc)
+        [ "$INTEGRATION_TEST_OUTCOME" == "success" ] && SUCCESSES=$(echo "$SUCCESSES+1" | bc)
         export SUCCESSES="$SUCCESSES"
 
         echo "Number of successes (last ${LAST_TRIES_TOTAL} run(s) + this run): ${SUCCESSES}"
 
         echo "HEALTH=$(cat "${GITHUB_ACTION_PATH}/health" | envsubst | bc)" | tee -a "$GITHUB_OUTPUT"
+
+    - name: Determine Result
+      if: always()
+      id: result
+      env:
+        # Cluster/infra results
+        APPLY_OTEL_COLLECTORS_CONFIGS_OUTCOME: ${{ steps.apply-otel-collectors-configs.outcome }}
+        INSTALL_PRODUCT_OPERATOR_OUTCOME: ${{ steps.install-product-operator.outcome }}
+        INSTALL_OTEL_OPERATOR_OUTCOME: ${{ steps.install-otel-operator.outcome }}
+        INSTALL_OTLP_INGESTER_OUTCOME: ${{ steps.install-otlp-ingester.outcome }}
+        PREPARE_CLUSTER_OUTCOME: ${{ steps.prepare-cluster.outcome }}
+        # Test result
+        INTEGRATION_TEST_OUTCOME: ${{ steps.integration-test.outcome }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if [ "$APPLY_OTEL_COLLECTORS_CONFIGS_OUTCOME" == "failure" ] || \
+           [ "$INSTALL_PRODUCT_OPERATOR_OUTCOME" == "failure" ] || \
+           [ "$INSTALL_OTEL_OPERATOR_OUTCOME" == "failure" ] || \
+           [ "$INSTALL_OTLP_INGESTER_OUTCOME" == "failure" ] || \
+           [ "$PREPARE_CLUSTER_OUTCOME" == "failure" ]
+        then
+          RESULT="cluster-failure"
+        elif [ "$INTEGRATION_TEST_OUTCOME" == "failure" ]; then
+          RESULT="test-failure"
+        else
+          RESULT="success"
+        fi
+
+        echo "RESULT=${RESULT}" | tee -a "$GITHUB_OUTPUT"

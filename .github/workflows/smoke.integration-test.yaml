@@ -42,11 +42,13 @@ jobs:
 
       - name: Send Notification
         uses: ./send-slack-notification
+        # We always send the notification for testing purposes
+        if: always()
         with:
           slack-token: ${{ secrets.SLACK_INTEGRATION_TEST_TOKEN }}
           dashboard-url: ${{ steps.test.outputs.dashboard-url }}
           failed-tests: ${{ steps.test.outputs.failed-tests }}
           test-health: ${{ steps.test.outputs.health }}
-          test-result: ${{ steps.test.conclusion }}
+          test-result: ${{ steps.test.outputs.result }}
           channel-id: C07UYJYSMSN # notifications-integration-tests
           type: integration-test

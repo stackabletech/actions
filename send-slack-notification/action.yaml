@@ -19,7 +19,7 @@ inputs:
     description: The result of one ore more checks combined (if any)
     default: "N/A"
   test-result:
-    description: The result of an integration test
+    description: The result of an integration test (one of cluster-failure, tests-failure or success)
   test-health:
     description: The health of the past few integration tests
   failed-tests:
@@ -67,9 +67,14 @@ runs:
           echo "COMBINED_CHECKS_RESULT=$COMBINED_CHECKS_RESULT" | tee -a "$GITHUB_OUTPUT"
           echo "BUILD_RESULT=$BUILD_RESULT" | tee -a "$GITHUB_OUTPUT"
         elif [ "$NOTIFICATION_TYPE" == "integration-test" ]; then
-          [ -z "${DASHBOARD_URL:-}" ] && echo "The dashboard-url input must be provided" && exit 1
           [ -z "${TEST_RESULT:-}" ] && echo "The test-result input must be provided" && exit 1
-          [ -z "${TEST_HEALTH:-}" ] && echo "The test-health input must be provided" && exit 1
+
+          # Only require those two inputs if either the tests failed or succeeded.
+          # If the result is 'cluster-failure', we don't require these inputs.
+          if [ "$TEST_RESULT" == "test-failure" ] || [ "$TEST_RESULT" == "success" ]; then
+            [ -z "${DASHBOARD_URL:-}" ] && echo "The dashboard-url input must be provided" && exit 1
+            [ -z "${TEST_HEALTH:-}" ] && echo "The test-health input must be provided" && exit 1
+          fi
 
           echo -e "FAILED_TESTS<<EOF\n${FAILED_TESTS:-No failed tests}\nEOF" | tee -a "$GITHUB_OUTPUT"
           echo "DASHBOARD_URL=$DASHBOARD_URL" | tee -a "$GITHUB_OUTPUT"
@@ -153,15 +158,22 @@ runs:
             export MESSAGE_SUBJECT="${GITHUB_REPOSITORY}"
           fi
 
-          export HEALTH_SLACK_EMOJI=$(echo "$TEST_HEALTH" | cut -d ',' -f 1)
-          export HEALTH_RATE=$(echo "$TEST_HEALTH" | cut -d ',' -f 3)
-
-          if [ "$TEST_RESULT" == "failure" ]; then
+          if [ "$TEST_RESULT" == "cluster-failure" ]; then
+            export MESSAGE_TEXT="The cluster for the integration test for *\`${MESSAGE_SUBJECT}\`* didn't come up."
+            PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/cluster-failure.tpl")
+            echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPUT"
+          elif [ "$TEST_RESULT" == "test-failure" ]; then
+            export HEALTH_SLACK_EMOJI=$(echo "$TEST_HEALTH" | cut -d ',' -f 1)
+            export HEALTH_RATE=$(echo "$TEST_HEALTH" | cut -d ',' -f 3)
             export MESSAGE_TEXT="The integration test for *\`${MESSAGE_SUBJECT}\`* failed."
-            PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/failure.tpl")
+
+            PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/tests-failure.tpl")
             echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPUT"
           else
             export MESSAGE_TEXT="The integration test for *\`${MESSAGE_SUBJECT}\`* succeeded."
+            export HEALTH_SLACK_EMOJI=$(echo "$TEST_HEALTH" | cut -d ',' -f 1)
+            export HEALTH_RATE=$(echo "$TEST_HEALTH" | cut -d ',' -f 3)
+
             PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/success.tpl")
             echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPUT"
           fi
