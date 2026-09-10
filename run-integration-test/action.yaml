@@ -400,7 +400,7 @@ runs:
 
     - name: Construct Dashboard URL
       id: dashboard-url
-      if: steps.prepare-cluster.outcome == 'success'
+      if: ${{ !cancelled() && steps.prepare-cluster.outcome == 'success' }}
       env:
         KUBERNETES_CLUSTER_NAME: ${{ steps.extract.outputs.KUBERNETES_CLUSTER_NAME }}
         CLUSTER_START_TIME: ${{ steps.cluster-start-time.outputs.CLUSTER_START_TIME }}
@@ -417,7 +417,7 @@ runs:
         echo "DASHBOARD_URL=${DASHBOARD_URL}" | tee -a "$GITHUB_OUTPUT"
 
     - name: Calculate Health
-      if: steps.prepare-cluster.outcome == 'success'
+      if: ${{ !cancelled() && steps.prepare-cluster.outcome == 'success' }}
       id: health
       env:
         INTEGRATION_TEST_OUTCOME: ${{ steps.integration-test.outcome }}
