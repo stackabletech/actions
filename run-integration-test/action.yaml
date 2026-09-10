@@ -87,6 +87,9 @@ outputs:
   cluster-end-time:
     description: The date and time this cluster was shut down.
     value: ${{ steps.cluster-end-time.outputs.CLUSTER_END_TIME }}
+  result:
+    description: The result. Either cluster-failure, test-failure or success
+    value: ${{ steps.result.outputs.RESULT }}
   health:
     description: The health of this integration test over the last few tries.
     value: ${{ steps.health.outputs.HEALTH }}
@@ -183,7 +186,7 @@ runs:
           gettext-base
 
     - name: Prepare Replicated Cluster
-      id: prepare-replicated-cluster
+      id: prepare-cluster
       uses: replicatedhq/replicated-actions/create-cluster@0fbf5395cf3e8c744f447bbc92b7de9135eead8e # v1.27.1
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/create-cluster#inputs
@@ -204,7 +207,7 @@ runs:
 
     - name: Set Replicated kubeconfig
       env:
-        KUBECONFIG: ${{ steps.prepare-replicated-cluster.outputs.cluster-kubeconfig }}
+        KUBECONFIG: ${{ steps.prepare-cluster.outputs.cluster-kubeconfig }}
       shell: bash
       run: |
         set -euo pipefail
@@ -248,7 +251,7 @@ runs:
           --dry-run=client -o yaml | kubectl apply -f -
         echo "::endgroup::"
 
-    - name: Install Operator
+    - name: Install Product Operator
       if: inputs.install-operator == 'true'
       env:
         GH_TOKEN: ${{ github.token }}
@@ -369,7 +372,7 @@ runs:
       with:
         # See: https://github.com/replicatedhq/replicated-actions/tree/main/remove-cluster#inputs
         api-token: ${{ inputs.replicated-api-token }}
-        cluster-id: ${{ steps.prepare-replicated-cluster.outputs.cluster-id }}
+        cluster-id: ${{ steps.prepare-cluster.outputs.cluster-id }}
 
     - name: Record Cluster End Time
       id: cluster-end-time
@@ -391,25 +394,28 @@ runs:
 
     - name: Construct Dashboard URL
       id: dashboard-url
+      if: steps.prepare-cluster.result == 'success'
       env:
         KUBERNETES_CLUSTER_NAME: ${{ steps.extract.outputs.KUBERNETES_CLUSTER_NAME }}
         CLUSTER_START_TIME: ${{ steps.cluster-start-time.outputs.CLUSTER_START_TIME }}
         CLUSTER_END_TIME: ${{ steps.cluster-end-time.outputs.CLUSTER_END_TIME }}
-        DASHBOARD_BASE_URL: https://grafana.stackable.build/d/ni7hbw2/integration-tests
+        PREPARE_CLUSTER_RESULT: ${{ steps.prepare-cluster.result }}
+        DASHBOARD_SLUG: d/ni7hbw2/integration-tests
+        GRAFANA_BASE_URL: https://grafana.stackable.build
       shell: bash
       run: |
         set -euo pipefail
 
-        DASHBOARD_URL="${DASHBOARD_BASE_URL}?from=${CLUSTER_START_TIME}&to=${CLUSTER_END_TIME}&timezone=browser&var-github_actions_triggered_by=${GITHUB_TRIGGERING_ACTOR}&var-k8s_cluster_name=${KUBERNETES_CLUSTER_NAME}&dtab=info"
+        DASHBOARD_URL="${GRAFANA_BASE_URL}/${DASHBOARD_SLUG}?from=${CLUSTER_START_TIME}&to=${CLUSTER_END_TIME}&timezone=browser&var-github_actions_triggered_by=${GITHUB_TRIGGERING_ACTOR}&var-k8s_cluster_name=${KUBERNETES_CLUSTER_NAME}&dtab=info"
         echo "${DASHBOARD_URL}"
 
         echo "DASHBOARD_URL=${DASHBOARD_URL}" | tee -a "$GITHUB_OUTPUT"
 
     - name: Calculate Health
-      if: always()
+      if: steps.prepare-cluster.result == 'success'
       id: health
       env:
-        INTEGRATION_TEST_CONCLUSION: ${{ steps.integration-test.conclusion }}
+        INTEGRATION_TEST_RESULT: ${{ steps.integration-test.result }}
         GH_TOKEN: ${{ github.token }}
         LAST_TRIES_LIMIT: "5"
       shell: bash
@@ -428,9 +434,29 @@ runs:
         SUCCESSES=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion == "success")] | length')
         export LAST_TRIES_TOTAL=$(echo $LAST_RUNS | jq '[.[] | select(.conclusion != "")] | length')
 
-        [ "$INTEGRATION_TEST_CONCLUSION" == "success" ] && SUCCESSES=$(echo "$SUCCESSES+1" | bc)
+        [ "$INTEGRATION_TEST_RESULT" == "success" ] && SUCCESSES=$(echo "$SUCCESSES+1" | bc)
         export SUCCESSES="$SUCCESSES"
 
         echo "Number of successes (last ${LAST_TRIES_TOTAL} run(s) + this run): ${SUCCESSES}"
 
         echo "HEALTH=$(cat "${GITHUB_ACTION_PATH}/health" | envsubst | bc)" | tee -a "$GITHUB_OUTPUT"
+
+    - name: Determine Result
+      if: always()
+      id: result
+      env:
+        INTEGRATION_TEST_RESULT: ${{ steps.integration-test.result }}
+        PREPARE_CLUSTER_RESULT: ${{ steps.prepare-cluster.result }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if [ "$PREPARE_CLUSTER_RESULT" == "failure" ]; then
+          RESULT="cluster-failure"
+        elif [ "$INTEGRATION_TEST_RESULT" == "failure" ]; then
+          RESULT="test-failure"
+        else
+          RESULT="success"
+        fi
+
+        echo "RESULT=${RESULT}" | tee -a "$GITHUB_OUTPUT"
