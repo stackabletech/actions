@@ -222,6 +222,7 @@ runs:
         echo "CLUSTER_START_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" | tee -a "$GITHUB_OUTPUT"
 
     - name: Install OpenTelemetry Operator
+      id: install-otel-operator
       shell: bash
       run: |
         set -euo pipefail
@@ -234,6 +235,7 @@ runs:
         echo "::endgroup::"
 
     - name: Install OTLP ingester auth Secret
+      id: install-otlp-ingester
       shell: bash
       env:
         OTLP_BEARER_TOKEN: ${{ inputs.otlp-bearer-token }}
@@ -252,6 +254,7 @@ runs:
         echo "::endgroup::"
 
     - name: Install Product Operator
+      id: install-product-operator
       if: inputs.install-operator == 'true'
       env:
         GH_TOKEN: ${{ github.token }}
@@ -283,6 +286,7 @@ runs:
         | tee -a test-output.log
 
     - name: Apply OpenTelemetry Collectors configurations
+      id: apply-otel-collectors-configs
       shell: bash
       env:
         # These are directly used in the script below, but then used by kustomize/replicated/kustomization.yaml
@@ -445,15 +449,26 @@ runs:
       if: always()
       id: result
       env:
-        INTEGRATION_TEST_RESULT: ${{ steps.integration-test.result }}
+        # Cluster/infra results
+        APPLY_OTEL_COLLECTORS_CONFIGS_RESULT: ${{ steps.apply-otel-collectors-configs.result }}
+        INSTALL_PRODUCT_OPERATOR_RESULT: ${{ steps.install-product-operator.result }}
+        INSTALL_OTEL_OPERATOR_RESULT: ${{ steps.install-otel-operator.result }}
+        INSTALL_OTLP_INGESTER_RESULT: ${{ steps.install-otlp-ingester.result }}
         PREPARE_CLUSTER_RESULT: ${{ steps.prepare-cluster.result }}
+        # Test result
+        INTEGRATION_TEST_RESULT: ${{ steps.integration-test.result }}
       shell: bash
       run: |
         set -euo pipefail
 
-        if [ "$PREPARE_CLUSTER_RESULT" == "failure" ]; then
+        if [ "$APPLY_OTEL_COLLECTORS_CONFIGS_RESULT" == "failure" ] || \
+           [ "$INSTALL_PRODUCT_OPERATOR_RESULT" == "failure" ] || \
+           [ "$INSTALL_OTEL_OPERATOR_RESULT" == "failure" ] || \
+           [ "$INSTALL_OTLP_INGESTER_RESULT" == "failure" ] || \
+           [ "$PREPARE_CLUSTER_RESULT" == "failure" ]
+        then
           RESULT="cluster-failure"
-        elif [ "$INTEGRATION_TEST_RESULT" == "failure" ]; then
+        elif [ "$INTEGRATION_TEST_RESULT" == "failure" ]
           RESULT="test-failure"
         else
           RESULT="success"
