@@ -171,6 +171,9 @@ runs:
             echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPUT"
           else
             export MESSAGE_TEXT="The integration test for *\`${MESSAGE_SUBJECT}\`* succeeded."
+            export HEALTH_SLACK_EMOJI=$(echo "$TEST_HEALTH" | cut -d ',' -f 1)
+            export HEALTH_RATE=$(echo "$TEST_HEALTH" | cut -d ',' -f 3)
+
             PAYLOAD=$(envsubst < "${GITHUB_ACTION_PATH}/templates/integration-test/success.tpl")
             echo -e "PAYLOAD<<EOF\n$PAYLOAD\nEOF" | tee -a "$GITHUB_OUTPUT"
           fi
