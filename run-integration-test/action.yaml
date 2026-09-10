@@ -468,7 +468,7 @@ runs:
            [ "$PREPARE_CLUSTER_RESULT" == "failure" ]
         then
           RESULT="cluster-failure"
-        elif [ "$INTEGRATION_TEST_RESULT" == "failure" ]
+        elif [ "$INTEGRATION_TEST_RESULT" == "failure" ]; then
           RESULT="test-failure"
         else
           RESULT="success"
