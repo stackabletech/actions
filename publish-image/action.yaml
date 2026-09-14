@@ -184,6 +184,14 @@ runs:
         IMAGE_METADATA_DESCRIPTION=$(docker inspect --format='{{.Config.Labels.description}}' "$IMAGE_REPOSITORY_DIGEST")
         IMAGE_METADATA_NAME=$(docker inspect --format='{{.Config.Labels.name}}' "$IMAGE_REPOSITORY_DIGEST")
 
+        # The license of the image itself. It is read from the OCI image label so
+        # that the label and the SBOM cannot disagree.
+        IMAGE_METADATA_LICENSE=$(docker inspect --format='{{index .Config.Labels "org.opencontainers.image.licenses"}}' "$IMAGE_REPOSITORY_DIGEST")
+        if [ "$IMAGE_METADATA_LICENSE" = "<no value>" ]; then
+          IMAGE_METADATA_LICENSE=""
+          echo "::warning::The image carries no org.opencontainers.image.licenses label, the SBOM root component will have no license"
+        fi
+
         # Generate the SBOM.
         # The "-file" cataloger tag disables the file catalogers so no file-type
         # components (RPM-owned files like /etc/aliases) are emitted. They carry
@@ -231,12 +239,16 @@ runs:
 
         # TODO (@Techassi): Replace author with manufacturer, because it is
         # automated, see https://cyclonedx.org/docs/1.6/json/#metadata_component_manufacturer
+        # The license is emitted as an `expression` if it contains an SPDX
+        # operator and as a `license.id` otherwise, because CycloneDX does not
+        # allow a compound expression in the `id` field.
         jq -s \
           --arg description "$IMAGE_METADATA_NAME. $IMAGE_METADATA_DESCRIPTION" \
           --arg purl "$PURL" \
+          --arg license "$IMAGE_METADATA_LICENSE" \
           '{
               "metadata": {
-                  "component": {
+                  "component": ({
                       "description": $description,
                       "supplier": {
                           "name": "Stackable GmbH",
@@ -245,7 +257,14 @@ runs:
                       "author": "Stackable GmbH",
                       "purl": $purl,
                       "publisher": "Stackable GmbH"
-                  }
+                  } + (
+                      if $license == "" then {}
+                      elif ($license | test("\\bAND\\b|\\bOR\\b|\\bWITH\\b|[()]")) then
+                          { "licenses": [{ "expression": $license }] }
+                      else
+                          { "licenses": [{ "license": { "id": $license } }] }
+                      end
+                  ))
               }
           } * .[0]' sbom.slim.json > sbom.merged.json
 
@@ -268,9 +287,9 @@ runs:
         #      expression. Extend the `fix` chain if further deprecated ids show up.
         #   2. Restore top-level metadata that the CycloneDX -> SPDX conversion
         #      drops: credit Stackable as an SBOM creator, and set the name,
-        #      version, originator, supplier and purl of the root container
-        #      package.
-        jq --arg source_name "$SOURCE_NAME" --arg version "$CANONICAL_IMAGE_MANIFEST_TAG" --arg purl "$PURL" '
+        #      version, originator, supplier, purl and declared license of the
+        #      root container package.
+        jq --arg source_name "$SOURCE_NAME" --arg version "$CANONICAL_IMAGE_MANIFEST_TAG" --arg purl "$PURL" --arg license "$IMAGE_METADATA_LICENSE" '
           def fix: gsub("GPL-2.0-with-classpath-exception"; "GPL-2.0-only WITH Classpath-exception-2.0");
           (.. | .licenseDeclared?  // empty) |= (if type == "string" then fix else . end)
         | (.. | .licenseConcluded? // empty) |= (if type == "string" then fix else . end)
@@ -287,6 +306,7 @@ runs:
                   "referenceType": "purl",
                   "referenceLocator": $purl
                 }])
+              | (if $license == "" then . else .licenseDeclared = $license end)
             else . end)
         ' sbom.spdx.raw.json > sbom.spdx.json
 
