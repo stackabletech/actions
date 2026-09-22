@@ -94,11 +94,6 @@ jobs:
       matrix:
         versions: ${{ fromJson(needs.generate-matrix.outputs.versions) }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
       - name: Install boil
         uses: $/setup-tools
         with:
@@ -164,11 +159,6 @@ jobs:
     runs-on: ubuntu-latest
     if: failure() || github.run_attempt > 1
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
       - name: Send Notification
         uses: $/send-slack-notification
         with:
