@@ -15,7 +15,7 @@ permissions: {}
 
 jobs:
   build:
-    uses: ./.github/workflows/build_interu.yml
+    uses: $/.github/workflows/build_interu.yml
     with:
       target: ${{ matrix.target }}
       os: ${{ matrix.os }}

@@ -16,4 +16,4 @@ jobs:
           persist-credentials: false
           submodules: recursive
           fetch-depth: 0
-      - uses: ./check-pr-title
+      - uses: $/check-pr-title

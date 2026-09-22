@@ -31,7 +31,7 @@ jobs:
           persist-credentials: false
 
       - id: shard
-        uses: ./shard
+        uses: $/shard
         with:
           product-name: smoke/container-image
     outputs:
@@ -58,11 +58,11 @@ jobs:
           persist-credentials: false
 
       - name: Free Disk Space
-        uses: ./free-disk-space
+        uses: $/free-disk-space
 
       - name: Build Product Container Image
         id: build
-        uses: ./build-product-image
+        uses: $/build-product-image
         with:
           product-version: ${{ matrix.versions }}
           sdp-version: ${{ env.SDP_VERSION }}
@@ -74,7 +74,7 @@ jobs:
           floating-tag: "true"
 
       - name: Publish Container Image on oci.stackable.tech
-        uses: ./publish-image
+        uses: $/publish-image
         with:
           image-registry-uri: oci.stackable.tech
           image-registry-username: robot$smoke+github-action-build
@@ -94,13 +94,8 @@ jobs:
       matrix:
         versions: ${{ fromJson(needs.generate-matrix.outputs.versions) }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
       - name: Install boil
-        uses: ./setup-tools
+        uses: $/setup-tools
         with:
           boil-version: latest
 
@@ -118,7 +113,7 @@ jobs:
           echo "FLOATING_IMAGE_INDEX_MANIFEST_TAG=[\"$FLOATING_IMAGE_INDEX_MANIFEST_TAG\"]" | tee -a "$GITHUB_OUTPUT"
 
       - name: Publish and Sign Image Index Manifest to oci.stackable.tech
-        uses: ./publish-image-index-manifest
+        uses: $/publish-image-index-manifest
         with:
           image-registry-uri: oci.stackable.tech
           image-registry-username: robot$smoke+github-action-build
@@ -144,7 +139,7 @@ jobs:
           submodules: recursive
 
       - name: Package, Publish, and Sign Helm Chart
-        uses: ./publish-helm-chart
+        uses: $/publish-helm-chart
         with:
           chart-registry-uri: oci.stackable.tech
           chart-registry-username: robot$smoke+github-action-build
@@ -164,13 +159,8 @@ jobs:
     runs-on: ubuntu-latest
     if: failure() || github.run_attempt > 1
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
       - name: Send Notification
-        uses: ./send-slack-notification
+        uses: $/send-slack-notification
         with:
           publish-helm-chart-result: ${{ needs.publish-helm-chart.result }}
           publish-manifests-result: ${{ needs.publish-manifests.result }}

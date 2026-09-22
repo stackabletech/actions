@@ -26,7 +26,7 @@ jobs:
 
       - name: Run Integration Test
         id: test
-        uses: ./run-integration-test
+        uses: $/run-integration-test
         with:
           replicated-api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           otlp-bearer-token: ${{ secrets.OTLP_BEARER_TOKEN }}
@@ -41,7 +41,7 @@ jobs:
           test-mode: profile
 
       - name: Send Notification
-        uses: ./send-slack-notification
+        uses: $/send-slack-notification
         # We always send the notification for testing purposes
         if: always()
         with:
