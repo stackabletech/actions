@@ -15,4 +15,4 @@ jobs:
           persist-credentials: false
           submodules: recursive
           fetch-depth: 0
-      - uses: ./run-prek
+      - uses: $/run-prek
