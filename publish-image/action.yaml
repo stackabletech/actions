@@ -225,7 +225,7 @@ runs:
         # annotations, package IDs, ...) after mergebom has consumed them. Keep
         # the paths a component was found at, the path inside an archive it was
         # unpacked from, and the cataloger name as these are useful for debugging.
-        jq '.components |= map(
+        jq '(.components // empty) |= map(
               if .properties then
                 .properties |= map(select(
                   (.name | startswith("syft:") | not)
