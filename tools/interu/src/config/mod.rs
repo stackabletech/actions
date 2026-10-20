@@ -34,7 +34,7 @@ pub enum Error {
 
     #[snafu(display("failed to deserialize config file at {path} as yaml", path = path.display()))]
     Deserialize {
-        source: serde_yaml::Error,
+        source: yaml_serde::Error,
         path: PathBuf,
     },
 
@@ -89,7 +89,7 @@ impl Config {
         })?;
 
         tracing::debug!("deserialize file contents");
-        let config: Self = serde_yaml::from_str(&contents).context(DeserializeSnafu {
+        let config: Self = yaml_serde::from_str(&contents).context(DeserializeSnafu {
             path: path.as_ref(),
         })?;
 
@@ -287,7 +287,7 @@ impl<'a> Display for Parameters<'a> {
         }
 
         // See: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#multiline-strings
-        let node_groups = serde_yaml::to_string(&node_groups).expect("must be serializable");
+        let node_groups = yaml_serde::to_string(&node_groups).expect("must be serializable");
         write!(f, "INTERU_NODE_GROUPS<<EOF\n{node_groups}\nEOF\n")
     }
 }

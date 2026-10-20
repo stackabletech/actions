@@ -14,7 +14,7 @@ pub enum Error {
 
     #[snafu(display("failed to deserialize test definition file at {path} as yaml", path = path.display()))]
     Deserialize {
-        source: serde_yaml::Error,
+        source: yaml_serde::Error,
         path: PathBuf,
     },
 }
@@ -40,7 +40,7 @@ impl TestDefinition {
         })?;
 
         tracing::debug!("deserialize file contents");
-        let test_definition: Self = serde_yaml::from_str(&contents).context(DeserializeSnafu {
+        let test_definition: Self = yaml_serde::from_str(&contents).context(DeserializeSnafu {
             path: path.as_ref(),
         })?;
 
