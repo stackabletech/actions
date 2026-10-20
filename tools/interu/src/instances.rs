@@ -12,7 +12,7 @@ pub enum Error {
     ReadFile { source: std::io::Error },
 
     #[snafu(display("failed to deserialize file"))]
-    Deserialize { source: serde_yaml::Error },
+    Deserialize { source: yaml_serde::Error },
 }
 
 /// Contains distribution to architecture mappings.
@@ -49,7 +49,7 @@ impl Instances {
         let contents = std::fs::read_to_string(path).context(ReadFileSnafu)?;
 
         tracing::debug!("deserialize file contents");
-        let config: Instances = serde_yaml::from_str(&contents).context(DeserializeSnafu)?;
+        let config: Instances = yaml_serde::from_str(&contents).context(DeserializeSnafu)?;
 
         Ok(config)
     }
