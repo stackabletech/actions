@@ -55,6 +55,11 @@ inputs:
       SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours or 'd' for days.
       See `sleep --help` for the full details.
     default: "30s"
+  mergebom-version:
+    description: |
+      The version of mergebom (tools/mergebom in this repository) used to finalize the SBOMs.
+      It must be released with the tag `mergebom-<version>`.
+    default: "0.1.0"
 runs:
   using: composite
   steps:
@@ -63,6 +68,14 @@ runs:
 
     - name: Set up syft
       uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+
+    - name: Set up mergebom
+      shell: bash
+      env:
+        MERGEBOM_VERSION: ${{ inputs.mergebom-version }}
+        RETRY_TIMEOUT: ${{ inputs.cosign-retry-timeout }}
+        RETRY_COUNT: ${{ inputs.cosign-retries }}
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_mergebom.sh"
 
     - name: Login to Container Registry (${{ inputs.image-registry-uri }})
       uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
@@ -206,109 +219,29 @@ runs:
           --source-name "$SOURCE_NAME" \
           --source-version "$CANONICAL_IMAGE_MANIFEST_TAG" "$IMAGE_REPOSITORY_DIGEST"
 
-        # Merge SBOM components using https://github.com/stackabletech/mergebom
-        curl --fail -L -o mergebom https://repo.stackable.tech/repository/packages/mergebom/stable-$(uname -m)
-        curl --fail -L -o mergebom_signature.bundle https://repo.stackable.tech/repository/packages/mergebom/stable-$(arch)_signature.bundle
+        # Finalize the SBOM with mergebom (tools/mergebom in this repository). It
+        # merges duplicate components, completes the dependency graph, sets the
+        # metadata of the image and writes both the CycloneDX and the SPDX SBOM.
+        # The description is built from the image labels, the license is read
+        # from the OCI image label so that the label and the SBOM cannot disagree.
+        MERGEBOM_ARGS=(
+          --input sbom_raw.json
+          --cyclonedx-output sbom.cdx.json
+          --spdx-output sbom.spdx.json
+          --image-purl "$PURL"
+          --image-description "$IMAGE_METADATA_NAME. $IMAGE_METADATA_DESCRIPTION"
+        )
+        if [ -n "$IMAGE_METADATA_LICENSE" ]; then
+          MERGEBOM_ARGS+=(--image-license "$IMAGE_METADATA_LICENSE")
+        fi
+        mergebom "${MERGEBOM_ARGS[@]}"
 
-        # Verify signature
-        "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign verify-blob \
-          --certificate-identity 'https://github.com/stackabletech/mergebom/.github/workflows/build_binary.yaml@refs/heads/main' \
-          --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-          --bundle mergebom_signature.bundle \
-          mergebom
-
-        # Run mergebom
-        chmod +x ./mergebom
-        ./mergebom sbom_raw.json sbom.json
-
-        # Strip syft's per-component bookkeeping properties (layer IDs, evidence
-        # annotations, package IDs, ...) after mergebom has consumed them. Keep
-        # the paths a component was found at, the path inside an archive it was
-        # unpacked from, and the cataloger name as these are useful for debugging.
-        jq '(.components // empty) |= map(
-              if .properties then
-                .properties |= map(select(
-                  (.name | startswith("syft:") | not)
-                  or (.name | test("^syft:location:[0-9]+:path$"))
-                  or .name == "syft:metadata:virtualPath"
-                  or .name == "syft:package:foundBy"
-                ))
-              else . end
-            | if .properties == [] then del(.properties) else . end)' \
-          sbom.json > sbom.slim.json
-
-        # TODO (@Techassi): Replace author with manufacturer, because it is
-        # automated, see https://cyclonedx.org/docs/1.6/json/#metadata_component_manufacturer
-        # The license is emitted as an `expression` if it contains an SPDX
-        # operator and as a `license.id` otherwise, because CycloneDX does not
-        # allow a compound expression in the `id` field.
-        jq -s \
-          --arg description "$IMAGE_METADATA_NAME. $IMAGE_METADATA_DESCRIPTION" \
-          --arg purl "$PURL" \
-          --arg license "$IMAGE_METADATA_LICENSE" \
-          '{
-              "metadata": {
-                  "component": ({
-                      "description": $description,
-                      "supplier": {
-                          "name": "Stackable GmbH",
-                          "url": ["https://stackable.tech/"]
-                      },
-                      "author": "Stackable GmbH",
-                      "purl": $purl,
-                      "publisher": "Stackable GmbH"
-                  } + (
-                      if $license == "" then {}
-                      elif ($license | test("\\bAND\\b|\\bOR\\b|\\bWITH\\b|[()]")) then
-                          { "licenses": [{ "expression": $license }] }
-                      else
-                          { "licenses": [{ "license": { "id": $license } }] }
-                      end
-                  ))
-              }
-          } * .[0]' sbom.slim.json > sbom.merged.json
-
-        # Attest the SBOM to the image
+        # Attest the CycloneDX SBOM to the image
         "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign attest \
             --yes \
-            --predicate sbom.merged.json \
+            --predicate sbom.cdx.json \
             --type cyclonedx \
             "${IMAGE_REPOSITORY_DIGEST}"
-
-        # Derive an SPDX SBOM from the merged CycloneDX SBOM. We only generate
-        # CycloneDX, SPDX is produced by conversion so both formats describe the
-        # same merged, deduplicated inventory.
-        syft convert sbom.merged.json --output spdx-json=sbom.spdx.raw.json
-
-        # Post-process the converted SPDX SBOM:
-        #   1. Normalise deprecated SPDX license identifiers that strict
-        #      validators reject. syft still emits the deprecated standalone form
-        #      "GPL-2.0-with-classpath-exception"; rewrite it to the valid WITH
-        #      expression. Extend the `fix` chain if further deprecated ids show up.
-        #   2. Restore top-level metadata that the CycloneDX -> SPDX conversion
-        #      drops: credit Stackable as an SBOM creator, and set the name,
-        #      version, originator, supplier, purl and declared license of the
-        #      root container package.
-        jq --arg source_name "$SOURCE_NAME" --arg version "$CANONICAL_IMAGE_MANIFEST_TAG" --arg purl "$PURL" --arg license "$IMAGE_METADATA_LICENSE" '
-          def fix: gsub("GPL-2.0-with-classpath-exception"; "GPL-2.0-only WITH Classpath-exception-2.0");
-          (.. | .licenseDeclared?  // empty) |= (if type == "string" then fix else . end)
-        | (.. | .licenseConcluded? // empty) |= (if type == "string" then fix else . end)
-        | .creationInfo.creators += ["Organization: Stackable GmbH"]
-        | (first(.relationships[]? | select(.relationshipType == "DESCRIBES") | .relatedSpdxElement)) as $root
-        | .packages |= map(
-            if .SPDXID == $root then
-                .name = $source_name
-              | .versionInfo = $version
-              | .supplier = "Organization: Stackable GmbH"
-              | .originator = "Organization: Stackable GmbH"
-              | .externalRefs = ((.externalRefs // []) + [{
-                  "referenceCategory": "PACKAGE-MANAGER",
-                  "referenceType": "purl",
-                  "referenceLocator": $purl
-                }])
-              | (if $license == "" then . else .licenseDeclared = $license end)
-            else . end)
-        ' sbom.spdx.raw.json > sbom.spdx.json
 
         # Attest the SPDX SBOM to the image
         "$GITHUB_ACTION_PATH/../.scripts/actions/retry.sh" cosign attest \

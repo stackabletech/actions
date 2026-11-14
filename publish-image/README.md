@@ -9,9 +9,9 @@ following work:
    `image-repository`.
 2. Push the container image to the specified registry.
 3. Sign the container image (which pushes the signature to the specified registry).
-4. Generate a CycloneDX SBOM via a syft scan and merge its components.
-5. Convert the merged CycloneDX SBOM to SPDX (normalising deprecated license ids).
-6. Attest the image with both the CycloneDX and SPDX SBOMs as predicates (which pushes the
+4. Generate an SBOM via a syft scan and finalize it with [mergebom], which merges its components,
+   sets the image metadata and writes it as CycloneDX and SPDX.
+5. Attest the image with both the CycloneDX and SPDX SBOMs as predicates (which pushes the
    attestations to the specified registry).
 
 ## Inputs and Outputs
@@ -37,9 +37,11 @@ following work:
 | `canonical-source-image-uri`   | Yes                | Human-readable canonical manifest URI, which gets re-tagged by this action, eg `localhost/kafka:...` |
 | `cosign-retries`               | No (3)             | The number of times cosign operations should be retried                                              |
 | `cosign-retry-timeout`         | No (30s)           | Duration to wait before a new cosign operation is retried, format: `NUMBER[SUFFIX]`                  |
+| `mergebom-version`             | No (0.1.0)         | The released version of [mergebom] used to finalize the SBOMs                                        |
 
 ### Outputs
 
 None
 
 [publish-image]: ./action.yaml
+[mergebom]: ../tools/mergebom/README.md
