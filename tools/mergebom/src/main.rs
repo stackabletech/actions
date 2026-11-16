@@ -1,230 +1,366 @@
-use cyclonedx_bom::{
-    models::{
-        component::Classification,
-        dependency::{Dependencies, Dependency},
-    },
-    prelude::*,
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter, Write},
+    path::{Path, PathBuf},
 };
-use std::collections::{HashMap, HashSet};
 
-fn main() {
-    if std::env::args().count() != 3 {
-        eprintln!(
-            "Usage: {} <input-bom> <output-bom>",
-            std::env::args().next().unwrap()
-        );
-        std::process::exit(1);
-    }
+use clap::Parser;
+use cyclonedx_bom::prelude::{Bom, SpecVersion};
+use snafu::{OptionExt, ResultExt, Snafu};
 
-    let reader = std::fs::File::open(std::env::args().nth(1).unwrap()).unwrap();
-    let mut bom = Bom::parse_from_json(reader).unwrap();
+use crate::{cli::Cli, cyclonedx::ImageMetadata};
 
-    // Group components by the cataloger that found them and the path they were found at
-    let mut grouped_components = group_components(&bom);
+mod cli;
+mod cyclonedx;
+mod license;
+mod merge;
+mod spdx_document;
 
-    // Create dependency relationships between jar files and their dependencies
-    // These are the ones that are found by the java-archive-cataloger
-    process_jar_dependencies(&mut bom, &mut grouped_components);
+#[derive(Debug, Snafu)]
+enum Error {
+    #[snafu(display("failed to open the input SBOM {path:?}"))]
+    OpenInput {
+        source: std::io::Error,
+        path: PathBuf,
+    },
 
-    // Merge components that have the same PURL
-    merge_duplicate_components(&mut bom, &grouped_components);
+    #[snafu(display("failed to parse the input SBOM {path:?}"))]
+    ParseInput {
+        source: cyclonedx_bom::errors::JsonReadError,
+        path: PathBuf,
+    },
 
-    let parent_component_bom_ref = bom
+    #[snafu(display("the input SBOM has no root component with a bom-ref"))]
+    MissingRootBomRef,
+
+    #[snafu(display("failed to build the SPDX document"))]
+    BuildSpdxDocument { source: spdx_document::Error },
+
+    #[snafu(display("failed to create the output file {path:?}"))]
+    CreateOutput {
+        source: std::io::Error,
+        path: PathBuf,
+    },
+
+    #[snafu(display("failed to write the CycloneDX SBOM to {path:?}"))]
+    WriteCycloneDx {
+        source: cyclonedx_bom::errors::JsonWriteError,
+        path: PathBuf,
+    },
+
+    #[snafu(display("failed to write the SPDX SBOM to {path:?}"))]
+    WriteSpdx {
+        source: serde_json::Error,
+        path: PathBuf,
+    },
+
+    #[snafu(display("failed to flush the output file {path:?}"))]
+    FlushOutput {
+        source: std::io::Error,
+        path: PathBuf,
+    },
+}
+
+#[snafu::report]
+fn main() -> Result<(), Error> {
+    let cli = Cli::parse();
+
+    let input = File::open(&cli.input).context(OpenInputSnafu { path: &cli.input })?;
+    let mut bom = Bom::parse_from_json(BufReader::new(input))
+        .context(ParseInputSnafu { path: &cli.input })?;
+
+    let image = ImageMetadata {
+        purl: cli.image_purl,
+        description: cli.image_description,
+        license: cli.image_license,
+    };
+
+    finalize(&mut bom, &image)?;
+
+    let spdx_document = spdx_document::build_document(&bom).context(BuildSpdxDocumentSnafu)?;
+
+    write_cyclonedx(bom, cli.cyclonedx_spec_version, &cli.cyclonedx_output)?;
+    write_spdx(&spdx_document, &cli.spdx_output)?;
+
+    Ok(())
+}
+
+/// Merges the components of the syft SBOM and sets the metadata of the image.
+fn finalize(bom: &mut Bom, image: &ImageMetadata) -> Result<(), Error> {
+    let root_bom_ref = bom
         .metadata
         .as_ref()
-        .and_then(|m| m.component.as_ref().and_then(|c| c.bom_ref.as_ref()))
-        .unwrap();
+        .and_then(|metadata| metadata.component.as_ref())
+        .and_then(|component| component.bom_ref.clone())
+        .context(MissingRootBomRefSnafu)?;
 
-    let all_dependencies = bom.dependencies.get_or_insert_with(|| Dependencies(vec![]));
-    let mut parentless_components = vec![];
+    // Merging reads the syft properties, so they are only stripped afterwards.
+    merge::merge_components(bom, &root_bom_ref);
+    cyclonedx::strip_syft_properties(bom);
+    cyclonedx::set_image_metadata(bom, image);
 
-    // For each component without a parent, add a dependency to the parent_component_bom_ref
-    if let Some(components) = bom.components.as_ref() {
-        for component in &components.0 {
-            if !all_dependencies
-                .0
-                .iter()
-                .any(|d| d.dependencies.contains(&component.bom_ref.clone().unwrap()))
-            {
-                parentless_components.push(component.bom_ref.clone().unwrap());
-            }
-        }
-    }
-
-    all_dependencies.0.push(Dependency {
-        dependency_ref: parent_component_bom_ref.clone(),
-        dependencies: parentless_components,
-    });
-
-    // Find components with `type` == "operating-system" and change the value of their `name` attribute to "redhat" if it is "rhel"
-    // This is currently needed since Trivy won't recognize "rhel" as a known operating system
-    if let Some(components) = bom.components.as_mut() {
-        for component in &mut components.0 {
-            if component.component_type == Classification::OperatingSystem
-                && (component.name.as_ref() as &str) == "rhel"
-            {
-                component.name = "redhat".into();
-            }
-        }
-    }
-
-    let mut writer = std::fs::File::create(std::env::args().nth(2).unwrap()).unwrap();
-    bom.output_as_json_v1_5(&mut writer).unwrap();
+    Ok(())
 }
 
-fn group_components(bom: &Bom) -> HashMap<String, HashMap<String, Vec<Component>>> {
-    let mut grouped = HashMap::new();
-    if let Some(components) = &bom.components {
-        for component in &components.0 {
-            if let Some(found_by) = component.get_property("syft:package:foundBy") {
-                if let Some(path) = component.get_property("syft:location:0:path") {
-                    grouped
-                        .entry(found_by)
-                        .or_insert_with(HashMap::new)
-                        .entry(path)
-                        .or_insert_with(Vec::new)
-                        .push(component.clone());
+fn write_cyclonedx(bom: Bom, spec_version: SpecVersion, path: &Path) -> Result<(), Error> {
+    let file = File::create(path).context(CreateOutputSnafu { path })?;
+    let mut writer = BufWriter::new(file);
+    bom.output_as_json(&mut writer, spec_version)
+        .context(WriteCycloneDxSnafu { path })?;
+    writer.flush().context(FlushOutputSnafu { path })
+}
+
+fn write_spdx(document: &spdx_document::Document, path: &Path) -> Result<(), Error> {
+    let file = File::create(path).context(CreateOutputSnafu { path })?;
+    let mut writer = BufWriter::new(file);
+    serde_json::to_writer_pretty(&mut writer, document).context(WriteSpdxSnafu { path })?;
+    writer.flush().context(FlushOutputSnafu { path })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use cyclonedx_bom::{models::component::Classification, validation::Validate};
+    use rstest::{fixture, rstest};
+
+    use super::*;
+
+    /// The syft SBOM of the Kafka image, trimmed to a few components of each kind.
+    const SYFT_SBOM: &str = include_str!("../fixtures/kafka-syft.cdx.json");
+    const IMAGE_PURL: &str =
+        "pkg:oci/kafka@sha256%3Aabc?arch=amd64&repository_url=oci.stackable.tech%2Fsdp%2Fkafka";
+
+    struct Finalized {
+        bom: Bom,
+        spdx: serde_json::Value,
+    }
+
+    #[fixture]
+    fn finalized() -> Finalized {
+        let mut bom = Bom::parse_from_json(SYFT_SBOM.as_bytes())
+            .expect("the fixture should be a valid CycloneDX SBOM");
+        let image = ImageMetadata {
+            purl: IMAGE_PURL.to_owned(),
+            description: Some("Apache Kafka. The Stackable image for Apache Kafka.".to_owned()),
+            license: Some("Apache-2.0".to_owned()),
+        };
+
+        finalize(&mut bom, &image).expect("the fixture should be finalized");
+        let document = spdx_document::build_document(&bom).expect("the SPDX document should build");
+        let spdx = serde_json::to_value(document).expect("the SPDX document should serialize");
+
+        Finalized { bom, spdx }
+    }
+
+    fn components(bom: &Bom) -> &[cyclonedx_bom::models::component::Component] {
+        bom.components
+            .as_ref()
+            .map(|components| components.0.as_slice())
+            .unwrap_or_default()
+    }
+
+    #[rstest]
+    fn merge_duplicate_purls_into_embedded_sbom_component(finalized: Finalized) {
+        let lz4: Vec<_> = components(&finalized.bom)
+            .iter()
+            .filter(|component| component.name.to_string() == "lz4-java")
+            .collect();
+
+        assert_eq!(lz4.len(), 1);
+        assert_eq!(
+            lz4[0]
+                .properties
+                .as_ref()
+                .and_then(|properties| properties
+                    .0
+                    .iter()
+                    .find(|p| p.name == "syft:package:foundBy"))
+                .map(|property| property.value.to_string()),
+            Some("sbom-cataloger".to_owned())
+        );
+        assert_eq!(components(&finalized.bom).len(), 12);
+    }
+
+    #[rstest]
+    fn every_component_is_reachable_from_the_root(finalized: Finalized) {
+        let dependencies = &finalized
+            .bom
+            .dependencies
+            .as_ref()
+            .expect("the SBOM should have dependencies")
+            .0;
+        let children: HashSet<&str> = dependencies
+            .iter()
+            .flat_map(|dependency| dependency.dependencies.iter().map(String::as_str))
+            .collect();
+
+        for component in components(&finalized.bom) {
+            let bom_ref = component
+                .bom_ref
+                .as_deref()
+                .expect("components should have a bom-ref");
+            assert!(children.contains(bom_ref), "{bom_ref:?} is not reachable");
+        }
+    }
+
+    #[rstest]
+    fn strip_syft_bookkeeping_properties(finalized: Finalized) {
+        let property_names: HashSet<String> = components(&finalized.bom)
+            .iter()
+            .flat_map(|component| component.properties.iter().flat_map(|p| &p.0))
+            .map(|property| {
+                property
+                    .name
+                    .chars()
+                    .map(|c| if c.is_ascii_digit() { 'N' } else { c })
+                    .collect()
+            })
+            .collect();
+
+        assert_eq!(
+            property_names,
+            HashSet::from(
+                [
+                    "syft:package:foundBy",
+                    "syft:location:N:path",
+                    "syft:metadata:virtualPath",
+                ]
+                .map(ToOwned::to_owned)
+            )
+        );
+    }
+
+    #[rstest]
+    fn rename_operating_system(finalized: Finalized) {
+        let operating_system = components(&finalized.bom)
+            .iter()
+            .find(|component| component.component_type == Classification::OperatingSystem)
+            .expect("the SBOM should have an operating system component");
+
+        assert_eq!(operating_system.name.to_string(), "redhat");
+    }
+
+    #[rstest]
+    fn set_image_metadata_on_root_component(finalized: Finalized) {
+        let root = finalized
+            .bom
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.component.as_ref())
+            .expect("the SBOM should have a root component");
+
+        assert_eq!(
+            root.purl.as_ref().map(ToString::to_string),
+            Some(IMAGE_PURL.to_owned())
+        );
+        assert_eq!(
+            root.supplier
+                .as_ref()
+                .and_then(|supplier| supplier.name.as_ref())
+                .map(ToString::to_string),
+            Some("Stackable GmbH".to_owned())
+        );
+    }
+
+    #[rstest]
+    fn cyclonedx_output_is_valid(
+        finalized: Finalized,
+        #[values(SpecVersion::V1_5, SpecVersion::V1_6, SpecVersion::V1_7)] version: SpecVersion,
+    ) {
+        let result = finalized.bom.validate_version(version);
+        assert!(result.passed(), "{result:?}");
+
+        let mut output = Vec::new();
+        finalized
+            .bom
+            .output_as_json(&mut output, version)
+            .expect("the SBOM should be written");
+        let written: serde_json::Value =
+            serde_json::from_slice(&output).expect("the output should be JSON");
+        assert_eq!(written["specVersion"], version.to_string());
+    }
+
+    #[rstest]
+    #[case::root("kafka", Some("Organization: Stackable GmbH"))]
+    #[case::rpm("glibc", Some("Organization: Red Hat, Inc."))]
+    #[case::crate_without_known_supplier("adler2", Some("NOASSERTION"))]
+    #[case::jar_without_known_supplier("lz4-java", Some("NOASSERTION"))]
+    fn spdx_package_supplier(
+        finalized: Finalized,
+        #[case] package_name: &str,
+        #[case] expected_supplier: Option<&str>,
+    ) {
+        let package = finalized.spdx["packages"]
+            .as_array()
+            .expect("the document should have packages")
+            .iter()
+            .find(|package| package["name"] == package_name)
+            .expect("the package should exist");
+
+        assert_eq!(package["supplier"].as_str(), expected_supplier);
+    }
+
+    #[rstest]
+    fn spdx_root_package_matches_root_component(finalized: Finalized) {
+        let root = &finalized.spdx["packages"][0];
+
+        assert_eq!(root["primaryPackagePurpose"], "CONTAINER");
+        assert_eq!(root["externalRefs"][0]["referenceLocator"], IMAGE_PURL);
+        assert_eq!(
+            root["description"],
+            "Apache Kafka. The Stackable image for Apache Kafka."
+        );
+        assert_eq!(root["licenseDeclared"], "Apache-2.0");
+    }
+
+    #[rstest]
+    fn spdx_relationships_reference_existing_elements(finalized: Finalized) {
+        let mut ids: HashSet<&str> = finalized.spdx["packages"]
+            .as_array()
+            .expect("the document should have packages")
+            .iter()
+            .filter_map(|package| package["SPDXID"].as_str())
+            .collect();
+        ids.insert("SPDXRef-DOCUMENT");
+
+        for relationship in finalized.spdx["relationships"]
+            .as_array()
+            .expect("the document should have relationships")
+        {
+            for field in ["spdxElementId", "relatedSpdxElement"] {
+                let id = relationship[field]
+                    .as_str()
+                    .expect("the field should be a string");
+                assert!(ids.contains(id), "unknown SPDX ID {id:?}");
+            }
+        }
+    }
+
+    #[rstest]
+    fn spdx_license_refs_are_declared(finalized: Finalized) {
+        let declared: HashSet<&str> = finalized.spdx["hasExtractedLicensingInfos"]
+            .as_array()
+            .map(|infos| {
+                infos
+                    .iter()
+                    .filter_map(|info| info["licenseId"].as_str())
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        for package in finalized.spdx["packages"]
+            .as_array()
+            .expect("the document should have packages")
+        {
+            let license = package["licenseDeclared"]
+                .as_str()
+                .expect("the license should be set");
+            for token in license.split(|c: char| c.is_whitespace() || c == '(' || c == ')') {
+                if token.starts_with("LicenseRef-") {
+                    assert!(declared.contains(token), "undeclared {token:?}");
                 }
             }
         }
-    }
-    grouped
-}
-
-fn process_jar_dependencies(
-    bom: &mut Bom,
-    grouped_components: &mut HashMap<String, HashMap<String, Vec<Component>>>,
-) {
-    if let Some(jars) = grouped_components.get("java-archive-cataloger") {
-        for (jar_file_path, jar_components) in jars {
-            let (parent, children): (Vec<_>, Vec<_>) = jar_components.iter().partition(|c| {
-                c.get_property("syft:metadata:virtualPath").as_ref() == Some(jar_file_path)
-            });
-
-            if let Some(parent) = parent.first() {
-                if !children.is_empty() {
-                    let dependency = Dependency {
-                        dependency_ref: parent.bom_ref.as_ref().unwrap().to_string(),
-                        dependencies: children
-                            .iter()
-                            .filter_map(|c| c.bom_ref.as_ref().map(|r| r.to_string()))
-                            .collect(),
-                    };
-                    bom.dependencies
-                        .get_or_insert_with(|| Dependencies(vec![]))
-                        .0
-                        .push(dependency);
-                }
-            }
-        }
-    }
-}
-
-fn merge_duplicate_components(
-    bom: &mut Bom,
-    grouped_components: &HashMap<String, HashMap<String, Vec<Component>>>,
-) {
-    if let Some(sboms) = grouped_components.get("sbom-cataloger") {
-        let mut purl_map = HashMap::new();
-        for sbom_component in sboms.values().flatten() {
-            if let Some(purl) = &sbom_component.purl {
-                let key = purl.as_ref().split('?').next().unwrap();
-                purl_map.insert(key, sbom_component);
-            }
-        }
-
-        if let Some(components) = bom.components.as_mut() {
-            let mut merged_non_sbom_components = HashMap::<String, String>::new();
-            components.0.retain(|component| {
-                if let Some(component_purl) = &component.purl {
-                    let component_purl = component_purl.as_ref().split('?').next().unwrap();
-
-                    let component_bom_ref = component.bom_ref.as_ref().unwrap();
-
-                    if let Some(sbom_component) = purl_map.get(component_purl) {
-                        let sbom_component_bom_ref = sbom_component.bom_ref.as_ref().unwrap();
-                        update_dependencies(
-                            bom.dependencies.as_mut(),
-                            component_bom_ref,
-                            sbom_component_bom_ref,
-                        );
-                        // only retain if it is the SBOM component
-                        return component_bom_ref == sbom_component_bom_ref;
-                    } else {
-                        // no SBOM component found for this PURL, still merge all other components
-                        if let Some(first_component_bom_ref) =
-                            merged_non_sbom_components.get(component_purl)
-                        {
-                            update_dependencies(
-                                bom.dependencies.as_mut(),
-                                component_bom_ref,
-                                first_component_bom_ref,
-                            );
-                            return false;
-                        } else {
-                            merged_non_sbom_components
-                                .insert(component_purl.to_string(), component_bom_ref.clone());
-                        }
-                    }
-                }
-                true
-            });
-            // Now that dependencies are updated by update_dependencies, there might be duplicate dependencies
-            // Example: If component A (SBOM component) and B (non-SBOM component found by java-archive-cataloger) are actually the same and merged into A,
-            // dependencies from B are updated to point to A. Those dependencies might already be in the list of dependencies of A. So these lists need to be deduplicated.
-
-            // Find entries in dependencies that have the same dependency_ref
-            let mut dedup_map = HashMap::new();
-            if let Some(dependencies) = bom.dependencies.as_mut() {
-                for dependency in &dependencies.0 {
-                    let entry = dedup_map
-                        .entry(&dependency.dependency_ref)
-                        .or_insert_with(HashSet::new);
-                    entry.extend(dependency.dependencies.clone());
-                }
-                dependencies.0 = dedup_map
-                    .into_iter()
-                    .map(|(k, v)| Dependency {
-                        dependency_ref: k.to_string(),
-                        dependencies: v.into_iter().collect(),
-                    })
-                    .collect();
-            }
-        }
-    }
-}
-
-fn update_dependencies(
-    dependencies: Option<&mut Dependencies>,
-    old_component_bom_ref: &String,
-    new_component_bom_ref: &str,
-) {
-    if let Some(dependencies) = dependencies {
-        for dependency in &mut dependencies.0 {
-            if &dependency.dependency_ref == old_component_bom_ref {
-                dependency.dependency_ref = new_component_bom_ref.to_owned();
-            }
-            for dep in &mut dependency.dependencies {
-                if dep == old_component_bom_ref {
-                    *dep = new_component_bom_ref.to_owned();
-                }
-            }
-        }
-    }
-}
-
-trait ComponentExt {
-    fn get_property(&self, name: &str) -> Option<String>;
-}
-
-impl ComponentExt for Component {
-    fn get_property(&self, name: &str) -> Option<String> {
-        self.properties.as_ref().and_then(|props| {
-            props
-                .0
-                .iter()
-                .find(|p| p.name == name)
-                .map(|p| p.value.to_string())
-        })
     }
 }
