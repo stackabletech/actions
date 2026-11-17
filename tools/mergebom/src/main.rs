@@ -190,17 +190,35 @@ mod tests {
             .as_ref()
             .expect("the SBOM should have dependencies")
             .0;
-        let children: HashSet<&str> = dependencies
-            .iter()
-            .flat_map(|dependency| dependency.dependencies.iter().map(String::as_str))
-            .collect();
+        let root_bom_ref = finalized
+            .bom
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.component.as_ref())
+            .and_then(|component| component.bom_ref.as_deref())
+            .expect("the root component should have a bom-ref");
+
+        // Being a dependency of some component is not enough, see the dependency cycles in
+        // merge.rs. So the graph is walked from the root.
+        let mut reachable = HashSet::new();
+        let mut pending = vec![root_bom_ref];
+        while let Some(bom_ref) = pending.pop() {
+            if reachable.insert(bom_ref) {
+                pending.extend(
+                    dependencies
+                        .iter()
+                        .filter(|dependency| dependency.dependency_ref == bom_ref)
+                        .flat_map(|dependency| dependency.dependencies.iter().map(String::as_str)),
+                );
+            }
+        }
 
         for component in components(&finalized.bom) {
             let bom_ref = component
                 .bom_ref
                 .as_deref()
                 .expect("components should have a bom-ref");
-            assert!(children.contains(bom_ref), "{bom_ref:?} is not reachable");
+            assert!(reachable.contains(bom_ref), "{bom_ref:?} is not reachable");
         }
     }
 
