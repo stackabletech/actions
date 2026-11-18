@@ -65,7 +65,7 @@ inputs:
   kuttl-version:
     description: Version of kubectl-kuttl
     # See https://github.com/kudobuilder/kuttl/releases for latest version
-    default: 0.22.0
+    default: 0.28.0
   helm-version:
     description: Version of helm
     # See https://github.com/helm/helm/releases for latest version
