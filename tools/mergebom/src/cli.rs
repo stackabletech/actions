@@ -12,7 +12,6 @@ use cyclonedx_bom::models::bom::SpecVersion;
 #[command(version, about)]
 pub struct Cli {
     /// Path of the CycloneDX SBOM produced by syft.
-    #[arg(long)]
     pub input: PathBuf,
 
     /// Path the finalized CycloneDX SBOM is written to.
@@ -20,7 +19,7 @@ pub struct Cli {
     pub cyclonedx_output: PathBuf,
 
     /// CycloneDX specification version of the finalized CycloneDX SBOM.
-    #[arg(long, default_value = "1.7", value_parser = parse_spec_version)]
+    #[arg(long, default_value_t = SpecVersion::V1_7, value_parser = parse_spec_version)]
     pub cyclonedx_spec_version: SpecVersion,
 
     /// Path the SPDX 2.3 SBOM is written to.

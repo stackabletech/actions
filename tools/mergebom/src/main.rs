@@ -18,13 +18,13 @@ mod spdx_document;
 
 #[derive(Debug, Snafu)]
 enum Error {
-    #[snafu(display("failed to open the input SBOM {path:?}"))]
+    #[snafu(display("failed to open the input SBOM file at {path:?}"))]
     OpenInput {
         source: std::io::Error,
         path: PathBuf,
     },
 
-    #[snafu(display("failed to parse the input SBOM {path:?}"))]
+    #[snafu(display("failed to parse the input SBOM file at {path:?}"))]
     ParseInput {
         source: cyclonedx_bom::errors::JsonReadError,
         path: PathBuf,
@@ -36,7 +36,7 @@ enum Error {
     #[snafu(display("failed to build the SPDX document"))]
     BuildSpdxDocument { source: spdx_document::Error },
 
-    #[snafu(display("failed to create the output file {path:?}"))]
+    #[snafu(display("failed to create the output file at {path:?}"))]
     CreateOutput {
         source: std::io::Error,
         path: PathBuf,
@@ -54,7 +54,7 @@ enum Error {
         path: PathBuf,
     },
 
-    #[snafu(display("failed to flush the output file {path:?}"))]
+    #[snafu(display("failed to flush the output file at {path:?}"))]
     FlushOutput {
         source: std::io::Error,
         path: PathBuf,
