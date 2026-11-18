@@ -1,1 +1,2 @@
 send-slack-notification/templates/* linguist-language=yaml
+tools/mergebom/fixtures/** linguist-generated
