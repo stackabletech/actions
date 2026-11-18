@@ -27,7 +27,7 @@ pub struct ImageMetadata {
     pub description: Option<String>,
 
     /// SPDX license identifier or expression.
-    pub license: Option<String>,
+    pub license: Option<spdx::Expression>,
 }
 
 /// Removes the syft properties that are only needed while merging.
@@ -80,7 +80,7 @@ pub fn set_image_metadata(bom: &mut Bom, image: &ImageMetadata) {
         component.publisher = Some(NormalizedString::new(ORGANIZATION_NAME));
         component.authors = Some(vec![organization_contact()]);
         component.description = image.description.as_deref().map(NormalizedString::new);
-        component.licenses = image.license.as_deref().map(license_choice);
+        component.licenses = image.license.as_ref().map(license_choice);
     }
 }
 
@@ -98,11 +98,12 @@ fn organization_contact() -> OrganizationalContact {
     OrganizationalContact::new(ORGANIZATION_NAME, Some(ORGANIZATION_EMAIL))
 }
 
-/// Builds the license of the image, which the CLI already validated as an SPDX expression.
+/// Builds the license of the image.
 ///
 /// CycloneDX only allows SPDX license IDs as `license.id`, so everything else (compound
 /// expressions, `LicenseRef-`s) becomes an expression.
-fn license_choice(license: &str) -> Licenses {
+fn license_choice(license: &spdx::Expression) -> Licenses {
+    let license = license.as_ref();
     let choice = if spdx::license_id(license).is_some() {
         LicenseChoice::License(License::license_id(license))
     } else {
@@ -166,7 +167,10 @@ mod tests {
     #[case("(MIT)", true)]
     #[case("LicenseRef-Stackable", true)]
     fn license_expression_detection(#[case] license: &str, #[case] is_expression: bool) {
-        let licenses = license_choice(license);
+        let license = license
+            .parse()
+            .expect("the license should be a valid SPDX expression");
+        let licenses = license_choice(&license);
         assert_eq!(
             matches!(licenses.0.as_slice(), [LicenseChoice::Expression(_)]),
             is_expression

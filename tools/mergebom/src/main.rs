@@ -143,7 +143,11 @@ mod tests {
         let image = ImageMetadata {
             purl: IMAGE_PURL.to_owned(),
             description: Some("Apache Kafka. The Stackable image for Apache Kafka.".to_owned()),
-            license: Some("Apache-2.0".to_owned()),
+            license: Some(
+                "Apache-2.0"
+                    .parse()
+                    .expect("the license should be a valid SPDX expression"),
+            ),
         };
 
         finalize(&mut bom, &image).expect("the fixture should be finalized");

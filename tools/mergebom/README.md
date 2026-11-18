@@ -15,8 +15,7 @@ party packages do not inherit the supplier of the image, and deprecated license 
 canonicalised.
 
 ```shell
-mergebom \
-  --input sbom_raw.json \
+mergebom sbom_raw.json \
   --cyclonedx-output sbom.cdx.json \
   --spdx-output sbom.spdx.json \
   --image-purl 'pkg:oci/kafka@sha256%3A...?arch=amd64&repository_url=oci.stackable.tech%2Fsdp%2Fkafka' \
