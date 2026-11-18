@@ -17,7 +17,7 @@ on:
 permissions: {}
 
 env:
-  RUST_VERSION: 1.97.1
+  RUST_VERSION: 1.99.0
 
 jobs:
   build:
