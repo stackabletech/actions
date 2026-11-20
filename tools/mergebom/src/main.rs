@@ -97,6 +97,7 @@ fn finalize(bom: &mut Bom, image: &ImageMetadata) -> Result<(), Error> {
     // Merging reads the syft properties, so they are only stripped afterwards.
     merge::merge_components(bom, &root_bom_ref);
     cyclonedx::strip_syft_properties(bom);
+    license::normalize_licenses(bom);
     cyclonedx::set_image_metadata(bom, image);
 
     Ok(())
