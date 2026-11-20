@@ -105,7 +105,7 @@ impl Config {
             .context(UnknownProfileNameSnafu { profile_name })
     }
 
-    pub fn validate_test_options<P>(&self, profile_name: &String, path: P) -> Result<(), Error>
+    pub fn validate_test_options<P>(&self, profile_name: &str, path: P) -> Result<(), Error>
     where
         P: AsRef<Path>,
     {

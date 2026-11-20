@@ -1,0 +1,58 @@
+---
+name: Build mergebom
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      target:
+        required: true
+        type: string
+      upload:
+        default: false
+        type: boolean
+
+permissions: {}
+
+env:
+  RUST_VERSION: 1.99.0
+
+jobs:
+  build:
+    name: Build mergebom-${{ inputs.target }}
+    runs-on: ${{ inputs.os }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Rust Toolchain
+        env:
+          RUST_TARGET: ${{ inputs.target }}
+        shell: bash
+        run: rustup toolchain install "${RUST_VERSION}" --target "${RUST_TARGET}"
+
+      - name: Run Tests
+        run: cargo test --package mergebom
+
+      - name: Build Binary
+        env:
+          TARGET: ${{ inputs.target }}
+        run: cargo build --target "$TARGET" --release --package mergebom
+
+      - name: Rename Binary
+        env:
+          TARGET: ${{ inputs.target }}
+        run: mv "target/$TARGET/release/mergebom" "mergebom-$TARGET"
+
+      - name: Upload Artifact
+        if: inputs.upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mergebom-${{ inputs.target }}
+          path: mergebom-${{ inputs.target }}
