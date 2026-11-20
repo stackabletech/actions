@@ -225,7 +225,7 @@ runs:
         # The description is built from the image labels, the license is read
         # from the OCI image label so that the label and the SBOM cannot disagree.
         MERGEBOM_ARGS=(
-          --input sbom_raw.json
+          sbom_raw.json
           --cyclonedx-output sbom.cdx.json
           --spdx-output sbom.spdx.json
           --image-purl "$PURL"
