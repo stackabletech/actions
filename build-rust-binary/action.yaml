@@ -34,6 +34,9 @@ inputs:
     description: The CycloneDX spec version.
     required: false
     default: "1.5"
+  cyclonedx-source-path:
+    description: The path to the source code of the binary where cargo-cyclonedx places the SBOM.
+    required: false
 
 runs:
   using: composite
@@ -147,6 +150,7 @@ runs:
     - name: Rename SBOM
       if: inputs.cargo-cyclonedx-version
       env:
+        CYCLONEDX_SOURCE_PATH: ${{ inputs.cyclonedx-source-path }}
         TARGET: ${{ inputs.target }}
         NAME: ${{ inputs.name }}
       shell: bash
@@ -154,4 +158,4 @@ runs:
         set -euo pipefail
         [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
-        mv "rust/${NAME}/${NAME}_bin.cdx.xml" "${NAME}-${TARGET}.cdx.xml"
+        mv "${CYCLONEDX_SOURCE_PATH}/${NAME}/${NAME}_bin.cdx.xml" "${NAME}-${TARGET}.cdx.xml"
