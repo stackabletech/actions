@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rand::{distributions::WeightedIndex, prelude::Distribution as _, thread_rng};
+use rand::{distr::weighted::WeightedIndex, prelude::Distribution as _};
 use serde::Deserialize;
 use snafu::{OptionExt, ResultExt, Snafu};
 use tracing::instrument;
@@ -128,7 +128,7 @@ impl Config {
             profile::Strategy::Weighted(options) => {
                 let weights: Vec<_> = options.weights.iter().map(|w| w.weight).collect();
                 let random_distribution = WeightedIndex::new(weights).unwrap();
-                let mut rng = thread_rng();
+                let mut rng = rand::rng();
 
                 let index = random_distribution.sample(&mut rng);
                 let weight = options.weights.get(index).expect("always valid index");

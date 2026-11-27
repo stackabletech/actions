@@ -15,7 +15,7 @@ on:
         type: boolean
 
 env:
-  RUST_VERSION: 1.97.1
+  RUST_VERSION: 1.100.0
 
 jobs:
   build:
