@@ -142,7 +142,7 @@ runs:
         set -euo pipefail
         [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
-        mv "target/$TARGET/release/$NAME" "$NAME-$TARGET"
+        mv "target/${TARGET}/release/${NAME}" "${NAME}-${TARGET}"
 
     - name: Rename SBOM
       if: inputs.cargo-cyclonedx-version
@@ -154,4 +154,4 @@ runs:
         set -euo pipefail
         [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
-        mv "rust/$NAME/$NAME_bin.cdx.xml" "$NAME-$TARGET.cdx.xml"
+        mv "rust/${NAME}/${NAME}_bin.cdx.xml" "${NAME}-${TARGET}.cdx.xml"
