@@ -125,7 +125,7 @@ runs:
     - name: Generate SBOM
       if: inputs.cargo-cyclonedx-version
       env:
-        CYCLONEDX_SPEC_VERSION: ${{ inputs.cylonedx-spec-version }}
+        CYCLONEDX_SPEC_VERSION: ${{ inputs.cyclonedx-spec-version }}
       shell: bash
       run: |
         set -euo pipefail
