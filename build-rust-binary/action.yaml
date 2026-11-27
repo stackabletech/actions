@@ -1,0 +1,149 @@
+---
+name: Build Rust Binary
+description: This action builds a single Rust binary
+
+inputs:
+  toolchain:
+    description: The toolchain version to install.
+    required: true
+  components:
+    description: The toolchain components to install.
+    required: false
+    default: ""
+  target:
+    description: The target, like x86_64-unknown-linux-gnu.
+    required: true
+  name:
+    description: The name of the binary to compile.
+    required: true
+  rustup-version:
+    description: The version of rustup to install. UNUSED
+    required: false
+    default: latest
+  cargo-auditable-version:
+    description: |
+      The version cargo-auditable. Also instruct this action to build the binary using
+      cargo-auditable.
+    required: false
+  cargo-cyclonedx-version:
+    description: |
+      The version of cargo-cyclonedx. Also instructs the action to generate an SBOM with
+      cargo-cyclonedx.
+    required: false
+  cyclonedx-spec-version:
+    description: The CycloneDX spec version.
+    required: false
+    default: "1.5"
+
+runs:
+  using: composite
+  steps:
+    - name: Format Toolchain Cache Key
+      id: toolchain-cache-key
+      shell: bash
+      env:
+        COMPONENTS: ${{ inputs.components }}
+        TOOLCHAIN: ${{ inputs.toolchain }}
+        TARGET: ${{ inputs.target }}
+      run: |
+        set -euo pipefail
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
+
+        COMPONENTS=${COMPONENTS//,/_}
+
+        echo "CACHE_KEY=rust-toolchain-${TOOLCHAIN}-target-${TARGET}-components-${COMPONENTS}" | tee -a "$GITHUB_OUTPUT"
+
+    - name: Setup Toolchain Cache
+      id: toolchain-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ~/.rustup/toolchains
+        key: ${{ steps.toolchain-cache-key.outputs.CACHE_KEY }}
+
+    - name: Setup Toolchain
+      if: ${{ steps.toolchain-cache.outputs.cache-hit != 'true' }}
+      env:
+        COMPONENTS: ${{ inputs.components }}
+        TOOLCHAIN: ${{ inputs.toolchain }}
+        TARGET: ${{ inputs.target }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
+
+        rustup toolchain install "${TOOLCHAIN}" --target "${TARGET}" --component "${COMPONENTS}"
+
+    - name: Setup Cache
+      # Only cache build artifacts if this is run as part of a PR to avoid potential cache poisoning
+      # attacks.
+      if: github.event_name == 'pull_request'
+      uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+
+    - name: Setup cargo-auditable (${{ inputs.cargo-auditable-version }})
+      env:
+        CARGO_AUDITABLE_VERSION: ${{ inputs.cargo-auditable-version }}
+      shell: bash
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_cargo-auditable.sh"
+
+    - name: Setup cargo-cyclonedx (${{ inputs.cargo-cyclonedx-version }})
+      env:
+        CARGO_CYCLONEDX_VERSION: ${{ inputs.cargo-cyclonedx-version }}
+      shell: bash
+      run: "$GITHUB_ACTION_PATH/../.scripts/actions/install_cargo-cyclonedx.sh"
+
+    - name: Build Binary
+      if: ${{ !inputs.cargo-auditable-version }}
+      env:
+        TARGET: ${{ inputs.target }}
+        NAME: ${{ inputs.name }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
+
+        cargo build --target "$TARGET" --release --package "$NAME"
+
+    - name: Build Binary with cargo-auditable
+      if: inputs.cargo-auditable-version
+      env:
+        TARGET: ${{ inputs.target }}
+        NAME: ${{ inputs.name }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
+
+        cargo auditable --quiet build --target "$TARGET" --release --package "$NAME"
+
+    - name: Generate SBOM
+      if: inputs.cargo-cyclonedx-version
+      env:
+        CYCLONEDX_SPEC_VERSION: ${{ inputs.cylonedx-spec-version }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
+
+        cargo cyclonedx --all --spec-version "$CYCLONEDX_SPEC_VERSION" --describe binaries
+
+    - name: Rename Binary
+      env:
+        TARGET: ${{ inputs.target }}
+        NAME: ${{ inputs.name }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
+
+        mv "target/$TARGET/release/$NAME" "$NAME-$TARGET"
+
+    - name: Rename SBOM
+      if: inputs.cargo-cyclonedx-version
+      env:
+        TARGET: ${{ inputs.target }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [ -n "${RUNNER_DEBUG+set}" ] && set -x
+
+        mv "rust/$NAME/$NAME_bin.cdx.xml" "$NAME-$TARGET.cdx.xml"
