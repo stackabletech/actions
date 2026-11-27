@@ -27,25 +27,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Rust Toolchain
-        env:
-          RUST_TARGETS: ${{ inputs.target }}
-        shell: bash
-        # NOTE: target is a comma separated list of targets, which is fine here
-        # but further down it would break. Maybe we want to validate the target
-        # input is actually one target (and use the matrix for building multiple
-        # targets in parallel)
-        run: rustup toolchain install "${RUST_VERSION}" --target "${RUST_TARGETS}"
-
       - name: Build Binary
-        env:
-          TARGET: ${{ inputs.target }}
-        run: cargo build --target "$TARGET" --release --package interu
-
-      - name: Rename Binary
-        env:
-          TARGET: ${{ inputs.target }}
-        run: mv "target/$TARGET/release/interu" "interu-$TARGET"
+        uses: $/build-rust-binary
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          target: ${{ inputs.target }}
+          name: interu
 
       - name: Upload Artifact
         if: inputs.upload
