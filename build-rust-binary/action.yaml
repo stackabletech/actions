@@ -148,6 +148,7 @@ runs:
       if: inputs.cargo-cyclonedx-version
       env:
         TARGET: ${{ inputs.target }}
+        NAME: ${{ inputs.name }}
       shell: bash
       run: |
         set -euo pipefail
