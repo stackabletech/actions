@@ -14,5 +14,5 @@ else
 fi
 
 tar --directory="/tmp/cargo-cyclonedx" -Jxvf /tmp/cargo-cyclonedx/cargo-cyclonedx.tar.xz "cargo-cyclonedx-${ARCH}-unknown-linux-gnu/cargo-cyclonedx"
-sudo install -m 755 -t /usr/local/bin /tmp/cargo-cyclonedx/cargo-cyclonedx
+sudo install -m 755 -t /usr/local/bin "/tmp/cargo-cyclonedx/cargo-cyclonedx-${ARCH}-unknown-linux-gnu/cargo-cyclonedx"
 rm -rf /tmp/cargo-cyclonedx
