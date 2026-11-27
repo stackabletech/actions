@@ -33,6 +33,7 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           target: ${{ inputs.target }}
           name: interu
+          cargo-cyclonedx-version: latest
 
       - name: Upload Artifact
         if: inputs.upload
