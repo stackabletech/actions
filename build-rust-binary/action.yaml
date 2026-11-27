@@ -50,6 +50,7 @@ runs:
         [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
         COMPONENTS=${COMPONENTS//,/_}
+        COMPONENTS=${COMPONENTS:-none}
 
         echo "CACHE_KEY=rust-toolchain-${TOOLCHAIN}-target-${TARGET}-components-${COMPONENTS}" | tee -a "$GITHUB_OUTPUT"
 
@@ -71,7 +72,11 @@ runs:
         set -euo pipefail
         [ -n "${RUNNER_DEBUG+set}" ] && set -x
 
-        rustup toolchain install "${TOOLCHAIN}" --target "${TARGET}" --component "${COMPONENTS}"
+        if [ -z "$COMPONENTS" ]; then
+          rustup toolchain install "${TOOLCHAIN}" --target "${TARGET}"
+        else
+          rustup toolchain install "${TOOLCHAIN}" --target "${TARGET}" --component "${COMPONENTS}"
+        fi
 
     - name: Setup Cache
       # Only cache build artifacts if this is run as part of a PR to avoid potential cache poisoning
